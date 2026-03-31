@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] — 2026-03-31
+
+- **Plan hierarchy search:** Full-text style search across chapters, goals, goal details, policies, sub-policies, and sub-levels. Multi-word queries use AND matching (all words must appear). Results are ranked by match position and specificity; choosing a result jumps all cascaded dropdowns to that node without changing record metadata or action text.
+- **Tests:** `buildPlanSearchIndex`, `searchPlan`, and integration coverage.
+
 ## [0.4.0] — 2026-03-31
 
 **Review-ready release:** library, validation, exports, tooling.

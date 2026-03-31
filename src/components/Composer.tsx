@@ -1,4 +1,5 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubPolicy } from "../types";
+import type { HierarchyJumpTarget } from "../planSearch/types";
 import {
   chapterLabel,
   goalLabel,
@@ -6,6 +7,7 @@ import {
   subLevelLabel,
   subPolicyOptionLabel,
 } from "../labels";
+import { HierarchySearch } from "./HierarchySearch";
 
 export interface ComposerProps {
   data: PlanData;
@@ -37,6 +39,7 @@ export interface ComposerProps {
   onCopyJson: () => void;
   onDownloadJson: () => void;
   onPrint: () => void;
+  onHierarchyJump: (target: HierarchyJumpTarget) => void;
 }
 
 export function Composer(props: ComposerProps) {
@@ -70,6 +73,7 @@ export function Composer(props: ComposerProps) {
     onCopyJson,
     onDownloadJson,
     onPrint,
+    onHierarchyJump,
   } = props;
 
   const chapters = data.chapters;
@@ -118,6 +122,8 @@ export function Composer(props: ComposerProps) {
 
       <section className="card print-section" aria-labelledby="hierarchy-heading">
         <h2 id="hierarchy-heading">Plan hierarchy</h2>
+
+        <HierarchySearch data={data} onJump={onHierarchyJump} />
 
         <div className="field">
           <label htmlFor="chapter">Chapter</label>

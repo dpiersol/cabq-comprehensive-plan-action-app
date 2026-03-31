@@ -21,6 +21,7 @@ import {
 } from "./savedActionsStore";
 import { Composer } from "./components/Composer";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
+import type { HierarchyJumpTarget } from "./planSearch/types";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 
@@ -312,6 +313,16 @@ export function App() {
     globalThis.print?.();
   };
 
+  const applyHierarchyJump = (t: HierarchyJumpTarget) => {
+    setChapterIdx(t.chapterIdx);
+    setGoalIdx(t.goalIdx);
+    setGoalDetailIdx(t.goalDetailIdx);
+    setPolicyIdx(t.policyIdx);
+    setSubPolicyIdx(t.subPolicyIdx);
+    setSubLevelIdx(t.subLevelIdx);
+    setValidationErrors([]);
+  };
+
   if (loadError) {
     return (
       <div className="app-shell">
@@ -412,6 +423,7 @@ export function App() {
             onCopyJson={copyJson}
             onDownloadJson={downloadJson}
             onPrint={onPrint}
+            onHierarchyJump={applyHierarchyJump}
           />
         )}
         {tab === "library" && (
