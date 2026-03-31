@@ -64,6 +64,9 @@ describe("draftStorage", () => {
       subPolicyIdx: 1,
       subLevelIdx: 0,
       actionDetails: "x",
+      title: "",
+      department: "",
+      referenceId: "",
     });
     expect(d.subLevelIdx).toBe(0);
     expect(d.subPolicyIdx).toBe(1);
@@ -78,6 +81,9 @@ describe("draftStorage", () => {
       subPolicyIdx: 0,
       subLevelIdx: 0,
       actionDetails: "",
+      title: "",
+      department: "",
+      referenceId: "",
     });
     expect(d.subLevelIdx).toBe(-1);
   });

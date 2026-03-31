@@ -1,0 +1,139 @@
+import { useMemo, useState } from "react";
+import type { PlanData } from "../types";
+import { loadSavedActions, type SavedAction } from "../savedActionsStore";
+import { resolveSelection } from "../planSelection";
+import { policyLabel, chapterLabel } from "../labels";
+
+export interface SavedActionsPanelProps {
+  plan: PlanData;
+  version: number;
+  onEdit: (action: SavedAction) => void;
+  onDuplicate: (action: SavedAction) => void;
+  onDelete: (id: string) => void;
+  onExportAll: () => void;
+}
+
+export function SavedActionsPanel({
+  plan,
+  version,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onExportAll,
+}: SavedActionsPanelProps) {
+  const [query, setQuery] = useState("");
+  const actions = useMemo(() => {
+    void version;
+    const list = loadSavedActions();
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((a) => {
+      const t = a.snapshot.title.toLowerCase();
+      const d = a.snapshot.department.toLowerCase();
+      const r = a.snapshot.referenceId.toLowerCase();
+      const sel = resolveSelection(plan, a.snapshot);
+      const pol = sel.policy ? policyLabel(sel.policy).toLowerCase() : "";
+      return t.includes(q) || d.includes(q) || r.includes(q) || pol.includes(q);
+    });
+  }, [plan, version, query]);
+
+  if (actions.length === 0 && !query) {
+    return (
+      <section className="card">
+        <h2>Saved actions</h2>
+        <p className="empty-hint">
+          No saved actions yet. Complete the composer and choose <strong>Save to library</strong>.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="card">
+      <div className="library-toolbar">
+        <h2>Saved actions</h2>
+        <div className="library-actions no-print">
+          <input
+            type="search"
+            className="search-input"
+            placeholder="Filter by title, department, reference, or policy…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Filter saved actions"
+          />
+          <button type="button" className="btn btn-secondary" onClick={onExportAll}>
+            Export all (JSON)
+          </button>
+        </div>
+      </div>
+
+      {actions.length === 0 ? (
+        <p className="empty-hint">No matches for your filter.</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="saved-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Policy</th>
+                <th>Updated</th>
+                <th className="no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {actions.map((a) => {
+                const sel = resolveSelection(plan, a.snapshot);
+                const pol = sel.policy ? policyLabel(sel.policy) : "—";
+                const ch = sel.chapter ? chapterLabel(sel.chapter) : "—";
+                return (
+                  <tr key={a.id}>
+                    <td>
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => onEdit(a)}
+                        title="Open in composer"
+                      >
+                        {a.snapshot.title.trim() || "(Untitled)"}
+                      </button>
+                      <div className="muted small">{ch}</div>
+                    </td>
+                    <td>{a.snapshot.department.trim() || "—"}</td>
+                    <td className="cell-clip" title={pol}>
+                      {pol}
+                    </td>
+                    <td className="muted small">
+                      {new Date(a.updatedAt).toLocaleString()}
+                    </td>
+                    <td className="no-print table-actions">
+                      <button type="button" className="btn btn-small" onClick={() => onEdit(a)}>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-small"
+                        onClick={() => onDuplicate(a)}
+                      >
+                        Duplicate
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-small btn-danger"
+                        onClick={() => {
+                          if (globalThis.confirm?.("Delete this saved action?")) onDelete(a.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}

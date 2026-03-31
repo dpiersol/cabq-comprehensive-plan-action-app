@@ -1,23 +1,56 @@
 import { useEffect, useMemo, useState } from "react";
 import { APP_VERSION } from "./appVersion";
-import { buildActionRecord } from "./actionRecord";
+import { buildActionRecordFromSnapshot } from "./actionRecord";
 import {
   clearDraftStorage,
   emptyDraft,
   loadDraftFromStorage,
   normalizeDraft,
   saveDraftToStorage,
+  type DraftSnapshot,
 } from "./draftStorage";
-import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubPolicy } from "./types";
+import type { PlanData } from "./types";
+import { validateDraftForExport, validateDraftForSave } from "./validation";
 import {
-  chapterLabel,
-  goalLabel,
-  policyLabel,
-  subLevelLabel,
-  subPolicyOptionLabel,
-} from "./labels";
+  deleteAction,
+  duplicateSnapshot,
+  loadSavedActions,
+  saveNewAction,
+  updateAction,
+  type SavedAction,
+} from "./savedActionsStore";
+import { Composer } from "./components/Composer";
+import { SavedActionsPanel } from "./components/SavedActionsPanel";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
+
+type Tab = "compose" | "library";
+
+function buildSnapshot(state: {
+  chapterIdx: number;
+  goalIdx: number;
+  goalDetailIdx: number;
+  policyIdx: number;
+  subPolicyIdx: number;
+  subLevelIdx: number;
+  actionDetails: string;
+  title: string;
+  department: string;
+  referenceId: string;
+}): DraftSnapshot {
+  return {
+    chapterIdx: state.chapterIdx,
+    goalIdx: state.goalIdx,
+    goalDetailIdx: state.goalDetailIdx,
+    policyIdx: state.policyIdx,
+    subPolicyIdx: state.subPolicyIdx,
+    subLevelIdx: state.subLevelIdx,
+    actionDetails: state.actionDetails,
+    title: state.title,
+    department: state.department,
+    referenceId: state.referenceId,
+  };
+}
 
 export function App() {
   const [data, setData] = useState<PlanData | null>(null);
@@ -30,8 +63,49 @@ export function App() {
   const [subPolicyIdx, setSubPolicyIdx] = useState(-1);
   const [subLevelIdx, setSubLevelIdx] = useState(-1);
   const [actionDetails, setActionDetails] = useState("");
+  const [title, setTitle] = useState("");
+  const [department, setDepartment] = useState("");
+  const [referenceId, setReferenceId] = useState("");
+
   const [hydrationDone, setHydrationDone] = useState(false);
+  const [tab, setTab] = useState<Tab>("compose");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [libraryVersion, setLibraryVersion] = useState(0);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const savedCount = useMemo(() => {
+    void libraryVersion;
+    return loadSavedActions().length;
+  }, [libraryVersion]);
+
+  const draftSnapshot = useMemo(
+    () =>
+      buildSnapshot({
+        chapterIdx,
+        goalIdx,
+        goalDetailIdx,
+        policyIdx,
+        subPolicyIdx,
+        subLevelIdx,
+        actionDetails,
+        title,
+        department,
+        referenceId,
+      }),
+    [
+      chapterIdx,
+      goalIdx,
+      goalDetailIdx,
+      policyIdx,
+      subPolicyIdx,
+      subLevelIdx,
+      actionDetails,
+      title,
+      department,
+      referenceId,
+    ],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +132,11 @@ export function App() {
     }
     const stored = loadDraftFromStorage();
     const snap = stored ? normalizeDraft(data, stored) : emptyDraft();
+    applySnapshot(snap);
+    setHydrationDone(true);
+  }, [data]);
+
+  function applySnapshot(snap: DraftSnapshot) {
     setChapterIdx(snap.chapterIdx);
     setGoalIdx(snap.goalIdx);
     setGoalDetailIdx(snap.goalDetailIdx);
@@ -65,57 +144,18 @@ export function App() {
     setSubPolicyIdx(snap.subPolicyIdx);
     setSubLevelIdx(snap.subLevelIdx);
     setActionDetails(snap.actionDetails);
-    setHydrationDone(true);
-  }, [data]);
+    setTitle(snap.title);
+    setDepartment(snap.department);
+    setReferenceId(snap.referenceId);
+  }
 
   useEffect(() => {
     if (!data || !hydrationDone) return;
     const id = window.setTimeout(() => {
-      saveDraftToStorage({
-        chapterIdx,
-        goalIdx,
-        goalDetailIdx,
-        policyIdx,
-        subPolicyIdx,
-        subLevelIdx,
-        actionDetails,
-      });
+      saveDraftToStorage(draftSnapshot);
     }, 400);
     return () => window.clearTimeout(id);
-  }, [
-    data,
-    hydrationDone,
-    chapterIdx,
-    goalIdx,
-    goalDetailIdx,
-    policyIdx,
-    subPolicyIdx,
-    subLevelIdx,
-    actionDetails,
-  ]);
-
-  const chapters = data?.chapters ?? [];
-
-  const selectedChapter: Chapter | undefined =
-    chapterIdx >= 0 ? chapters[chapterIdx] : undefined;
-  const goals = selectedChapter?.goals ?? [];
-
-  const selectedGoal: Goal | undefined = goalIdx >= 0 ? goals[goalIdx] : undefined;
-  const goalDetails: GoalDetail[] = selectedGoal?.goalDetails ?? [];
-
-  const selectedGoalDetail: GoalDetail | undefined =
-    goalDetailIdx >= 0 ? goalDetails[goalDetailIdx] : undefined;
-  const policies: Policy[] = selectedGoalDetail?.policies ?? [];
-
-  const selectedPolicy: Policy | undefined = policyIdx >= 0 ? policies[policyIdx] : undefined;
-  const subPolicies: SubPolicy[] = selectedPolicy?.subPolicies ?? [];
-
-  const selectedSubPolicy: SubPolicy | undefined =
-    subPolicyIdx >= 0 ? subPolicies[subPolicyIdx] : undefined;
-  const subLevels = selectedSubPolicy?.subLevels ?? [];
-
-  const selectedSubLevel =
-    subLevelIdx >= 0 && subLevelIdx < subLevels.length ? subLevels[subLevelIdx] : undefined;
+  }, [data, hydrationDone, draftSnapshot]);
 
   const onChapterChange = (i: number) => {
     setChapterIdx(i);
@@ -153,55 +193,64 @@ export function App() {
   };
 
   const clearForm = () => {
-    setChapterIdx(-1);
-    setGoalIdx(-1);
-    setGoalDetailIdx(-1);
-    setPolicyIdx(-1);
-    setSubPolicyIdx(-1);
-    setSubLevelIdx(-1);
-    setActionDetails("");
+    applySnapshot(emptyDraft());
     clearDraftStorage();
+    setEditingId(null);
     setExportStatus(null);
+    setValidationErrors([]);
   };
 
-  const exportPayload = useMemo(
-    () =>
-      buildActionRecord(
-        APP_VERSION,
-        {
-          chapter: selectedChapter,
-          goal: selectedGoal,
-          goalDetail: selectedGoalDetail,
-          policy: selectedPolicy,
-          subPolicy: selectedSubPolicy,
-          subLevel: selectedSubLevel,
-        },
-        actionDetails,
-      ),
-    [
-      selectedChapter,
-      selectedGoal,
-      selectedGoalDetail,
-      selectedPolicy,
-      selectedSubPolicy,
-      selectedSubLevel,
-      actionDetails,
-    ],
-  );
+  const saveToLibrary = () => {
+    if (!data) return;
+    setValidationErrors([]);
+    const v = validateDraftForSave(data, draftSnapshot);
+    if (!v.ok) {
+      setValidationErrors(v.errors);
+      setExportStatus(null);
+      return;
+    }
+    if (editingId) {
+      updateAction(editingId, draftSnapshot);
+      setExportStatus("Saved changes to library.");
+    } else {
+      saveNewAction(draftSnapshot);
+      setExportStatus("Saved to library. Open the Library tab to view or export.");
+    }
+    setLibraryVersion((n) => n + 1);
+    window.setTimeout(() => setExportStatus(null), 5000);
+  };
 
   const copyJson = async () => {
-    const text = JSON.stringify(exportPayload, null, 2);
+    if (!data) return;
+    setValidationErrors([]);
+    const v = validateDraftForExport(data, draftSnapshot);
+    if (!v.ok) {
+      setValidationErrors(v.errors);
+      setExportStatus(null);
+      return;
+    }
+    const payload = buildActionRecordFromSnapshot(data, APP_VERSION, draftSnapshot);
+    const text = JSON.stringify(payload, null, 2);
     try {
       await navigator.clipboard.writeText(text);
       setExportStatus("Copied JSON to clipboard.");
     } catch {
-      setExportStatus("Could not copy — select and copy manually from the console.");
+      setExportStatus("Could not copy to clipboard.");
     }
     window.setTimeout(() => setExportStatus(null), 4000);
   };
 
   const downloadJson = () => {
-    const text = JSON.stringify(exportPayload, null, 2);
+    if (!data) return;
+    setValidationErrors([]);
+    const v = validateDraftForExport(data, draftSnapshot);
+    if (!v.ok) {
+      setValidationErrors(v.errors);
+      setExportStatus(null);
+      return;
+    }
+    const payload = buildActionRecordFromSnapshot(data, APP_VERSION, draftSnapshot);
+    const text = JSON.stringify(payload, null, 2);
     const blob = new Blob([text], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -214,33 +263,54 @@ export function App() {
     window.setTimeout(() => setExportStatus(null), 4000);
   };
 
-  const summaryLines = useMemo(() => {
-    if (!selectedChapter) return null;
-    const lines: { label: string; value: string }[] = [
-      { label: "Chapter", value: chapterLabel(selectedChapter) },
-    ];
-    if (selectedGoal) lines.push({ label: "Goal", value: goalLabel(selectedGoal) });
-    if (selectedGoalDetail?.detail)
-      lines.push({ label: "Goal detail", value: selectedGoalDetail.detail });
-    if (selectedPolicy) lines.push({ label: "Policy", value: policyLabel(selectedPolicy) });
-    if (selectedSubPolicy)
-      lines.push({
-        label: "Sub-policy",
-        value: subPolicyOptionLabel(selectedSubPolicy, subPolicyIdx >= 0 ? subPolicyIdx : 0),
-      });
-    const sl = subLevelIdx >= 0 ? subLevels[subLevelIdx] : undefined;
-    if (sl) lines.push({ label: "Sub-policy sub-level", value: subLevelLabel(sl) });
-    return lines;
-  }, [
-    selectedChapter,
-    selectedGoal,
-    selectedGoalDetail,
-    selectedPolicy,
-    selectedSubPolicy,
-    subPolicyIdx,
-    subLevelIdx,
-    subLevels,
-  ]);
+  const exportAllJson = () => {
+    if (!data) return;
+    const actions = loadSavedActions();
+    const payloads = actions.map((a) => buildActionRecordFromSnapshot(data, APP_VERSION, a.snapshot));
+    const bundle = {
+      appVersion: APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      recordCount: payloads.length,
+      records: payloads,
+    };
+    const text = JSON.stringify(bundle, null, 2);
+    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cabq-comp-plan-actions-export-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const openEdit = (action: SavedAction) => {
+    applySnapshot(action.snapshot);
+    setEditingId(action.id);
+    setTab("compose");
+    setValidationErrors([]);
+    setExportStatus(null);
+  };
+
+  const duplicateFromLibrary = (action: SavedAction) => {
+    applySnapshot(duplicateSnapshot(action.snapshot));
+    setEditingId(null);
+    setTab("compose");
+    setValidationErrors([]);
+    setExportStatus("Duplicate loaded — adjust the title and save.");
+    window.setTimeout(() => setExportStatus(null), 5000);
+  };
+
+  const removeFromLibrary = (id: string) => {
+    deleteAction(id);
+    if (editingId === id) {
+      setEditingId(null);
+    }
+    setLibraryVersion((n) => n + 1);
+  };
+
+  const onPrint = () => {
+    globalThis.print?.();
+  };
 
   if (loadError) {
     return (
@@ -270,192 +340,95 @@ export function App() {
     );
   }
 
+  const editingLabel =
+    editingId && title.trim()
+      ? title.trim()
+      : editingId
+        ? "Untitled record"
+        : null;
+
   return (
     <div className="app-shell">
-      <header className="site-header">
+      <header className="site-header no-print">
         <h1>CABQ Comprehensive Plan — Action documentation</h1>
         <p>
-          Prototype for internal use: choose the chapter through sub-level that apply, then describe
-          the departmental action. Cascading fields reflect the ABC Comprehensive Plan hierarchy (
+          Document departmental actions against the ABC Comprehensive Plan hierarchy (
           <a href="https://www.cabq.gov/planning/plans-publications/abc-comprehensive-plan">
             City planning
           </a>
           {" · "}
           <a href="https://compplan.abq-zone.com/">Interactive plan</a>
-          ). Your draft is saved in this browser until you clear it. SSO and server save will be
-          added later.
+          ). Use the composer for cascading selections, save records locally, and export JSON for
+          downstream workflows.
         </p>
       </header>
 
+      <nav className="tab-nav no-print" aria-label="Main">
+        <button
+          type="button"
+          className={`tab-btn ${tab === "compose" ? "active" : ""}`}
+          onClick={() => setTab("compose")}
+        >
+          Composer
+        </button>
+        <button
+          type="button"
+          className={`tab-btn ${tab === "library" ? "active" : ""}`}
+          onClick={() => setTab("library")}
+        >
+          Library ({savedCount})
+        </button>
+      </nav>
+
       <main className="site-main">
-        <section className="card" aria-labelledby="hierarchy-heading">
-          <h2 id="hierarchy-heading">Plan hierarchy</h2>
-
-          <div className="field">
-            <label htmlFor="chapter">Chapter</label>
-            <select
-              id="chapter"
-              value={chapterIdx}
-              onChange={(e) => onChapterChange(Number.parseInt(e.target.value, 10))}
-            >
-              <option value={-1}>Select chapter…</option>
-              {chapters.map((c, i) => (
-                <option key={`${c.chapterNumber}-${c.chapterTitle}`} value={i}>
-                  {chapterLabel(c)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {selectedChapter && (
-            <div className="field">
-              <label htmlFor="goal">Goal</label>
-              <select
-                id="goal"
-                value={goalIdx}
-                onChange={(e) => onGoalChange(Number.parseInt(e.target.value, 10))}
-              >
-                <option value={-1}>Select goal…</option>
-                {goals.map((g, i) => (
-                  <option key={`${g.goalNumber}-${g.goalDescription}`} value={i}>
-                    {goalLabel(g)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {selectedGoal && goalDetails.length > 0 && (
-            <div className="field">
-              <label htmlFor="goal-detail">Goal detail</label>
-              <select
-                id="goal-detail"
-                value={goalDetailIdx}
-                onChange={(e) => onGoalDetailChange(Number.parseInt(e.target.value, 10))}
-              >
-                <option value={-1}>Select goal detail…</option>
-                {goalDetails.map((gd, i) => (
-                  <option key={i} value={i}>
-                    {gd.detail?.trim() || "(No detail text — policies listed under this goal)"}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {selectedGoalDetail && policies.length > 0 && (
-            <div className="field">
-              <label htmlFor="policy">Policy</label>
-              <select
-                id="policy"
-                value={policyIdx}
-                onChange={(e) => onPolicyChange(Number.parseInt(e.target.value, 10))}
-              >
-                <option value={-1}>Select policy…</option>
-                {policies.map((p, i) => (
-                  <option key={p.policyNumber} value={i}>
-                    {policyLabel(p)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {selectedPolicy && subPolicies.length > 0 && (
-            <div className="field">
-              <label htmlFor="sub-policy">Sub-policy</label>
-              <select
-                id="sub-policy"
-                value={subPolicyIdx}
-                onChange={(e) => onSubPolicyChange(Number.parseInt(e.target.value, 10))}
-              >
-                <option value={-1}>Select sub-policy…</option>
-                {subPolicies.map((sp, i) => (
-                  <option key={i} value={i}>
-                    {subPolicyOptionLabel(sp, i)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {selectedSubPolicy && subLevels.length > 0 && (
-            <div className="field">
-              <label htmlFor="sub-level">Sub-policy sub-level</label>
-              <select
-                id="sub-level"
-                value={subLevelIdx}
-                onChange={(e) => setSubLevelIdx(Number.parseInt(e.target.value, 10))}
-              >
-                <option value={-1}>Select sub-level…</option>
-                {subLevels.map((sl, i) => (
-                  <option key={`${sl.roman}-${i}`} value={i}>
-                    {subLevelLabel(sl)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {selectedPolicy && subPolicies.length === 0 && (
-            <p className="empty-hint">This policy has no sub-policy rows in the imported data.</p>
-          )}
-        </section>
-
-        {summaryLines && chapterIdx >= 0 && (
-          <section className="card" aria-labelledby="selection-summary-heading">
-            <h2 id="selection-summary-heading">Current selection</h2>
-            <dl className="summary">
-              {summaryLines.map((row) => (
-                <div key={row.label}>
-                  <dt>{row.label}</dt>
-                  <dd>{row.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
+        {tab === "compose" && (
+          <Composer
+            data={data}
+            chapterIdx={chapterIdx}
+            goalIdx={goalIdx}
+            goalDetailIdx={goalDetailIdx}
+            policyIdx={policyIdx}
+            subPolicyIdx={subPolicyIdx}
+            subLevelIdx={subLevelIdx}
+            title={title}
+            department={department}
+            referenceId={referenceId}
+            actionDetails={actionDetails}
+            validationErrors={validationErrors}
+            exportStatus={exportStatus}
+            editingLabel={editingLabel}
+            onChapterChange={onChapterChange}
+            onGoalChange={onGoalChange}
+            onGoalDetailChange={onGoalDetailChange}
+            onPolicyChange={onPolicyChange}
+            onSubPolicyChange={onSubPolicyChange}
+            onSubLevelChange={setSubLevelIdx}
+            onTitleChange={setTitle}
+            onDepartmentChange={setDepartment}
+            onReferenceIdChange={setReferenceId}
+            onActionDetailsChange={setActionDetails}
+            onClear={clearForm}
+            onSaveToLibrary={saveToLibrary}
+            onCopyJson={copyJson}
+            onDownloadJson={downloadJson}
+            onPrint={onPrint}
+          />
         )}
-
-        <section className="card" aria-labelledby="action-heading">
-          <h2 id="action-heading">Action details</h2>
-          <div className="field">
-            <label htmlFor="action-details">Describe the departmental action</label>
-            <textarea
-              id="action-details"
-              value={actionDetails}
-              onChange={(e) => setActionDetails(e.target.value)}
-              placeholder="Enter how this action relates to the selected plan elements (implementation, review, coordination, etc.)."
-              rows={6}
-            />
-            <p className="hint">
-              Draft is auto-saved in this browser (local storage). Use Export to share a JSON record
-              until a server workflow exists. Authentication and submission will be added in a later
-              release.
-            </p>
-          </div>
-
-          <div className="btn-row">
-            <button type="button" className="btn btn-secondary" onClick={clearForm}>
-              Clear form
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => void copyJson()}>
-              Copy JSON
-            </button>
-            <button type="button" className="btn btn-primary" onClick={downloadJson}>
-              Download JSON
-            </button>
-          </div>
-          {exportStatus && (
-            <p className="export-status" role="status" aria-live="polite">
-              {exportStatus}
-            </p>
-          )}
-        </section>
+        {tab === "library" && (
+          <SavedActionsPanel
+            plan={data}
+            version={libraryVersion}
+            onEdit={openEdit}
+            onDuplicate={duplicateFromLibrary}
+            onDelete={removeFromLibrary}
+            onExportAll={exportAllJson}
+          />
+        )}
       </main>
 
-      <footer className="site-footer">
-        CABQ Comprehensive Plan Action Application · v{APP_VERSION} prototype · Data sourced from
-        comprehensive plan export
+      <footer className="site-footer no-print">
+        CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Data: comprehensive plan
+        export
       </footer>
     </div>
   );

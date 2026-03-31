@@ -4,7 +4,8 @@ import { buildActionRecord } from "./actionRecord";
 describe("buildActionRecord", () => {
   it("builds payload with nulls when nothing selected", () => {
     const r = buildActionRecord(
-      "0.2.0",
+      "0.4.0",
+      { title: "T", department: "D", referenceId: "R" },
       {
         chapter: undefined,
         goal: undefined,
@@ -17,7 +18,10 @@ describe("buildActionRecord", () => {
     );
     expect(r.chapter).toBeNull();
     expect(r.goal).toBeNull();
-    expect(r.appVersion).toBe("0.2.0");
+    expect(r.appVersion).toBe("0.4.0");
+    expect(r.recordTitle).toBe("T");
+    expect(r.department).toBe("D");
+    expect(r.referenceId).toBe("R");
     expect(r.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 });
