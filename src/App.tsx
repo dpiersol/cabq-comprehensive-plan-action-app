@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { APP_VERSION } from "./appVersion";
+import { buildActionRecord } from "./actionRecord";
+import {
+  clearDraftStorage,
+  emptyDraft,
+  loadDraftFromStorage,
+  normalizeDraft,
+  saveDraftToStorage,
+} from "./draftStorage";
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubPolicy } from "./types";
 import {
   chapterLabel,
@@ -21,6 +30,8 @@ export function App() {
   const [subPolicyIdx, setSubPolicyIdx] = useState(-1);
   const [subLevelIdx, setSubLevelIdx] = useState(-1);
   const [actionDetails, setActionDetails] = useState("");
+  const [hydrationDone, setHydrationDone] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +50,49 @@ export function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!data) {
+      setHydrationDone(false);
+      return;
+    }
+    const stored = loadDraftFromStorage();
+    const snap = stored ? normalizeDraft(data, stored) : emptyDraft();
+    setChapterIdx(snap.chapterIdx);
+    setGoalIdx(snap.goalIdx);
+    setGoalDetailIdx(snap.goalDetailIdx);
+    setPolicyIdx(snap.policyIdx);
+    setSubPolicyIdx(snap.subPolicyIdx);
+    setSubLevelIdx(snap.subLevelIdx);
+    setActionDetails(snap.actionDetails);
+    setHydrationDone(true);
+  }, [data]);
+
+  useEffect(() => {
+    if (!data || !hydrationDone) return;
+    const id = window.setTimeout(() => {
+      saveDraftToStorage({
+        chapterIdx,
+        goalIdx,
+        goalDetailIdx,
+        policyIdx,
+        subPolicyIdx,
+        subLevelIdx,
+        actionDetails,
+      });
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [
+    data,
+    hydrationDone,
+    chapterIdx,
+    goalIdx,
+    goalDetailIdx,
+    policyIdx,
+    subPolicyIdx,
+    subLevelIdx,
+    actionDetails,
+  ]);
 
   const chapters = data?.chapters ?? [];
 
@@ -59,6 +113,9 @@ export function App() {
   const selectedSubPolicy: SubPolicy | undefined =
     subPolicyIdx >= 0 ? subPolicies[subPolicyIdx] : undefined;
   const subLevels = selectedSubPolicy?.subLevels ?? [];
+
+  const selectedSubLevel =
+    subLevelIdx >= 0 && subLevelIdx < subLevels.length ? subLevels[subLevelIdx] : undefined;
 
   const onChapterChange = (i: number) => {
     setChapterIdx(i);
@@ -93,6 +150,68 @@ export function App() {
   const onSubPolicyChange = (i: number) => {
     setSubPolicyIdx(i);
     setSubLevelIdx(-1);
+  };
+
+  const clearForm = () => {
+    setChapterIdx(-1);
+    setGoalIdx(-1);
+    setGoalDetailIdx(-1);
+    setPolicyIdx(-1);
+    setSubPolicyIdx(-1);
+    setSubLevelIdx(-1);
+    setActionDetails("");
+    clearDraftStorage();
+    setExportStatus(null);
+  };
+
+  const exportPayload = useMemo(
+    () =>
+      buildActionRecord(
+        APP_VERSION,
+        {
+          chapter: selectedChapter,
+          goal: selectedGoal,
+          goalDetail: selectedGoalDetail,
+          policy: selectedPolicy,
+          subPolicy: selectedSubPolicy,
+          subLevel: selectedSubLevel,
+        },
+        actionDetails,
+      ),
+    [
+      selectedChapter,
+      selectedGoal,
+      selectedGoalDetail,
+      selectedPolicy,
+      selectedSubPolicy,
+      selectedSubLevel,
+      actionDetails,
+    ],
+  );
+
+  const copyJson = async () => {
+    const text = JSON.stringify(exportPayload, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      setExportStatus("Copied JSON to clipboard.");
+    } catch {
+      setExportStatus("Could not copy — select and copy manually from the console.");
+    }
+    window.setTimeout(() => setExportStatus(null), 4000);
+  };
+
+  const downloadJson = () => {
+    const text = JSON.stringify(exportPayload, null, 2);
+    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    a.href = url;
+    a.download = `cabq-comp-plan-action-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportStatus("Download started.");
+    window.setTimeout(() => setExportStatus(null), 4000);
   };
 
   const summaryLines = useMemo(() => {
@@ -163,7 +282,8 @@ export function App() {
           </a>
           {" · "}
           <a href="https://compplan.abq-zone.com/">Interactive plan</a>
-          ). SSO and saving will be added later.
+          ). Your draft is saved in this browser until you clear it. SSO and server save will be
+          added later.
         </p>
       </header>
 
@@ -308,15 +428,33 @@ export function App() {
               rows={6}
             />
             <p className="hint">
-              Draft for prototype only — not persisted. Authentication and submission workflow will
-              be added in a later release.
+              Draft is auto-saved in this browser (local storage). Use Export to share a JSON record
+              until a server workflow exists. Authentication and submission will be added in a later
+              release.
             </p>
           </div>
+
+          <div className="btn-row">
+            <button type="button" className="btn btn-secondary" onClick={clearForm}>
+              Clear form
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => void copyJson()}>
+              Copy JSON
+            </button>
+            <button type="button" className="btn btn-primary" onClick={downloadJson}>
+              Download JSON
+            </button>
+          </div>
+          {exportStatus && (
+            <p className="export-status" role="status" aria-live="polite">
+              {exportStatus}
+            </p>
+          )}
         </section>
       </main>
 
       <footer className="site-footer">
-        CABQ Comprehensive Plan Action Application · v0.1.0 prototype · Data sourced from
+        CABQ Comprehensive Plan Action Application · v{APP_VERSION} prototype · Data sourced from
         comprehensive plan export
       </footer>
     </div>

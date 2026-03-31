@@ -5,6 +5,7 @@ Internal prototype for documenting departmental actions against the Albuquerque 
 - **Stack:** React 19, TypeScript, Vite 6
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
 - **Auth / SSO:** Not included in this prototype (planned later)
+- **Draft:** Form state is auto-saved in the browser (`localStorage`). Use **Copy JSON** or **Download JSON** to export a structured record for workflows outside the app.
 
 ## Setup
 
@@ -40,4 +41,4 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.1.0** (prototype).
+Current release: **v0.2.0** (local draft + JSON export).

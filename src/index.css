@@ -183,3 +183,50 @@ textarea {
   font-size: 0.8rem;
   color: var(--cabq-muted);
 }
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--cabq-navy);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--cabq-navy-light);
+}
+
+.btn-secondary {
+  background: #fff;
+  color: var(--cabq-navy);
+  border-color: var(--cabq-border);
+}
+
+.btn-secondary:hover {
+  background: #edf2f7;
+}
+
+.export-status {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--cabq-navy-light);
+}
