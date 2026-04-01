@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0] — 2026-04-01
+
+### Product
+
+- **Workflow API (Fastify + SQLite):** Submit validated forms to a server-side repository (`POST /api/submissions`). **Workflow** tab: mock staff login (seed users), inbox by role (Planning sees all; City Council sees council queue), transitions, comments for FI / Council→Planning, department FI link (`#/fi/:token`), rough **Word** download on Complete.
+- **Notifications:** Rows stored in DB + console `[NOTIFICATION]` log (SMTP later).
+
+### Engineering
+
+- `server/` — Drizzle ORM, `workflow/engine.ts` state machine, `data/workflow.db` (override with `WORKFLOW_DB_PATH`). **`workflow_plan.docx`** generated via `node scripts/gen-workflow-plan.mjs`.
+- **Dev:** `npm run dev:server` (port 8787), `npm run dev:all` (API + Vite); Vite proxies `/api` to the API.
+
 ## [0.7.1] — 2026-03-31
 
 - **Save / export validation:** **Primary contact** (name, role, email, phone) is required: valid-looking email and at least **7 digits** in the phone field. **Plan selection** must reach **policy** (chapter → goal → goal detail → policy). Sub-policy and sub-policy sub-level are **optional** for save and JSON export.

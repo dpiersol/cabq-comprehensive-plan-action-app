@@ -48,6 +48,10 @@ export interface ComposerProps {
   onDownloadJson: () => void;
   onPrint: () => void;
   onHierarchyJump: (target: HierarchyJumpTarget) => void;
+  /** Submit validated form to workflow API (v0.8+). */
+  onSubmitToWorkflow?: () => void | Promise<void>;
+  workflowSubmitBusy?: boolean;
+  workflowSubmitMessage?: string | null;
 }
 
 function ContactGroup({
@@ -165,6 +169,9 @@ export function Composer(props: ComposerProps) {
     onDownloadJson,
     onPrint,
     onHierarchyJump,
+    onSubmitToWorkflow,
+    workflowSubmitBusy,
+    workflowSubmitMessage,
   } = props;
 
   const chapters = data.chapters;
@@ -400,9 +407,15 @@ export function Composer(props: ComposerProps) {
         <AttachmentField attachments={attachments} onChange={onAttachmentsChange} />
 
         <p className="hint">
-          Draft auto-saves in this browser. Saving to the library stores a copy you can reopen,
-          export, or print. Server-side workflow and SSO come later.
+          Draft auto-saves in this browser. Saving to the library stores a local copy. Use{" "}
+          <strong>Submit to workflow</strong> when the API is running to record the action in the
+          repository.
         </p>
+        {workflowSubmitMessage && (
+          <p className="export-status" role="status">
+            {workflowSubmitMessage}
+          </p>
+        )}
 
         {validationErrors.length > 0 && (
           <ul className="validation-errors" role="alert">
@@ -419,6 +432,16 @@ export function Composer(props: ComposerProps) {
           <button type="button" className="btn btn-primary" onClick={onSaveToLibrary}>
             Save to library
           </button>
+          {onSubmitToWorkflow && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={workflowSubmitBusy}
+              onClick={() => void onSubmitToWorkflow()}
+            >
+              {workflowSubmitBusy ? "Submitting…" : "Submit to workflow"}
+            </button>
+          )}
           <button type="button" className="btn btn-primary" onClick={() => void onCopyJson()}>
             Copy JSON
           </button>

@@ -2,24 +2,30 @@
 
 Internal application for documenting departmental actions against the Albuquerque / Bernalillo County (ABC) Comprehensive Plan hierarchy (chapter → goal → goal detail → policy → sub-policy → optional sub-level), with **cascading dropdowns** and structured exports.
 
-- **Stack:** React 19, TypeScript, Vite 6, Vitest, ESLint 9
+- **Stack:** React 19, TypeScript, Vite 6, Vitest, ESLint 9; **workflow API** — Fastify 5, Drizzle ORM, SQLite (`data/workflow.db`).
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
-- **Storage:** Browser-only (`localStorage`) for drafts and the saved **Library**. Draft restores contact fields, action title, attachments, and action text on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search). No server or SSO in this release.
+- **Storage:** Browser `localStorage` for drafts and **Library**; **workflow** submissions and audit in SQLite when the API runs. Draft restores contact fields, action title, attachments, and action text on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search). Mock staff auth only until SSO.
 
 ## Setup
 
 ```bash
 npm install
 npm run dev
+# Optional: app + API together (workflow submit & Workflow tab)
+npm run dev:all
 ```
 
-Open the URL shown in the terminal (typically `http://localhost:5173`).
+Open the URL shown in the terminal (typically `http://localhost:5173`). The API listens on **8787**; in dev, Vite proxies `/api` to it when using `dev:all` or with `dev:server` running separately.
+
+Environment: **`WORKFLOW_DB_PATH`** — optional path to the SQLite file (default `./data/workflow.db`).
 
 ## Scripts
 
 | Command | Description |
 |--------|-------------|
-| `npm run dev` | Development server |
+| `npm run dev` | Vite dev server only |
+| `npm run dev:server` | Workflow API (SQLite, port 8787) |
+| `npm run dev:all` | API + Vite (concurrently) |
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview production build |
 | `npm run test` | Unit tests (Vitest) |
@@ -32,6 +38,7 @@ Open the URL shown in the terminal (typically `http://localhost:5173`).
 2. **Library** — Save many records locally; open for edit; duplicate; delete; filter; export all as one JSON file.
 3. **Export** — Single-record JSON (Copy / Download) or bundle export from Library. Schema includes `actionTitle`, `department`, `primaryContact`, `alternateContact`, `attachments`, plan nodes, and `actionDetails`.
 4. **Print** — Use **Print summary** for a clean printout (toolbar hidden via CSS).
+5. **Workflow (v0.8+)** — **Submit to workflow** on the composer (API must be running). **Workflow** tab for staff (mock users from seed). See **`workflow_plan.docx`** at the repo root for the process narrative.
 
 ## Review checklist (stakeholder demo)
 
@@ -62,4 +69,4 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.7.1** — see `CHANGELOG.md`.
+Current release: **v0.8.0** — see `CHANGELOG.md`.

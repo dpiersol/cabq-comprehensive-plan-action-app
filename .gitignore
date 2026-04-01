@@ -6,3 +6,5 @@ dist
 Thumbs.db
 node_modules/.tmp
 coverage
+data/
+*.db
