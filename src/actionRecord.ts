@@ -1,13 +1,16 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubLevel, SubPolicy } from "./types";
-import type { DraftSnapshot } from "./draftStorage";
+import type { DraftSnapshot, StoredAttachment } from "./draftStorage";
+import type { ContactBlock } from "./contacts";
 import { resolveSelection } from "./planSelection";
 
 export interface ActionRecordPayload {
   appVersion: string;
   exportedAt: string;
-  recordTitle: string;
+  actionTitle: string;
   department: string;
-  referenceId: string;
+  primaryContact: ContactBlock;
+  alternateContact: ContactBlock;
+  attachments: Pick<StoredAttachment, "id" | "fileName" | "mimeType" | "size" | "dataBase64">[];
   chapter: { number: number; title: string } | null;
   goal: { number: string; description: string } | null;
   goalDetail: string | null;
@@ -23,7 +26,13 @@ export interface ActionRecordPayload {
 
 export function buildActionRecord(
   appVersion: string,
-  meta: { title: string; department: string; referenceId: string },
+  meta: {
+    actionTitle: string;
+    department: string;
+    primaryContact: ContactBlock;
+    alternateContact: ContactBlock;
+    attachments: StoredAttachment[];
+  },
   selected: {
     chapter: Chapter | undefined;
     goal: Goal | undefined;
@@ -44,9 +53,27 @@ export function buildActionRecord(
   return {
     appVersion,
     exportedAt: new Date().toISOString(),
-    recordTitle: meta.title.trim(),
+    actionTitle: meta.actionTitle.trim(),
     department: meta.department.trim(),
-    referenceId: meta.referenceId.trim(),
+    primaryContact: {
+      name: meta.primaryContact.name.trim(),
+      role: meta.primaryContact.role.trim(),
+      email: meta.primaryContact.email.trim(),
+      phone: meta.primaryContact.phone.trim(),
+    },
+    alternateContact: {
+      name: meta.alternateContact.name.trim(),
+      role: meta.alternateContact.role.trim(),
+      email: meta.alternateContact.email.trim(),
+      phone: meta.alternateContact.phone.trim(),
+    },
+    attachments: meta.attachments.map((a) => ({
+      id: a.id,
+      fileName: a.fileName,
+      mimeType: a.mimeType,
+      size: a.size,
+      dataBase64: a.dataBase64,
+    })),
     chapter: c ? { number: c.chapterNumber, title: c.chapterTitle } : null,
     goal: g ? { number: g.goalNumber, description: g.goalDescription } : null,
     goalDetail: gd?.detail?.trim() ? gd.detail : null,
@@ -72,7 +99,13 @@ export function buildActionRecordFromSnapshot(
   const sel = resolveSelection(plan, snap);
   return buildActionRecord(
     appVersion,
-    { title: snap.title, department: snap.department, referenceId: snap.referenceId },
+    {
+      actionTitle: snap.actionTitle,
+      department: snap.department,
+      primaryContact: snap.primaryContact,
+      alternateContact: snap.alternateContact,
+      attachments: snap.attachments,
+    },
     {
       chapter: sel.chapter,
       goal: sel.goal,

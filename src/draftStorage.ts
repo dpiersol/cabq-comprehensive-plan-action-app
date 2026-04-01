@@ -1,6 +1,17 @@
 import type { PlanData } from "./types";
+import type { ContactBlock } from "./contacts";
+import { emptyContact } from "./contacts";
 
 export const DRAFT_STORAGE_KEY = "cabq-comp-plan-action-draft-v1";
+
+export interface StoredAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  /** Raw base64 only (no data: URL prefix). */
+  dataBase64: string;
+}
 
 export interface DraftSnapshot {
   chapterIdx: number;
@@ -10,10 +21,30 @@ export interface DraftSnapshot {
   subPolicyIdx: number;
   subLevelIdx: number;
   actionDetails: string;
-  /** Short label for reviewers (saved records, exports). */
-  title: string;
+  actionTitle: string;
   department: string;
-  referenceId: string;
+  primaryContact: ContactBlock;
+  alternateContact: ContactBlock;
+  attachments: StoredAttachment[];
+}
+
+function packMeta(raw: DraftSnapshot): Pick<
+  DraftSnapshot,
+  | "actionDetails"
+  | "actionTitle"
+  | "department"
+  | "primaryContact"
+  | "alternateContact"
+  | "attachments"
+> {
+  return {
+    actionDetails: raw.actionDetails,
+    actionTitle: raw.actionTitle ?? "",
+    department: raw.department ?? "",
+    primaryContact: raw.primaryContact ?? emptyContact(),
+    alternateContact: raw.alternateContact ?? emptyContact(),
+    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+  };
 }
 
 export function emptyDraft(): DraftSnapshot {
@@ -25,9 +56,11 @@ export function emptyDraft(): DraftSnapshot {
     subPolicyIdx: -1,
     subLevelIdx: -1,
     actionDetails: "",
-    title: "",
+    actionTitle: "",
     department: "",
-    referenceId: "",
+    primaryContact: emptyContact(),
+    alternateContact: emptyContact(),
+    attachments: [],
   };
 }
 
@@ -40,10 +73,50 @@ function readStr(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
-/** Parse JSON from localStorage; invalid shapes yield null fields handled by normalize. */
+function parseContact(raw: unknown): ContactBlock {
+  if (!raw || typeof raw !== "object") return emptyContact();
+  const o = raw as Record<string, unknown>;
+  return {
+    name: readStr(o.name),
+    role: readStr(o.role),
+    email: readStr(o.email),
+    phone: readStr(o.phone),
+  };
+}
+
+function parseAttachments(raw: unknown): StoredAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: StoredAttachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    if (
+      typeof o.id !== "string" ||
+      typeof o.fileName !== "string" ||
+      typeof o.mimeType !== "string" ||
+      typeof o.size !== "number" ||
+      typeof o.dataBase64 !== "string"
+    ) {
+      continue;
+    }
+    out.push({
+      id: o.id,
+      fileName: o.fileName,
+      mimeType: o.mimeType,
+      size: o.size,
+      dataBase64: o.dataBase64,
+    });
+  }
+  return out;
+}
+
+/** Parse JSON from localStorage; migrates legacy `title` → `actionTitle`. */
 export function parseDraftJson(raw: unknown): DraftSnapshot {
   if (!raw || typeof raw !== "object") return emptyDraft();
   const o = raw as Record<string, unknown>;
+  const legacyTitle = readStr(o.title);
+  const actionTitle = readStr(o.actionTitle) || legacyTitle;
+
   return {
     chapterIdx: readIdx(o.chapterIdx),
     goalIdx: readIdx(o.goalIdx),
@@ -52,9 +125,11 @@ export function parseDraftJson(raw: unknown): DraftSnapshot {
     subPolicyIdx: readIdx(o.subPolicyIdx),
     subLevelIdx: readIdx(o.subLevelIdx),
     actionDetails: readStr(o.actionDetails),
-    title: readStr(o.title),
+    actionTitle,
     department: readStr(o.department),
-    referenceId: readStr(o.referenceId),
+    primaryContact: parseContact(o.primaryContact),
+    alternateContact: parseContact(o.alternateContact),
+    attachments: parseAttachments(o.attachments),
   };
 }
 
@@ -91,13 +166,10 @@ export function clearDraftStorage(): void {
  * Clamp indices to valid paths in the loaded plan so a stale draft does not break the UI.
  */
 export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapshot {
-  const actionDetails = raw.actionDetails;
-  const title = raw.title ?? "";
-  const department = raw.department ?? "";
-  const referenceId = raw.referenceId ?? "";
+  const meta = packMeta(raw);
   const chapters = plan.chapters;
   if (raw.chapterIdx < 0 || raw.chapterIdx >= chapters.length) {
-    return { ...emptyDraft(), actionDetails, title, department, referenceId };
+    return { ...emptyDraft(), ...meta };
   }
 
   const chapterIdx = raw.chapterIdx;
@@ -110,10 +182,7 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx: -1,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      actionDetails,
-      title,
-      department,
-      referenceId,
+      ...meta,
     };
   }
 
@@ -127,10 +196,7 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx: -1,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      actionDetails,
-      title,
-      department,
-      referenceId,
+      ...meta,
     };
   }
 
@@ -144,10 +210,7 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx: -1,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      actionDetails,
-      title,
-      department,
-      referenceId,
+      ...meta,
     };
   }
 
@@ -161,10 +224,7 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      actionDetails,
-      title,
-      department,
-      referenceId,
+      ...meta,
     };
   }
 
@@ -178,10 +238,7 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx,
       subPolicyIdx,
       subLevelIdx: -1,
-      actionDetails,
-      title,
-      department,
-      referenceId,
+      ...meta,
     };
   }
 
@@ -193,10 +250,7 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx,
       subPolicyIdx,
       subLevelIdx: -1,
-      actionDetails,
-      title,
-      department,
-      referenceId,
+      ...meta,
     };
   }
 
@@ -207,9 +261,6 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
     policyIdx,
     subPolicyIdx,
     subLevelIdx: raw.subLevelIdx,
-    actionDetails,
-    title,
-    department,
-    referenceId,
+    ...meta,
   };
 }

@@ -8,9 +8,11 @@ import {
   normalizeDraft,
   saveDraftToStorage,
   type DraftSnapshot,
+  type StoredAttachment,
 } from "./draftStorage";
 import type { PlanData } from "./types";
-import { validateDraftForExport, validateDraftForSave } from "./validation";
+import { ACTION_DETAILS_MAX, validateDraftForExport, validateDraftForSave } from "./validation";
+import { emptyContact, type ContactBlock } from "./contacts";
 import {
   deleteAction,
   duplicateSnapshot,
@@ -35,9 +37,11 @@ function buildSnapshot(state: {
   subPolicyIdx: number;
   subLevelIdx: number;
   actionDetails: string;
-  title: string;
+  actionTitle: string;
   department: string;
-  referenceId: string;
+  primaryContact: ContactBlock;
+  alternateContact: ContactBlock;
+  attachments: StoredAttachment[];
 }): DraftSnapshot {
   return {
     chapterIdx: state.chapterIdx,
@@ -47,9 +51,11 @@ function buildSnapshot(state: {
     subPolicyIdx: state.subPolicyIdx,
     subLevelIdx: state.subLevelIdx,
     actionDetails: state.actionDetails,
-    title: state.title,
+    actionTitle: state.actionTitle,
     department: state.department,
-    referenceId: state.referenceId,
+    primaryContact: state.primaryContact,
+    alternateContact: state.alternateContact,
+    attachments: state.attachments,
   };
 }
 
@@ -64,9 +70,11 @@ export function App() {
   const [subPolicyIdx, setSubPolicyIdx] = useState(-1);
   const [subLevelIdx, setSubLevelIdx] = useState(-1);
   const [actionDetails, setActionDetails] = useState("");
-  const [title, setTitle] = useState("");
+  const [actionTitle, setActionTitle] = useState("");
   const [department, setDepartment] = useState("");
-  const [referenceId, setReferenceId] = useState("");
+  const [primaryContact, setPrimaryContact] = useState(emptyContact());
+  const [alternateContact, setAlternateContact] = useState(emptyContact());
+  const [attachments, setAttachments] = useState<StoredAttachment[]>([]);
 
   const [hydrationDone, setHydrationDone] = useState(false);
   const [tab, setTab] = useState<Tab>("compose");
@@ -90,9 +98,11 @@ export function App() {
         subPolicyIdx,
         subLevelIdx,
         actionDetails,
-        title,
+        actionTitle,
         department,
-        referenceId,
+        primaryContact,
+        alternateContact,
+        attachments,
       }),
     [
       chapterIdx,
@@ -102,9 +112,11 @@ export function App() {
       subPolicyIdx,
       subLevelIdx,
       actionDetails,
-      title,
+      actionTitle,
       department,
-      referenceId,
+      primaryContact,
+      alternateContact,
+      attachments,
     ],
   );
 
@@ -141,9 +153,11 @@ export function App() {
     setSubPolicyIdx(-1);
     setSubLevelIdx(-1);
     setActionDetails(snap.actionDetails);
-    setTitle(snap.title);
+    setActionTitle(snap.actionTitle);
     setDepartment(snap.department);
-    setReferenceId(snap.referenceId);
+    setPrimaryContact(snap.primaryContact);
+    setAlternateContact(snap.alternateContact);
+    setAttachments(snap.attachments);
     setHydrationDone(true);
   }, [data]);
 
@@ -155,9 +169,11 @@ export function App() {
     setSubPolicyIdx(snap.subPolicyIdx);
     setSubLevelIdx(snap.subLevelIdx);
     setActionDetails(snap.actionDetails);
-    setTitle(snap.title);
+    setActionTitle(snap.actionTitle);
     setDepartment(snap.department);
-    setReferenceId(snap.referenceId);
+    setPrimaryContact(snap.primaryContact);
+    setAlternateContact(snap.alternateContact);
+    setAttachments(snap.attachments);
   }
 
   useEffect(() => {
@@ -307,7 +323,7 @@ export function App() {
     setEditingId(null);
     setTab("compose");
     setValidationErrors([]);
-    setExportStatus("Duplicate loaded — adjust the title and save.");
+    setExportStatus("Duplicate loaded — adjust the action title and save.");
     window.setTimeout(() => setExportStatus(null), 5000);
   };
 
@@ -362,8 +378,8 @@ export function App() {
   }
 
   const editingLabel =
-    editingId && title.trim()
-      ? title.trim()
+    editingId && actionTitle.trim()
+      ? actionTitle.trim()
       : editingId
         ? "Untitled record"
         : null;
@@ -411,10 +427,13 @@ export function App() {
             policyIdx={policyIdx}
             subPolicyIdx={subPolicyIdx}
             subLevelIdx={subLevelIdx}
-            title={title}
+            actionTitle={actionTitle}
             department={department}
-            referenceId={referenceId}
+            primaryContact={primaryContact}
+            alternateContact={alternateContact}
+            attachments={attachments}
             actionDetails={actionDetails}
+            actionDetailsMax={ACTION_DETAILS_MAX}
             validationErrors={validationErrors}
             exportStatus={exportStatus}
             editingLabel={editingLabel}
@@ -424,10 +443,12 @@ export function App() {
             onPolicyChange={onPolicyChange}
             onSubPolicyChange={onSubPolicyChange}
             onSubLevelChange={setSubLevelIdx}
-            onTitleChange={setTitle}
+            onActionTitleChange={setActionTitle}
             onDepartmentChange={setDepartment}
-            onReferenceIdChange={setReferenceId}
-            onActionDetailsChange={setActionDetails}
+            onPrimaryContactChange={setPrimaryContact}
+            onAlternateContactChange={setAlternateContact}
+            onAttachmentsChange={setAttachments}
+            onActionDetailsChange={(v) => setActionDetails(v.slice(0, ACTION_DETAILS_MAX))}
             onClear={clearForm}
             onSaveToLibrary={saveToLibrary}
             onCopyJson={copyJson}

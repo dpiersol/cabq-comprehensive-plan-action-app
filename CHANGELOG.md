@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0] — 2026-03-31
+
+### Product
+
+- **Action details:** **Action title** moved here (was “Record title” in Record). **Describe the departmental action** capped at **500 characters** with a live counter. **Attachments:** multiple uploads with allowlisted business document and image types, size limits, and blocks on executables, scripts, and risky extensions (see `attachmentPolicy.ts`).
+- **Contact Information** (section renamed from Record): **Department** field (was “Department / division”). **Primary** and **Alternate** contact blocks (name, role, email, phone). Removed **Internal reference #**.
+
+### Engineering
+
+- Draft snapshot and JSON export include `actionTitle`, `primaryContact`, `alternateContact`, `attachments`; legacy `title` in stored drafts migrates to `actionTitle`.
+
 ## [0.6.2] — 2026-04-01
 
 - Section title **Comprehensive Plan Items** (replaces abbreviated “Compl Plan Items”).

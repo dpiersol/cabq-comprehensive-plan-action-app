@@ -4,6 +4,7 @@ import {
   normalizeDraft,
   parseDraftJson,
 } from "./draftStorage";
+import { emptyContact } from "./contacts";
 import type { PlanData } from "./types";
 
 const minimalPlan: PlanData = {
@@ -45,6 +46,14 @@ describe("draftStorage", () => {
     expect(parseDraftJson(null)).toEqual(emptyDraft());
   });
 
+  it("parseDraftJson maps legacy title to actionTitle", () => {
+    const d = parseDraftJson({
+      chapterIdx: -1,
+      title: "Legacy name",
+    });
+    expect(d.actionTitle).toBe("Legacy name");
+  });
+
   it("normalizeDraft resets when chapter out of range but keeps action text", () => {
     const d = normalizeDraft(minimalPlan, {
       ...emptyDraft(),
@@ -64,9 +73,11 @@ describe("draftStorage", () => {
       subPolicyIdx: 1,
       subLevelIdx: 0,
       actionDetails: "x",
-      title: "",
+      actionTitle: "",
       department: "",
-      referenceId: "",
+      primaryContact: emptyContact(),
+      alternateContact: emptyContact(),
+      attachments: [],
     });
     expect(d.subLevelIdx).toBe(0);
     expect(d.subPolicyIdx).toBe(1);
@@ -81,9 +92,11 @@ describe("draftStorage", () => {
       subPolicyIdx: 0,
       subLevelIdx: 0,
       actionDetails: "",
-      title: "",
+      actionTitle: "",
       department: "",
-      referenceId: "",
+      primaryContact: emptyContact(),
+      alternateContact: emptyContact(),
+      attachments: [],
     });
     expect(d.subLevelIdx).toBe(-1);
   });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PlanData } from "./types";
 import type { DraftSnapshot } from "./draftStorage";
+import { emptyContact } from "./contacts";
 import { validateDraftForExport, validateDraftForSave } from "./validation";
 
 const plan: PlanData = {
@@ -39,9 +40,11 @@ function baseSnap(over: Partial<DraftSnapshot> = {}): DraftSnapshot {
     subPolicyIdx: 0,
     subLevelIdx: -1,
     actionDetails: "1234567890abcd",
-    title: "Valid title here",
+    actionTitle: "Valid title here",
     department: "",
-    referenceId: "",
+    primaryContact: emptyContact(),
+    alternateContact: emptyContact(),
+    attachments: [],
     ...over,
   };
 }
@@ -52,10 +55,10 @@ describe("validateDraftForSave", () => {
     expect(r.ok).toBe(true);
   });
 
-  it("fails when title too short", () => {
-    const r = validateDraftForSave(plan, baseSnap({ title: "ab" }));
+  it("fails when action title too short", () => {
+    const r = validateDraftForSave(plan, baseSnap({ actionTitle: "ab" }));
     expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => e.includes("title"))).toBe(true);
+    expect(r.errors.some((e) => e.toLowerCase().includes("action title"))).toBe(true);
   });
 
   it("fails when action text too short", () => {
@@ -70,11 +73,19 @@ describe("validateDraftForSave", () => {
 });
 
 describe("validateDraftForExport", () => {
-  it("passes without title when hierarchy complete", () => {
+  it("passes without action title when hierarchy complete", () => {
     const r = validateDraftForExport(
       plan,
-      baseSnap({ title: "", actionDetails: "1234567890" }),
+      baseSnap({ actionTitle: "", actionDetails: "1234567890" }),
     );
     expect(r.ok).toBe(true);
+  });
+
+  it("fails when action details exceed max length", () => {
+    const r = validateDraftForExport(
+      plan,
+      baseSnap({ actionDetails: "x".repeat(501) }),
+    );
+    expect(r.ok).toBe(false);
   });
 });

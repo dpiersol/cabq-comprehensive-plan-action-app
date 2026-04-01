@@ -81,12 +81,13 @@ export function getAction(id: string): SavedAction | null {
   return loadSavedActions().find((a) => a.id === id) ?? null;
 }
 
-/** Snapshot for duplicating into the composer (clears title slightly). */
+/** Snapshot for duplicating into the composer (suffix action title). */
 export function duplicateSnapshot(snap: DraftSnapshot): DraftSnapshot {
   const base = { ...snap };
+  const t = base.actionTitle.trim();
   return {
     ...base,
-    title: base.title.trim() ? `${base.title.trim()} (copy)` : "",
+    actionTitle: t ? `${t} (copy)` : "",
   };
 }
 

@@ -28,12 +28,22 @@ export function SavedActionsPanel({
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter((a) => {
-      const t = a.snapshot.title.toLowerCase();
-      const d = a.snapshot.department.toLowerCase();
-      const r = a.snapshot.referenceId.toLowerCase();
+      const s = a.snapshot;
+      const t = s.actionTitle.toLowerCase();
+      const d = s.department.toLowerCase();
+      const pc = s.primaryContact;
+      const ac = s.alternateContact;
+      const contactBlob = [pc.name, pc.role, pc.email, pc.phone, ac.name, ac.role, ac.email, ac.phone]
+        .join(" ")
+        .toLowerCase();
       const sel = resolveSelection(plan, a.snapshot);
       const pol = sel.policy ? policyLabel(sel.policy).toLowerCase() : "";
-      return t.includes(q) || d.includes(q) || r.includes(q) || pol.includes(q);
+      return (
+        t.includes(q) ||
+        d.includes(q) ||
+        contactBlob.includes(q) ||
+        pol.includes(q)
+      );
     });
   }, [plan, version, query]);
 
@@ -56,7 +66,7 @@ export function SavedActionsPanel({
           <input
             type="search"
             className="search-input"
-            placeholder="Filter by title, department, reference, or policy…"
+            placeholder="Filter by action title, department, contacts, or policy…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Filter saved actions"
@@ -74,7 +84,7 @@ export function SavedActionsPanel({
           <table className="saved-table">
             <thead>
               <tr>
-                <th>Title</th>
+                <th>Action title</th>
                 <th>Department</th>
                 <th>Policy</th>
                 <th>Updated</th>
@@ -95,7 +105,7 @@ export function SavedActionsPanel({
                         onClick={() => onEdit(a)}
                         title="Open in composer"
                       >
-                        {a.snapshot.title.trim() || "(Untitled)"}
+                        {a.snapshot.actionTitle.trim() || "(Untitled)"}
                       </button>
                       <div className="muted small">{ch}</div>
                     </td>

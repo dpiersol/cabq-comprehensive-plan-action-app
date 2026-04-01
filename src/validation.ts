@@ -2,8 +2,9 @@ import type { PlanData } from "./types";
 import type { DraftSnapshot } from "./draftStorage";
 import { resolveSelection } from "./planSelection";
 
-const TITLE_MIN = 3;
-const ACTION_MIN = 10;
+const ACTION_TITLE_MIN = 3;
+const ACTION_DETAILS_MIN = 10;
+export const ACTION_DETAILS_MAX = 500;
 
 export interface ValidationResult {
   ok: boolean;
@@ -12,14 +13,17 @@ export interface ValidationResult {
 
 export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): ValidationResult {
   const errors: string[] = [];
-  const title = snap.title.trim();
-  if (title.length < TITLE_MIN) {
-    errors.push(`Record title must be at least ${TITLE_MIN} characters.`);
+  const actionTitle = snap.actionTitle.trim();
+  if (actionTitle.length < ACTION_TITLE_MIN) {
+    errors.push(`Action title must be at least ${ACTION_TITLE_MIN} characters.`);
   }
 
   const action = snap.actionDetails.trim();
-  if (action.length < ACTION_MIN) {
-    errors.push(`Action description must be at least ${ACTION_MIN} characters.`);
+  if (action.length < ACTION_DETAILS_MIN) {
+    errors.push(`Action description must be at least ${ACTION_DETAILS_MIN} characters.`);
+  }
+  if (action.length > ACTION_DETAILS_MAX) {
+    errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
   }
 
   const sel = resolveSelection(plan, snap);
@@ -51,6 +55,10 @@ export function validateDraftForExport(plan: PlanData, snap: DraftSnapshot): Val
   }
   if (sel.subPolicy && sel.subLevels.length > 0 && !sel.subLevel) {
     errors.push("Select a sub-policy sub-level.");
+  }
+  const action = snap.actionDetails.trim();
+  if (action.length > ACTION_DETAILS_MAX) {
+    errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
   }
   return { ok: errors.length === 0, errors };
 }

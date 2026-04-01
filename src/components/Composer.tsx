@@ -1,5 +1,7 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubPolicy } from "../types";
 import type { HierarchyJumpTarget } from "../planSearch/types";
+import type { ContactBlock } from "../contacts";
+import type { StoredAttachment } from "../draftStorage";
 import {
   chapterLabel,
   goalLabel,
@@ -8,6 +10,7 @@ import {
   subPolicyOptionLabel,
 } from "../labels";
 import { HierarchySearch } from "./HierarchySearch";
+import { AttachmentField } from "../attachments/AttachmentField";
 
 export interface ComposerProps {
   data: PlanData;
@@ -17,10 +20,13 @@ export interface ComposerProps {
   policyIdx: number;
   subPolicyIdx: number;
   subLevelIdx: number;
-  title: string;
+  actionTitle: string;
   department: string;
-  referenceId: string;
+  primaryContact: ContactBlock;
+  alternateContact: ContactBlock;
+  attachments: StoredAttachment[];
   actionDetails: string;
+  actionDetailsMax: number;
   validationErrors: string[];
   exportStatus: string | null;
   editingLabel: string | null;
@@ -30,9 +36,11 @@ export interface ComposerProps {
   onPolicyChange: (i: number) => void;
   onSubPolicyChange: (i: number) => void;
   onSubLevelChange: (i: number) => void;
-  onTitleChange: (v: string) => void;
+  onActionTitleChange: (v: string) => void;
   onDepartmentChange: (v: string) => void;
-  onReferenceIdChange: (v: string) => void;
+  onPrimaryContactChange: (c: ContactBlock) => void;
+  onAlternateContactChange: (c: ContactBlock) => void;
+  onAttachmentsChange: (a: StoredAttachment[]) => void;
   onActionDetailsChange: (v: string) => void;
   onClear: () => void;
   onSaveToLibrary: () => void;
@@ -40,6 +48,69 @@ export interface ComposerProps {
   onDownloadJson: () => void;
   onPrint: () => void;
   onHierarchyJump: (target: HierarchyJumpTarget) => void;
+}
+
+function ContactGroup({
+  legend,
+  prefix,
+  contact,
+  onChange,
+}: {
+  legend: string;
+  prefix: string;
+  contact: ContactBlock;
+  onChange: (c: ContactBlock) => void;
+}) {
+  const patch = (field: keyof ContactBlock, value: string) =>
+    onChange({ ...contact, [field]: value });
+
+  return (
+    <fieldset className="contact-group">
+      <legend>{legend}</legend>
+      <div className="field">
+        <label htmlFor={`${prefix}-name`}>Name</label>
+        <input
+          id={`${prefix}-name`}
+          type="text"
+          autoComplete="name"
+          value={contact.name}
+          onChange={(e) => patch("name", e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor={`${prefix}-role`}>Role</label>
+        <input
+          id={`${prefix}-role`}
+          type="text"
+          autoComplete="organization-title"
+          value={contact.role}
+          onChange={(e) => patch("role", e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor={`${prefix}-email`}>Email</label>
+        <input
+          id={`${prefix}-email`}
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          value={contact.email}
+          onChange={(e) => patch("email", e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor={`${prefix}-phone`}>Phone</label>
+        <input
+          id={`${prefix}-phone`}
+          type="tel"
+          autoComplete="tel"
+          inputMode="tel"
+          value={contact.phone}
+          onChange={(e) => patch("phone", e.target.value)}
+        />
+      </div>
+    </fieldset>
+  );
 }
 
 export function Composer(props: ComposerProps) {
@@ -51,10 +122,13 @@ export function Composer(props: ComposerProps) {
     policyIdx,
     subPolicyIdx,
     subLevelIdx,
-    title,
+    actionTitle,
     department,
-    referenceId,
+    primaryContact,
+    alternateContact,
+    attachments,
     actionDetails,
+    actionDetailsMax,
     validationErrors,
     exportStatus,
     editingLabel,
@@ -64,9 +138,11 @@ export function Composer(props: ComposerProps) {
     onPolicyChange,
     onSubPolicyChange,
     onSubLevelChange,
-    onTitleChange,
+    onActionTitleChange,
     onDepartmentChange,
-    onReferenceIdChange,
+    onPrimaryContactChange,
+    onAlternateContactChange,
+    onAttachmentsChange,
     onActionDetailsChange,
     onClear,
     onSaveToLibrary,
@@ -250,61 +326,67 @@ export function Composer(props: ComposerProps) {
         </section>
       )}
 
-      <section className="card print-section" aria-labelledby="record-heading">
-        <h2 id="record-heading">Record</h2>
+      <section className="card print-section" aria-labelledby="contact-heading">
+        <h2 id="contact-heading">Contact Information</h2>
         <div className="field">
-          <label htmlFor="record-title">Record title</label>
+          <label htmlFor="department">Department</label>
           <input
-            id="record-title"
+            id="department"
             type="text"
-            autoComplete="off"
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="Short name for this action (required to save)"
+            autoComplete="organization"
+            value={department}
+            onChange={(e) => onDepartmentChange(e.target.value)}
+            placeholder="Optional"
           />
         </div>
-        <div className="field-row">
-          <div className="field">
-            <label htmlFor="department">Department / division</label>
-            <input
-              id="department"
-              type="text"
-              autoComplete="organization"
-              value={department}
-              onChange={(e) => onDepartmentChange(e.target.value)}
-              placeholder="Optional"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="reference-id">Internal reference #</label>
-            <input
-              id="reference-id"
-              type="text"
-              autoComplete="off"
-              value={referenceId}
-              onChange={(e) => onReferenceIdChange(e.target.value)}
-              placeholder="Optional (permit, project ID, etc.)"
-            />
-          </div>
-        </div>
+        <ContactGroup
+          legend="Primary contact information"
+          prefix="primary-contact"
+          contact={primaryContact}
+          onChange={onPrimaryContactChange}
+        />
+        <ContactGroup
+          legend="Alternate contact information"
+          prefix="alternate-contact"
+          contact={alternateContact}
+          onChange={onAlternateContactChange}
+        />
       </section>
 
       <section className="card print-section" aria-labelledby="action-heading">
         <h2 id="action-heading">Action details</h2>
         <div className="field">
+          <label htmlFor="action-title">Action title</label>
+          <input
+            id="action-title"
+            type="text"
+            autoComplete="off"
+            value={actionTitle}
+            onChange={(e) => onActionTitleChange(e.target.value)}
+            placeholder="Short name for this action (required to save)"
+          />
+        </div>
+        <div className="field">
           <label htmlFor="action-details">Describe the departmental action</label>
           <textarea
             id="action-details"
             value={actionDetails}
+            maxLength={actionDetailsMax}
             onChange={(e) => onActionDetailsChange(e.target.value)}
             placeholder="How this action relates to the selected plan elements (implementation, review, coordination, etc.)."
             rows={6}
           />
-          <p className="hint">
-            Draft auto-saves in this browser. Saving to the library stores a copy you can reopen,
-            export, or print. Server-side workflow and SSO come later.
+          <p className="hint char-count" aria-live="polite">
+            {actionDetails.length} / {actionDetailsMax} characters
           </p>
         </div>
+
+        <AttachmentField attachments={attachments} onChange={onAttachmentsChange} />
+
+        <p className="hint">
+          Draft auto-saves in this browser. Saving to the library stores a copy you can reopen,
+          export, or print. Server-side workflow and SSO come later.
+        </p>
 
         {validationErrors.length > 0 && (
           <ul className="validation-errors" role="alert">

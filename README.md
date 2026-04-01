@@ -4,7 +4,7 @@ Internal application for documenting departmental actions against the Albuquerqu
 
 - **Stack:** React 19, TypeScript, Vite 6, Vitest, ESLint 9
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
-- **Storage:** Browser-only (`localStorage`) for drafts and the saved **Library**. Draft restores record fields and action text on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search). No server or SSO in this release.
+- **Storage:** Browser-only (`localStorage`) for drafts and the saved **Library**. Draft restores contact fields, action title, attachments, and action text on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search). No server or SSO in this release.
 
 ## Setup
 
@@ -28,16 +28,16 @@ Open the URL shown in the terminal (typically `http://localhost:5173`).
 
 ## Features (review scope)
 
-1. **Composer** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; record title and optional department / reference fields; action narrative.
+1. **Composer** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (department, primary and alternate contacts); **Action details** (action title, narrative up to 500 characters, optional attachments — business documents and images only).
 2. **Library** — Save many records locally; open for edit; duplicate; delete; filter; export all as one JSON file.
-3. **Export** — Single-record JSON (Copy / Download) or bundle export from Library. Schema includes `recordTitle`, `department`, `referenceId`, plan nodes, and `actionDetails`.
+3. **Export** — Single-record JSON (Copy / Download) or bundle export from Library. Schema includes `actionTitle`, `department`, `primaryContact`, `alternateContact`, `attachments`, plan nodes, and `actionDetails`.
 4. **Print** — Use **Print summary** for a clean printout (toolbar hidden via CSS).
 
 ## Review checklist (stakeholder demo)
 
 - [ ] Use **Search Comprehensive Plan** with a policy number and with a multi-word phrase; confirm results jump the dropdowns correctly.
 - [ ] Walk through full hierarchy for one chapter (e.g. Chapter 4) through policy and required sub-policy / sub-level rows.
-- [ ] Confirm validation messages when saving with missing title or short action text.
+- [ ] Confirm validation messages when saving with missing action title or short action text.
 - [ ] Save at least two library entries, filter, edit one, duplicate one, delete one.
 - [ ] Export a single JSON and confirm fields match the on-screen selection.
 - [ ] Use **Export all** and confirm `records` array length matches the library.
@@ -62,4 +62,4 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.6.2** — see `CHANGELOG.md`.
+Current release: **v0.7.0** — see `CHANGELOG.md`.
