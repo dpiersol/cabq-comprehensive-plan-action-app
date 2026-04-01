@@ -51,8 +51,9 @@ export function HierarchySearch({ data, onJump }: HierarchySearchProps) {
           aria-expanded={showList}
         />
         <p className="hint">
-          Matches chapter through sub-level text. All words must appear somewhere in the same result.
-          Pick a row to jump the dropdowns to that spot.
+          Searches chapter, goal, goal detail, policy, sub-policy, and sub-level text. All words must
+          appear in the same row’s combined text. Results mix levels so chapters and policies are not
+          buried under deeper rows—pick a row to jump the dropdowns to that spot.
         </p>
       </div>
 

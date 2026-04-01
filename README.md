@@ -28,7 +28,7 @@ Open the URL shown in the terminal (typically `http://localhost:5173`).
 
 ## Features (review scope)
 
-1. **Composer** — Cascading selects; **Find in plan** search (keyword / policy number / phrase) to jump the hierarchy without knowing the full path; current selection summary; record title and optional department / reference fields; action narrative.
+1. **Composer** — Cascading selects; **Find in plan** search across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; record title and optional department / reference fields; action narrative.
 2. **Library** — Save many records locally; open for edit; duplicate; delete; filter; export all as one JSON file.
 3. **Export** — Single-record JSON (Copy / Download) or bundle export from Library. Schema includes `recordTitle`, `department`, `referenceId`, plan nodes, and `actionDetails`.
 4. **Print** — Use **Print summary** for a clean printout (toolbar hidden via CSS).
@@ -62,4 +62,4 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.5.1** — see `CHANGELOG.md`.
+Current release: **v0.6.0** — see `CHANGELOG.md`.

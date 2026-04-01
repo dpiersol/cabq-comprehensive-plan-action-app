@@ -1,4 +1,4 @@
-import type { PlanData } from "../types";
+import type { Chapter, PlanData } from "../types";
 import {
   chapterLabel,
   goalLabel,
@@ -6,6 +6,7 @@ import {
   subLevelLabel,
   subPolicyOptionLabel,
 } from "../labels";
+import { mergeSearchParts } from "./searchText";
 import type { PlanSearchEntry, PlanSearchLevel } from "./types";
 
 const SEP = " › ";
@@ -14,23 +15,12 @@ function joinBreadcrumb(parts: string[]): string {
   return parts.filter(Boolean).join(SEP);
 }
 
-function levelRank(level: PlanSearchLevel): number {
-  switch (level) {
-    case "chapter":
-      return 10;
-    case "goal":
-      return 20;
-    case "goalDetail":
-      return 30;
-    case "policy":
-      return 40;
-    case "subPolicy":
-      return 50;
-    case "subLevel":
-      return 60;
-    default:
-      return 0;
-  }
+function safeChapter(ch: Chapter): { label: string; searchBase: string } {
+  const title = ch.chapterTitle ?? "";
+  const num = ch.chapterNumber;
+  const label = chapterLabel({ chapterNumber: num, chapterTitle: title });
+  const searchBase = mergeSearchParts(num, title, label);
+  return { label, searchBase };
 }
 
 let idSeq = 0;
@@ -40,15 +30,15 @@ function nextId(): string {
 }
 
 /**
- * Flatten the plan into searchable rows. Each row can be applied as a hierarchy jump target.
+ * Flatten the plan into searchable rows. Each row includes the full ancestor chain in `searchBlob`
+ * (chapter → goal → goal detail → policy → sub-policy → sub-level text as applicable).
  */
 export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
   idSeq = 0;
   const out: PlanSearchEntry[] = [];
 
   plan.chapters.forEach((ch, ci) => {
-    const chLabel = chapterLabel(ch);
-    const chBlob = [chLabel, ch.chapterTitle, String(ch.chapterNumber)].join(" ").toLowerCase();
+    const { label: chLabel, searchBase: chBlob } = safeChapter(ch);
 
     out.push({
       id: nextId(),
@@ -65,8 +55,10 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
     });
 
     ch.goals.forEach((g, gi) => {
-      const gLabel = goalLabel(g);
-      const gBlob = [gLabel, g.goalNumber, g.goalDescription].join(" ").toLowerCase();
+      const gNum = String(g.goalNumber ?? "");
+      const gDesc = g.goalDescription ?? "";
+      const gLabel = goalLabel({ goalNumber: gNum, goalDescription: gDesc });
+      const gBlob = mergeSearchParts(gNum, gDesc, gLabel);
       const gBread = joinBreadcrumb([chLabel, gLabel]);
 
       out.push({
@@ -80,13 +72,13 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
         subLevelIdx: -1,
         breadcrumb: gBread,
         label: gLabel,
-        searchBlob: `${gBlob} ${chBlob}`,
+        searchBlob: mergeSearchParts(gBlob, chBlob),
       });
 
       g.goalDetails.forEach((gd, gdi) => {
-        const detailText = gd.detail?.trim() || "";
+        const detailText = gd.detail?.trim() ?? "";
         const gdDisplay = detailText || "(No goal detail text)";
-        const gdBlob = [gdDisplay, detailText].join(" ").toLowerCase();
+        const gdBlob = mergeSearchParts(detailText, gdDisplay);
         const gdBread = joinBreadcrumb([chLabel, gLabel, gdDisplay]);
 
         out.push({
@@ -100,12 +92,14 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
           subLevelIdx: -1,
           breadcrumb: gdBread,
           label: gdDisplay,
-          searchBlob: `${gdBlob} ${gBlob} ${chBlob}`,
+          searchBlob: mergeSearchParts(gdBlob, gBlob, chBlob),
         });
 
         gd.policies.forEach((p, pi) => {
-          const pLabel = policyLabel(p);
-          const pBlob = [pLabel, p.policyNumber, p.policyDescription].join(" ").toLowerCase();
+          const pNum = String(p.policyNumber ?? "");
+          const pDesc = p.policyDescription ?? "";
+          const pLabel = policyLabel({ policyNumber: pNum, policyDescription: pDesc });
+          const pBlob = mergeSearchParts(pNum, pDesc, pLabel);
           const pBread = joinBreadcrumb([chLabel, gLabel, gdDisplay, pLabel]);
 
           out.push({
@@ -119,19 +113,17 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
             subLevelIdx: -1,
             breadcrumb: pBread,
             label: pLabel,
-            searchBlob: `${pBlob} ${gdBlob} ${gBlob} ${chBlob}`,
+            searchBlob: mergeSearchParts(pBlob, gdBlob, gBlob, chBlob),
           });
 
           p.subPolicies.forEach((sp, spi) => {
             const spLabel = subPolicyOptionLabel(sp, spi);
-            const spBlob = [
+            const spBlob = mergeSearchParts(
+              sp.letter,
+              sp.description,
+              sp.text,
               spLabel,
-              sp.letter ?? "",
-              sp.description ?? "",
-              sp.text ?? "",
-            ]
-              .join(" ")
-              .toLowerCase();
+            );
             const spBread = joinBreadcrumb([chLabel, gLabel, gdDisplay, pLabel, spLabel]);
 
             out.push({
@@ -145,13 +137,13 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
               subLevelIdx: -1,
               breadcrumb: spBread,
               label: spLabel,
-              searchBlob: `${spBlob} ${pBlob} ${gdBlob} ${gBlob} ${chBlob}`,
+              searchBlob: mergeSearchParts(spBlob, pBlob, gdBlob, gBlob, chBlob),
             });
 
             const levels = sp.subLevels ?? [];
             levels.forEach((sl, sli) => {
               const slLabel = subLevelLabel(sl);
-              const slBlob = [slLabel, sl.roman ?? "", sl.description ?? ""].join(" ").toLowerCase();
+              const slBlob = mergeSearchParts(slLabel, sl.roman, sl.description);
               const slBread = joinBreadcrumb([
                 chLabel,
                 gLabel,
@@ -172,7 +164,7 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
                 subLevelIdx: sli,
                 breadcrumb: slBread,
                 label: slLabel,
-                searchBlob: `${slBlob} ${spBlob} ${pBlob} ${gdBlob} ${gBlob} ${chBlob}`,
+                searchBlob: mergeSearchParts(slBlob, spBlob, pBlob, gdBlob, gBlob, chBlob),
               });
             });
           });
@@ -184,7 +176,22 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
   return out;
 }
 
-/** Higher = more specific (used when scores tie). */
+/** @deprecated Ranking no longer uses specificity; kept for tests / callers importing symbol. */
 export function specificityRank(level: PlanSearchLevel): number {
-  return levelRank(level);
+  switch (level) {
+    case "chapter":
+      return 10;
+    case "goal":
+      return 20;
+    case "goalDetail":
+      return 30;
+    case "policy":
+      return 40;
+    case "subPolicy":
+      return 50;
+    case "subLevel":
+      return 60;
+    default:
+      return 0;
+  }
 }

@@ -59,6 +59,14 @@ describe("buildPlanSearchIndex", () => {
     expect(policyHit!.searchBlob).toContain("distinct");
   });
 
+  it("embeds full ancestor chain in every row (chapter through policy text)", () => {
+    const idx = buildPlanSearchIndex(samplePlan);
+    const policyHit = idx.find((e) => e.level === "policy")!;
+    expect(policyHit.searchBlob).toContain("community");
+    expect(policyHit.searchBlob).toContain("character");
+    expect(policyHit.searchBlob).toContain("enhance");
+  });
+
   it("stores correct indices for a sub-level entry", () => {
     const idx = buildPlanSearchIndex(samplePlan);
     const sl = idx.find((e) => e.level === "subLevel");
