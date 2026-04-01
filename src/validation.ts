@@ -1,10 +1,35 @@
 import type { PlanData } from "./types";
 import type { DraftSnapshot } from "./draftStorage";
+import type { ContactBlock } from "./contacts";
 import { resolveSelection } from "./planSelection";
 
 const ACTION_TITLE_MIN = 3;
 const ACTION_DETAILS_MIN = 10;
 export const ACTION_DETAILS_MAX = 500;
+
+/** Loose email check for required primary contact. */
+function isValidEmail(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+
+/** At least 7 digits (allows formatted numbers). */
+function phoneHasEnoughDigits(s: string): boolean {
+  return s.replace(/\D/g, "").length >= 7;
+}
+
+/** Primary contact: all fields required for save/export. */
+export function validatePrimaryContact(c: ContactBlock): string[] {
+  const errors: string[] = [];
+  if (!c.name.trim()) errors.push("Enter the primary contact's name.");
+  if (!c.role.trim()) errors.push("Enter the primary contact's role.");
+  if (!isValidEmail(c.email)) errors.push("Enter a valid email address for the primary contact.");
+  if (!phoneHasEnoughDigits(c.phone)) {
+    errors.push("Enter a phone number for the primary contact (at least 7 digits).");
+  }
+  return errors;
+}
 
 export interface ValidationResult {
   ok: boolean;
@@ -31,14 +56,7 @@ export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): Valid
   if (!sel.goal) errors.push("Select a goal.");
   if (!sel.goalDetail) errors.push("Select a goal detail.");
   if (!sel.policy) errors.push("Select a policy.");
-
-  if (sel.policy && sel.subPolicies.length > 0 && !sel.subPolicy) {
-    errors.push("Select a sub-policy for this policy.");
-  }
-
-  if (sel.subPolicy && sel.subLevels.length > 0 && !sel.subLevel) {
-    errors.push("Select a sub-policy sub-level.");
-  }
+  errors.push(...validatePrimaryContact(snap.primaryContact));
 
   return { ok: errors.length === 0, errors };
 }
@@ -50,12 +68,7 @@ export function validateDraftForExport(plan: PlanData, snap: DraftSnapshot): Val
   if (!sel.goal) errors.push("Select a goal.");
   if (!sel.goalDetail) errors.push("Select a goal detail.");
   if (!sel.policy) errors.push("Select a policy.");
-  if (sel.policy && sel.subPolicies.length > 0 && !sel.subPolicy) {
-    errors.push("Select a sub-policy for this policy.");
-  }
-  if (sel.subPolicy && sel.subLevels.length > 0 && !sel.subLevel) {
-    errors.push("Select a sub-policy sub-level.");
-  }
+  errors.push(...validatePrimaryContact(snap.primaryContact));
   const action = snap.actionDetails.trim();
   if (action.length > ACTION_DETAILS_MAX) {
     errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);

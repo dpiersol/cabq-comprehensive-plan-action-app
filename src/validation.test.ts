@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { PlanData } from "./types";
 import type { DraftSnapshot } from "./draftStorage";
 import { emptyContact } from "./contacts";
-import { validateDraftForExport, validateDraftForSave } from "./validation";
+import {
+  validateDraftForExport,
+  validateDraftForSave,
+  validatePrimaryContact,
+} from "./validation";
 
 const plan: PlanData = {
   chapters: [
@@ -31,18 +35,25 @@ const plan: PlanData = {
   ],
 };
 
+const validPrimary = {
+  name: "Jane Planner",
+  role: "Planner",
+  email: "jane.planner@cabq.gov",
+  phone: "(505) 555-0100",
+};
+
 function baseSnap(over: Partial<DraftSnapshot> = {}): DraftSnapshot {
   return {
     chapterIdx: 0,
     goalIdx: 0,
     goalDetailIdx: 0,
     policyIdx: 0,
-    subPolicyIdx: 0,
+    subPolicyIdx: -1,
     subLevelIdx: -1,
     actionDetails: "1234567890abcd",
     actionTitle: "Valid title here",
     department: "",
-    primaryContact: emptyContact(),
+    primaryContact: { ...emptyContact(), ...validPrimary },
     alternateContact: emptyContact(),
     attachments: [],
     ...over,
@@ -66,14 +77,36 @@ describe("validateDraftForSave", () => {
     expect(r.ok).toBe(false);
   });
 
-  it("fails when sub-policy required but missing", () => {
-    const r = validateDraftForSave(plan, baseSnap({ subPolicyIdx: -1 }));
+  it("passes when policy selected but sub-policy not selected", () => {
+    const r = validateDraftForSave(plan, baseSnap({ subPolicyIdx: -1, subLevelIdx: -1 }));
+    expect(r.ok).toBe(true);
+  });
+
+  it("fails when primary contact incomplete", () => {
+    const r = validateDraftForSave(
+      plan,
+      baseSnap({
+        primaryContact: { ...emptyContact(), ...validPrimary, email: "not-an-email" },
+      }),
+    );
     expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.toLowerCase().includes("email"))).toBe(true);
+  });
+});
+
+describe("validatePrimaryContact", () => {
+  it("returns errors for empty block", () => {
+    const e = validatePrimaryContact(emptyContact());
+    expect(e.length).toBeGreaterThan(0);
+  });
+
+  it("returns no errors for valid primary", () => {
+    expect(validatePrimaryContact({ ...emptyContact(), ...validPrimary })).toEqual([]);
   });
 });
 
 describe("validateDraftForExport", () => {
-  it("passes without action title when hierarchy complete", () => {
+  it("passes without action title when hierarchy and primary contact complete", () => {
     const r = validateDraftForExport(
       plan,
       baseSnap({ actionTitle: "", actionDetails: "1234567890" }),

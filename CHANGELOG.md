@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] — 2026-03-31
+
+- **Save / export validation:** **Primary contact** (name, role, email, phone) is required: valid-looking email and at least **7 digits** in the phone field. **Plan selection** must reach **policy** (chapter → goal → goal detail → policy). Sub-policy and sub-policy sub-level are **optional** for save and JSON export.
+- UI: primary contact labels show **(required)** and `aria-required` for accessibility.
+
 ## [0.7.0] — 2026-03-31
 
 ### Product

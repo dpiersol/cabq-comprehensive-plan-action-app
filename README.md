@@ -36,8 +36,8 @@ Open the URL shown in the terminal (typically `http://localhost:5173`).
 ## Review checklist (stakeholder demo)
 
 - [ ] Use **Search Comprehensive Plan** with a policy number and with a multi-word phrase; confirm results jump the dropdowns correctly.
-- [ ] Walk through full hierarchy for one chapter (e.g. Chapter 4) through policy and required sub-policy / sub-level rows.
-- [ ] Confirm validation messages when saving with missing action title or short action text.
+- [ ] Walk through full hierarchy for one chapter (e.g. Chapter 4) through at least **policy** (sub-policy / sub-level optional for save).
+- [ ] Confirm validation when saving with missing action title, short action text, incomplete **primary contact**, or plan not selected through policy.
 - [ ] Save at least two library entries, filter, edit one, duplicate one, delete one.
 - [ ] Export a single JSON and confirm fields match the on-screen selection.
 - [ ] Use **Export all** and confirm `records` array length matches the library.
@@ -62,4 +62,4 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.7.0** — see `CHANGELOG.md`.
+Current release: **v0.7.1** — see `CHANGELOG.md`.

@@ -517,6 +517,12 @@ textarea {
   font-size: 0.95rem;
 }
 
+.req-mark {
+  font-weight: 400;
+  color: var(--cabq-muted);
+  font-size: 0.9em;
+}
+
 .char-count {
   margin: 0.35rem 0 0;
   font-size: 0.85rem;

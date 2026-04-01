@@ -55,11 +55,14 @@ function ContactGroup({
   prefix,
   contact,
   onChange,
+  required: requiredBlock,
 }: {
   legend: string;
   prefix: string;
   contact: ContactBlock;
   onChange: (c: ContactBlock) => void;
+  /** When true, all fields are required for save (a11y + label copy). */
+  required?: boolean;
 }) {
   const patch = (field: keyof ContactBlock, value: string) =>
     onChange({ ...contact, [field]: value });
@@ -68,44 +71,56 @@ function ContactGroup({
     <fieldset className="contact-group">
       <legend>{legend}</legend>
       <div className="field">
-        <label htmlFor={`${prefix}-name`}>Name</label>
+        <label htmlFor={`${prefix}-name`}>
+          Name{requiredBlock ? <span className="req-mark"> (required)</span> : null}
+        </label>
         <input
           id={`${prefix}-name`}
           type="text"
           autoComplete="name"
           value={contact.name}
+          aria-required={requiredBlock ? true : undefined}
           onChange={(e) => patch("name", e.target.value)}
         />
       </div>
       <div className="field">
-        <label htmlFor={`${prefix}-role`}>Role</label>
+        <label htmlFor={`${prefix}-role`}>
+          Role{requiredBlock ? <span className="req-mark"> (required)</span> : null}
+        </label>
         <input
           id={`${prefix}-role`}
           type="text"
           autoComplete="organization-title"
           value={contact.role}
+          aria-required={requiredBlock ? true : undefined}
           onChange={(e) => patch("role", e.target.value)}
         />
       </div>
       <div className="field">
-        <label htmlFor={`${prefix}-email`}>Email</label>
+        <label htmlFor={`${prefix}-email`}>
+          Email{requiredBlock ? <span className="req-mark"> (required)</span> : null}
+        </label>
         <input
           id={`${prefix}-email`}
           type="email"
           autoComplete="email"
           inputMode="email"
           value={contact.email}
+          aria-required={requiredBlock ? true : undefined}
           onChange={(e) => patch("email", e.target.value)}
         />
       </div>
       <div className="field">
-        <label htmlFor={`${prefix}-phone`}>Phone</label>
+        <label htmlFor={`${prefix}-phone`}>
+          Phone{requiredBlock ? <span className="req-mark"> (required)</span> : null}
+        </label>
         <input
           id={`${prefix}-phone`}
           type="tel"
           autoComplete="tel"
           inputMode="tel"
           value={contact.phone}
+          aria-required={requiredBlock ? true : undefined}
           onChange={(e) => patch("phone", e.target.value)}
         />
       </div>
@@ -344,6 +359,7 @@ export function Composer(props: ComposerProps) {
           prefix="primary-contact"
           contact={primaryContact}
           onChange={onPrimaryContactChange}
+          required
         />
         <ContactGroup
           legend="Alternate contact information"
