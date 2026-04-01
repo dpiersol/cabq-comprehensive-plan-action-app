@@ -151,7 +151,7 @@ export function buildPlanSearchIndex(plan: PlanData): PlanSearchEntry[] {
             const levels = sp.subLevels ?? [];
             levels.forEach((sl, sli) => {
               const slLabel = subLevelLabel(sl);
-              const slBlob = [slLabel, sl.roman, sl.description].join(" ").toLowerCase();
+              const slBlob = [slLabel, sl.roman ?? "", sl.description ?? ""].join(" ").toLowerCase();
               const slBread = joinBreadcrumb([
                 chLabel,
                 gLabel,

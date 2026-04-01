@@ -1,6 +1,7 @@
 export interface SubLevel {
-  roman: string;
-  description: string;
+  /** Excel exports may use null for empty cells. */
+  roman: string | null;
+  description: string | null;
 }
 
 export interface SubPolicy {

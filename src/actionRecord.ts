@@ -17,7 +17,7 @@ export interface ActionRecordPayload {
     description?: string;
     text?: string;
   } | null;
-  subLevel: { roman: string; description: string } | null;
+  subLevel: { roman: string | null; description: string | null } | null;
   actionDetails: string;
 }
 

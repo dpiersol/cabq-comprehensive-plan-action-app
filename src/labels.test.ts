@@ -42,4 +42,10 @@ describe("labels", () => {
   it("formats sub-level", () => {
     expect(subLevelLabel({ roman: "i.", description: "First item" })).toBe("i. First item");
   });
+
+  it("handles null roman or description from plan data", () => {
+    expect(subLevelLabel({ roman: null, description: "Only description" })).toBe("Only description");
+    expect(subLevelLabel({ roman: "i.", description: null })).toBe("i.");
+    expect(subLevelLabel({ roman: null, description: null })).toBe("(Sub-level)");
+  });
 });

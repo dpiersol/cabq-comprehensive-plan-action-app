@@ -62,4 +62,4 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.5.0** — see `CHANGELOG.md`.
+Current release: **v0.5.1** — see `CHANGELOG.md`.

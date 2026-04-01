@@ -26,8 +26,13 @@ export function policyLabel(p: { policyNumber: string; policyDescription: string
   return `${p.policyNumber} — ${p.policyDescription}`;
 }
 
-export function subLevelLabel(sl: { roman: string; description: string }): string {
-  const r = sl.roman.trim();
-  const d = sl.description.trim();
-  return d ? `${r} ${d}` : r;
+/** Plan JSON may contain null cells from Excel (e.g. `roman: null`). */
+export function subLevelLabel(sl: {
+  roman?: string | null;
+  description?: string | null;
+}): string {
+  const r = (sl.roman ?? "").trim();
+  const d = (sl.description ?? "").trim();
+  if (d) return r ? `${r} ${d}` : d;
+  return r || "(Sub-level)";
 }
