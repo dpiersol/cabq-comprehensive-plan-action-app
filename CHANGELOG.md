@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.1] — 2026-04-01
+
+- UI copy: section title **Compl Plan Items** (was “Plan hierarchy”); search label **Search Comprehensive Plan** (was “Find in plan”).
+
 ## [0.6.0] — 2026-04-01
 
 - **Plan search:** Every index row’s `searchBlob` now concatenates **chapter → goal → goal detail → policy → sub-policy → sub-level** text with null-safe field normalization (`searchText.ts`), so every level is explicitly indexed—not only leaf text.

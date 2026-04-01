@@ -121,7 +121,7 @@ export function Composer(props: ComposerProps) {
       )}
 
       <section className="card print-section" aria-labelledby="hierarchy-heading">
-        <h2 id="hierarchy-heading">Plan hierarchy</h2>
+        <h2 id="hierarchy-heading">Compl Plan Items</h2>
 
         <HierarchySearch data={data} onJump={onHierarchyJump} />
 

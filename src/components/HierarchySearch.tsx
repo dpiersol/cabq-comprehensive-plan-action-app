@@ -35,9 +35,9 @@ export function HierarchySearch({ data, onJump }: HierarchySearchProps) {
   const showList = debounced.trim().length > 0 && results.length > 0;
 
   return (
-    <div className="hierarchy-search no-print" role="search" aria-label="Search plan hierarchy">
+    <div className="hierarchy-search no-print" role="search" aria-label="Search Comprehensive Plan">
       <div className="field hierarchy-search-field">
-        <label htmlFor={inputId}>Find in plan</label>
+        <label htmlFor={inputId}>Search Comprehensive Plan</label>
         <input
           id={inputId}
           type="search"
