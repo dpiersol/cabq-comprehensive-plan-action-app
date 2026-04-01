@@ -1,7 +1,7 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubPolicy } from "../types";
 import type { HierarchyJumpTarget } from "../planSearch/types";
 import type { ContactBlock } from "../contacts";
-import type { StoredAttachment } from "../draftStorage";
+import type { PlanItemSelection, StoredAttachment } from "../draftStorage";
 import {
   chapterLabel,
   goalLabel,
@@ -16,12 +16,8 @@ import { ActionDescriptionEditor } from "./ActionDescriptionEditor";
 
 export interface ComposerProps {
   data: PlanData;
-  chapterIdx: number;
-  goalIdx: number;
-  goalDetailIdx: number;
-  policyIdx: number;
-  subPolicyIdx: number;
-  subLevelIdx: number;
+  planItems: PlanItemSelection[];
+  activePlanItemIndex: number;
   actionTitle: string;
   department: string;
   primaryContact: ContactBlock;
@@ -31,12 +27,15 @@ export interface ComposerProps {
   validationErrors: string[];
   exportStatus: string | null;
   editingLabel: string | null;
-  onChapterChange: (i: number) => void;
-  onGoalChange: (i: number) => void;
-  onGoalDetailChange: (i: number) => void;
-  onPolicyChange: (i: number) => void;
-  onSubPolicyChange: (i: number) => void;
-  onSubLevelChange: (i: number) => void;
+  onActivePlanItemChange: (index: number) => void;
+  onAddPlanItem: () => void;
+  onRemovePlanItem: (index: number) => void;
+  onChapterChange: (itemIndex: number, i: number) => void;
+  onGoalChange: (itemIndex: number, i: number) => void;
+  onGoalDetailChange: (itemIndex: number, i: number) => void;
+  onPolicyChange: (itemIndex: number, i: number) => void;
+  onSubPolicyChange: (itemIndex: number, i: number) => void;
+  onSubLevelChange: (itemIndex: number, i: number) => void;
   onActionTitleChange: (v: string) => void;
   onDepartmentChange: (v: string) => void;
   onPrimaryContactChange: (c: ContactBlock) => void;
@@ -129,15 +128,200 @@ function ContactGroup({
   );
 }
 
+function PlanItemCard({
+  data,
+  itemIndex,
+  item,
+  isActive,
+  onActivate,
+  canRemove,
+  onRemove,
+  onChapterChange,
+  onGoalChange,
+  onGoalDetailChange,
+  onPolicyChange,
+  onSubPolicyChange,
+  onSubLevelChange,
+}: {
+  data: PlanData;
+  itemIndex: number;
+  item: PlanItemSelection;
+  isActive: boolean;
+  onActivate: () => void;
+  canRemove: boolean;
+  onRemove: () => void;
+  onChapterChange: (i: number) => void;
+  onGoalChange: (i: number) => void;
+  onGoalDetailChange: (i: number) => void;
+  onPolicyChange: (i: number) => void;
+  onSubPolicyChange: (i: number) => void;
+  onSubLevelChange: (i: number) => void;
+}) {
+  const pid = `pi-${itemIndex}`;
+  const chapters = data.chapters;
+  const chapterIdx = item.chapterIdx;
+  const goalIdx = item.goalIdx;
+  const goalDetailIdx = item.goalDetailIdx;
+  const policyIdx = item.policyIdx;
+  const subPolicyIdx = item.subPolicyIdx;
+  const subLevelIdx = item.subLevelIdx;
+
+  const selectedChapter: Chapter | undefined =
+    chapterIdx >= 0 ? chapters[chapterIdx] : undefined;
+  const goals = selectedChapter?.goals ?? [];
+  const selectedGoal: Goal | undefined = goalIdx >= 0 ? goals[goalIdx] : undefined;
+  const goalDetails: GoalDetail[] = selectedGoal?.goalDetails ?? [];
+  const selectedGoalDetail: GoalDetail | undefined =
+    goalDetailIdx >= 0 ? goalDetails[goalDetailIdx] : undefined;
+  const policies: Policy[] = selectedGoalDetail?.policies ?? [];
+  const selectedPolicy: Policy | undefined = policyIdx >= 0 ? policies[policyIdx] : undefined;
+  const subPolicies: SubPolicy[] = selectedPolicy?.subPolicies ?? [];
+  const selectedSubPolicy: SubPolicy | undefined =
+    subPolicyIdx >= 0 ? subPolicies[subPolicyIdx] : undefined;
+  const subLevels = selectedSubPolicy?.subLevels ?? [];
+
+  return (
+    <div
+      className={`plan-item-card${isActive ? " is-active" : ""}`}
+      onFocusCapture={onActivate}
+      role="group"
+      aria-label={`Comprehensive plan item ${itemIndex + 1}${isActive ? " (active for search)" : ""}`}
+    >
+      <div className="plan-item-card-toolbar">
+        <span className="plan-item-card-title">Plan item {itemIndex + 1}</span>
+        {canRemove ? (
+          <button
+            type="button"
+            className="btn btn-small btn-danger"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onRemove();
+            }}
+          >
+            Remove
+          </button>
+        ) : null}
+      </div>
+
+      <div className="field">
+        <label htmlFor={`${pid}-chapter`}>Chapter</label>
+        <select
+          id={`${pid}-chapter`}
+          value={chapterIdx}
+          onChange={(e) => onChapterChange(Number.parseInt(e.target.value, 10))}
+        >
+          <option value={-1}>Select chapter...</option>
+          {chapters.map((c, i) => (
+            <option key={`${c.chapterNumber}-${c.chapterTitle}`} value={i}>
+              {chapterLabel(c)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {selectedChapter && (
+        <div className="field">
+          <label htmlFor={`${pid}-goal`}>Goal</label>
+          <select
+            id={`${pid}-goal`}
+            value={goalIdx}
+            onChange={(e) => onGoalChange(Number.parseInt(e.target.value, 10))}
+          >
+            <option value={-1}>Select goal…</option>
+            {goals.map((g, i) => (
+              <option key={`${g.goalNumber}-${g.goalDescription}`} value={i}>
+                {goalLabel(g)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {selectedGoal && goalDetails.length > 0 && (
+        <div className="field">
+          <label htmlFor={`${pid}-goal-detail`}>Goal detail</label>
+          <select
+            id={`${pid}-goal-detail`}
+            value={goalDetailIdx}
+            onChange={(e) => onGoalDetailChange(Number.parseInt(e.target.value, 10))}
+          >
+            <option value={-1}>Select goal detail…</option>
+            {goalDetails.map((gd, i) => (
+              <option key={i} value={i}>
+                {gd.detail?.trim() || "(No detail text — policies listed under this goal)"}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {selectedGoalDetail && policies.length > 0 && (
+        <div className="field">
+          <label htmlFor={`${pid}-policy`}>Policy</label>
+          <select
+            id={`${pid}-policy`}
+            value={policyIdx}
+            onChange={(e) => onPolicyChange(Number.parseInt(e.target.value, 10))}
+          >
+            <option value={-1}>Select policy…</option>
+            {policies.map((p, i) => (
+              <option key={p.policyNumber} value={i}>
+                {policyLabel(p)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {selectedPolicy && subPolicies.length > 0 && (
+        <div className="field">
+          <label htmlFor={`${pid}-sub-policy`}>Sub-policy</label>
+          <select
+            id={`${pid}-sub-policy`}
+            value={subPolicyIdx}
+            onChange={(e) => onSubPolicyChange(Number.parseInt(e.target.value, 10))}
+          >
+            <option value={-1}>Select sub-policy…</option>
+            {subPolicies.map((sp, i) => (
+              <option key={i} value={i}>
+                {subPolicyOptionLabel(sp, i)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {selectedSubPolicy && subLevels.length > 0 && (
+        <div className="field">
+          <label htmlFor={`${pid}-sub-level`}>Sub-policy sub-level</label>
+          <select
+            id={`${pid}-sub-level`}
+            value={subLevelIdx}
+            onChange={(e) => onSubLevelChange(Number.parseInt(e.target.value, 10))}
+          >
+            <option value={-1}>Select sub-level…</option>
+            {subLevels.map((sl, i) => (
+              <option key={`${sl.roman}-${i}`} value={i}>
+                {subLevelLabel(sl)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {selectedPolicy && subPolicies.length === 0 && (
+        <p className="empty-hint">This policy has no sub-policy rows in the imported data.</p>
+      )}
+    </div>
+  );
+}
+
 export function Composer(props: ComposerProps) {
   const {
     data,
-    chapterIdx,
-    goalIdx,
-    goalDetailIdx,
-    policyIdx,
-    subPolicyIdx,
-    subLevelIdx,
+    planItems,
+    activePlanItemIndex,
     actionTitle,
     department,
     primaryContact,
@@ -147,6 +331,9 @@ export function Composer(props: ComposerProps) {
     validationErrors,
     exportStatus,
     editingLabel,
+    onActivePlanItemChange,
+    onAddPlanItem,
+    onRemovePlanItem,
     onChapterChange,
     onGoalChange,
     onGoalDetailChange,
@@ -168,40 +355,48 @@ export function Composer(props: ComposerProps) {
   } = props;
 
   const chapters = data.chapters;
-  const selectedChapter: Chapter | undefined =
-    chapterIdx >= 0 ? chapters[chapterIdx] : undefined;
-  const goals = selectedChapter?.goals ?? [];
-  const selectedGoal: Goal | undefined = goalIdx >= 0 ? goals[goalIdx] : undefined;
-  const goalDetails: GoalDetail[] = selectedGoal?.goalDetails ?? [];
-  const selectedGoalDetail: GoalDetail | undefined =
-    goalDetailIdx >= 0 ? goalDetails[goalDetailIdx] : undefined;
-  const policies: Policy[] = selectedGoalDetail?.policies ?? [];
-  const selectedPolicy: Policy | undefined = policyIdx >= 0 ? policies[policyIdx] : undefined;
-  const subPolicies: SubPolicy[] = selectedPolicy?.subPolicies ?? [];
-  const selectedSubPolicy: SubPolicy | undefined =
-    subPolicyIdx >= 0 ? subPolicies[subPolicyIdx] : undefined;
-  const subLevels = selectedSubPolicy?.subLevels ?? [];
 
-  const summaryLines =
-    selectedChapter && chapterIdx >= 0
-      ? (() => {
-          const lines: { label: string; value: string }[] = [
-            { label: "Chapter", value: chapterLabel(selectedChapter) },
-          ];
-          if (selectedGoal) lines.push({ label: "Goal", value: goalLabel(selectedGoal) });
-          if (selectedGoalDetail?.detail)
-            lines.push({ label: "Goal detail", value: selectedGoalDetail.detail });
-          if (selectedPolicy) lines.push({ label: "Policy", value: policyLabel(selectedPolicy) });
-          if (selectedSubPolicy)
-            lines.push({
-              label: "Sub-policy",
-              value: subPolicyOptionLabel(selectedSubPolicy, subPolicyIdx >= 0 ? subPolicyIdx : 0),
-            });
-          const sl = subLevelIdx >= 0 ? subLevels[subLevelIdx] : undefined;
-          if (sl) lines.push({ label: "Sub-policy sub-level", value: subLevelLabel(sl) });
-          return lines;
-        })()
-      : null;
+  const summaryBlocks = planItems
+    .map((row, idx) => {
+      const chapterIdx = row.chapterIdx;
+      const selectedChapter: Chapter | undefined =
+        chapterIdx >= 0 ? chapters[chapterIdx] : undefined;
+      if (!selectedChapter || chapterIdx < 0) return null;
+      const goals = selectedChapter.goals;
+      const selectedGoal: Goal | undefined =
+        row.goalIdx >= 0 ? goals[row.goalIdx] : undefined;
+      const goalDetails: GoalDetail[] = selectedGoal?.goalDetails ?? [];
+      const selectedGoalDetail: GoalDetail | undefined =
+        row.goalDetailIdx >= 0 ? goalDetails[row.goalDetailIdx] : undefined;
+      const policies: Policy[] = selectedGoalDetail?.policies ?? [];
+      const selectedPolicy: Policy | undefined =
+        row.policyIdx >= 0 ? policies[row.policyIdx] : undefined;
+      const subPolicies: SubPolicy[] = selectedPolicy?.subPolicies ?? [];
+      const selectedSubPolicy: SubPolicy | undefined =
+        row.subPolicyIdx >= 0 ? subPolicies[row.subPolicyIdx] : undefined;
+      const subLevels = selectedSubPolicy?.subLevels ?? [];
+
+      const lines: { label: string; value: string }[] = [
+        { label: "Chapter", value: chapterLabel(selectedChapter) },
+      ];
+      if (selectedGoal) lines.push({ label: "Goal", value: goalLabel(selectedGoal) });
+      if (selectedGoalDetail?.detail)
+        lines.push({ label: "Goal detail", value: selectedGoalDetail.detail });
+      if (selectedPolicy) lines.push({ label: "Policy", value: policyLabel(selectedPolicy) });
+      if (selectedSubPolicy)
+        lines.push({
+          label: "Sub-policy",
+          value: subPolicyOptionLabel(
+            selectedSubPolicy,
+            row.subPolicyIdx >= 0 ? row.subPolicyIdx : 0,
+          ),
+        });
+      const sl = row.subLevelIdx >= 0 ? subLevels[row.subLevelIdx] : undefined;
+      if (sl) lines.push({ label: "Sub-policy sub-level", value: subLevelLabel(sl) });
+
+      return { idx, lines };
+    })
+    .filter((b): b is { idx: number; lines: { label: string; value: string }[] } => b !== null);
 
   return (
     <div className="composer">
@@ -214,130 +409,55 @@ export function Composer(props: ComposerProps) {
       <section className="card print-section" aria-labelledby="hierarchy-heading">
         <h2 id="hierarchy-heading">Comprehensive Plan Items</h2>
 
+        <p className="hint plan-search-hint">
+          Hierarchy search jumps apply to the plan item row you last focused (highlighted).
+        </p>
         <HierarchySearch data={data} onJump={onHierarchyJump} />
 
-        <div className="field">
-          <label htmlFor="chapter">Chapter</label>
-          <select
-            id="chapter"
-            value={chapterIdx}
-            onChange={(e) => onChapterChange(Number.parseInt(e.target.value, 10))}
-          >
-            <option value={-1}>Select chapter...</option>
-            {chapters.map((c, i) => (
-              <option key={`${c.chapterNumber}-${c.chapterTitle}`} value={i}>
-                {chapterLabel(c)}
-              </option>
-            ))}
-          </select>
+        <div className="plan-items-stack">
+          {planItems.map((item, itemIndex) => (
+            <PlanItemCard
+              key={itemIndex}
+              data={data}
+              itemIndex={itemIndex}
+              item={item}
+              isActive={itemIndex === activePlanItemIndex}
+              onActivate={() => onActivePlanItemChange(itemIndex)}
+              canRemove={planItems.length > 1}
+              onRemove={() => onRemovePlanItem(itemIndex)}
+              onChapterChange={(i) => onChapterChange(itemIndex, i)}
+              onGoalChange={(i) => onGoalChange(itemIndex, i)}
+              onGoalDetailChange={(i) => onGoalDetailChange(itemIndex, i)}
+              onPolicyChange={(i) => onPolicyChange(itemIndex, i)}
+              onSubPolicyChange={(i) => onSubPolicyChange(itemIndex, i)}
+              onSubLevelChange={(i) => onSubLevelChange(itemIndex, i)}
+            />
+          ))}
         </div>
 
-        {selectedChapter && (
-          <div className="field">
-            <label htmlFor="goal">Goal</label>
-            <select
-              id="goal"
-              value={goalIdx}
-              onChange={(e) => onGoalChange(Number.parseInt(e.target.value, 10))}
-            >
-              <option value={-1}>Select goal…</option>
-              {goals.map((g, i) => (
-                <option key={`${g.goalNumber}-${g.goalDescription}`} value={i}>
-                  {goalLabel(g)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {selectedGoal && goalDetails.length > 0 && (
-          <div className="field">
-            <label htmlFor="goal-detail">Goal detail</label>
-            <select
-              id="goal-detail"
-              value={goalDetailIdx}
-              onChange={(e) => onGoalDetailChange(Number.parseInt(e.target.value, 10))}
-            >
-              <option value={-1}>Select goal detail…</option>
-              {goalDetails.map((gd, i) => (
-                <option key={i} value={i}>
-                  {gd.detail?.trim() || "(No detail text — policies listed under this goal)"}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {selectedGoalDetail && policies.length > 0 && (
-          <div className="field">
-            <label htmlFor="policy">Policy</label>
-            <select
-              id="policy"
-              value={policyIdx}
-              onChange={(e) => onPolicyChange(Number.parseInt(e.target.value, 10))}
-            >
-              <option value={-1}>Select policy…</option>
-              {policies.map((p, i) => (
-                <option key={p.policyNumber} value={i}>
-                  {policyLabel(p)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {selectedPolicy && subPolicies.length > 0 && (
-          <div className="field">
-            <label htmlFor="sub-policy">Sub-policy</label>
-            <select
-              id="sub-policy"
-              value={subPolicyIdx}
-              onChange={(e) => onSubPolicyChange(Number.parseInt(e.target.value, 10))}
-            >
-              <option value={-1}>Select sub-policy…</option>
-              {subPolicies.map((sp, i) => (
-                <option key={i} value={i}>
-                  {subPolicyOptionLabel(sp, i)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {selectedSubPolicy && subLevels.length > 0 && (
-          <div className="field">
-            <label htmlFor="sub-level">Sub-policy sub-level</label>
-            <select
-              id="sub-level"
-              value={subLevelIdx}
-              onChange={(e) => onSubLevelChange(Number.parseInt(e.target.value, 10))}
-            >
-              <option value={-1}>Select sub-level…</option>
-              {subLevels.map((sl, i) => (
-                <option key={`${sl.roman}-${i}`} value={i}>
-                  {subLevelLabel(sl)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {selectedPolicy && subPolicies.length === 0 && (
-          <p className="empty-hint">This policy has no sub-policy rows in the imported data.</p>
-        )}
+        <div className="field no-print">
+          <button type="button" className="btn btn-secondary" onClick={onAddPlanItem}>
+            Add another plan item
+          </button>
+        </div>
       </section>
 
-      {summaryLines && (
+      {summaryBlocks.length > 0 && (
         <section className="card print-section" aria-labelledby="selection-summary-heading">
-          <h2 id="selection-summary-heading">Current selection</h2>
-          <dl className="summary">
-            {summaryLines.map((row) => (
-              <div key={row.label}>
-                <dt>{row.label}</dt>
-                <dd>{row.value}</dd>
-              </div>
-            ))}
-          </dl>
+          <h2 id="selection-summary-heading">Current selections</h2>
+          {summaryBlocks.map(({ idx, lines }) => (
+            <div key={idx} className="selection-summary-block">
+              <h3 className="selection-summary-subhead">Plan item {idx + 1}</h3>
+              <dl className="summary">
+                {lines.map((row) => (
+                  <div key={row.label}>
+                    <dt>{row.label}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
         </section>
       )}
 

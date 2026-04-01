@@ -1,5 +1,5 @@
 import type { DraftSnapshot } from "./draftStorage";
-import { emptyDraft, parseDraftJson } from "./draftStorage";
+import { cloneDraftSnapshot, emptyDraft, parseDraftJson } from "./draftStorage";
 
 export const SAVED_ACTIONS_KEY = "cabq-comp-plan-saved-actions-v1";
 
@@ -67,7 +67,7 @@ export function updateAction(id: string, snapshot: DraftSnapshot): SavedAction |
   const i = list.findIndex((a) => a.id === id);
   if (i < 0) return null;
   const now = new Date().toISOString();
-  list[i] = { ...list[i], snapshot: { ...snapshot }, updatedAt: now };
+  list[i] = { ...list[i], snapshot: cloneDraftSnapshot(snapshot), updatedAt: now };
   persist(list);
   return list[i];
 }
@@ -83,7 +83,7 @@ export function getAction(id: string): SavedAction | null {
 
 /** Snapshot for duplicating into the composer (suffix action title). */
 export function duplicateSnapshot(snap: DraftSnapshot): DraftSnapshot {
-  const base = { ...snap };
+  const base = cloneDraftSnapshot(snap);
   const t = base.actionTitle.trim();
   return {
     ...base,

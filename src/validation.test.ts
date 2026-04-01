@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PlanData } from "./types";
 import type { DraftSnapshot } from "./draftStorage";
+import { emptyPlanItem } from "./draftStorage";
 import { emptyContact } from "./contacts";
 import {
   validateDraftForExport,
@@ -44,12 +45,17 @@ const validPrimary = {
 
 function baseSnap(over: Partial<DraftSnapshot> = {}): DraftSnapshot {
   return {
-    chapterIdx: 0,
-    goalIdx: 0,
-    goalDetailIdx: 0,
-    policyIdx: 0,
-    subPolicyIdx: -1,
-    subLevelIdx: -1,
+    planItems: [
+      {
+        ...emptyPlanItem(),
+        chapterIdx: 0,
+        goalIdx: 0,
+        goalDetailIdx: 0,
+        policyIdx: 0,
+        subPolicyIdx: -1,
+        subLevelIdx: -1,
+      },
+    ],
     actionDetails: "<p>1234567890abcd</p>",
     actionTitle: "Valid title here",
     department: "",
@@ -78,11 +84,6 @@ describe("validateDraftForSave", () => {
     expect(r.errors.some((e) => e.toLowerCase().includes("action description"))).toBe(true);
   });
 
-  it("passes when policy selected but sub-policy not selected", () => {
-    const r = validateDraftForSave(plan, baseSnap({ subPolicyIdx: -1, subLevelIdx: -1 }));
-    expect(r.ok).toBe(true);
-  });
-
   it("fails when primary contact incomplete", () => {
     const r = validateDraftForSave(
       plan,
@@ -92,6 +93,28 @@ describe("validateDraftForSave", () => {
     );
     expect(r.ok).toBe(false);
     expect(r.errors.some((e) => e.toLowerCase().includes("email"))).toBe(true);
+  });
+
+  it("fails when second plan item missing policy", () => {
+    const r = validateDraftForSave(
+      plan,
+      baseSnap({
+        planItems: [
+          {
+            ...emptyPlanItem(),
+            chapterIdx: 0,
+            goalIdx: 0,
+            goalDetailIdx: 0,
+            policyIdx: 0,
+            subPolicyIdx: -1,
+            subLevelIdx: -1,
+          },
+          emptyPlanItem(),
+        ],
+      }),
+    );
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.includes("Plan item 2"))).toBe(true);
   });
 });
 

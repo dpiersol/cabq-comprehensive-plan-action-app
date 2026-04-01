@@ -6,17 +6,17 @@ test.describe("Composer", () => {
     await expect(page.locator(".site-header h1")).toContainText(/CABQ Comprehensive Plan/i, {
       timeout: 60_000,
     });
-    await expect(page.locator("#chapter")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("#pi-0-chapter")).toBeVisible({ timeout: 30_000 });
   });
 
   test("selects plan hierarchy and fills action + contacts", async ({ page }) => {
-    await page.locator("#chapter").selectOption("0");
-    await expect(page.locator("#goal")).toBeVisible();
-    await page.locator("#goal").selectOption("0");
-    await expect(page.locator("#goal-detail")).toBeVisible();
-    await page.locator("#goal-detail").selectOption("0");
-    await expect(page.locator("#policy")).toBeVisible();
-    await page.locator("#policy").selectOption("0");
+    await page.locator("#pi-0-chapter").selectOption("0");
+    await expect(page.locator("#pi-0-goal")).toBeVisible();
+    await page.locator("#pi-0-goal").selectOption("0");
+    await expect(page.locator("#pi-0-goal-detail")).toBeVisible();
+    await page.locator("#pi-0-goal-detail").selectOption("0");
+    await expect(page.locator("#pi-0-policy")).toBeVisible();
+    await page.locator("#pi-0-policy").selectOption("0");
 
     await page.locator("#action-title").fill("E2E action title test");
 
@@ -44,10 +44,10 @@ test.describe("Composer", () => {
   });
 
   test("TipTap toolbar formats text", async ({ page }) => {
-    await page.locator("#chapter").selectOption("0");
-    await page.locator("#goal").selectOption("0");
-    await page.locator("#goal-detail").selectOption("0");
-    await page.locator("#policy").selectOption("0");
+    await page.locator("#pi-0-chapter").selectOption("0");
+    await page.locator("#pi-0-goal").selectOption("0");
+    await page.locator("#pi-0-goal-detail").selectOption("0");
+    await page.locator("#pi-0-policy").selectOption("0");
 
     const editor = page.locator(".tiptap-editor-surface .ProseMirror");
     await editor.click();

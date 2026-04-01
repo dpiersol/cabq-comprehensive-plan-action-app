@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { APP_VERSION } from "./appVersion";
 import { buildActionRecordFromSnapshot } from "./actionRecord";
 import {
   clearDraftStorage,
   emptyDraft,
+  emptyPlanItem,
   loadDraftFromStorage,
   normalizeDraft,
   saveDraftToStorage,
   type DraftSnapshot,
+  type PlanItemSelection,
   type StoredAttachment,
 } from "./draftStorage";
 import type { PlanData } from "./types";
@@ -30,12 +32,7 @@ const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 type Tab = "compose" | "library";
 
 function buildSnapshot(state: {
-  chapterIdx: number;
-  goalIdx: number;
-  goalDetailIdx: number;
-  policyIdx: number;
-  subPolicyIdx: number;
-  subLevelIdx: number;
+  planItems: PlanItemSelection[];
   actionDetails: string;
   actionTitle: string;
   department: string;
@@ -44,12 +41,7 @@ function buildSnapshot(state: {
   attachments: StoredAttachment[];
 }): DraftSnapshot {
   return {
-    chapterIdx: state.chapterIdx,
-    goalIdx: state.goalIdx,
-    goalDetailIdx: state.goalDetailIdx,
-    policyIdx: state.policyIdx,
-    subPolicyIdx: state.subPolicyIdx,
-    subLevelIdx: state.subLevelIdx,
+    planItems: state.planItems.map((p) => ({ ...p })),
     actionDetails: state.actionDetails,
     actionTitle: state.actionTitle,
     department: state.department,
@@ -63,12 +55,8 @@ export function App() {
   const [data, setData] = useState<PlanData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [chapterIdx, setChapterIdx] = useState(-1);
-  const [goalIdx, setGoalIdx] = useState(-1);
-  const [goalDetailIdx, setGoalDetailIdx] = useState(-1);
-  const [policyIdx, setPolicyIdx] = useState(-1);
-  const [subPolicyIdx, setSubPolicyIdx] = useState(-1);
-  const [subLevelIdx, setSubLevelIdx] = useState(-1);
+  const [planItems, setPlanItems] = useState<PlanItemSelection[]>([emptyPlanItem()]);
+  const [activePlanItemIndex, setActivePlanItemIndex] = useState(0);
   const [actionDetails, setActionDetails] = useState("");
   const [actionTitle, setActionTitle] = useState("");
   const [department, setDepartment] = useState("");
@@ -82,6 +70,7 @@ export function App() {
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const pendingActiveAfterAdd = useRef(false);
 
   const savedCount = useMemo(() => {
     void libraryVersion;
@@ -91,12 +80,7 @@ export function App() {
   const draftSnapshot = useMemo(
     () =>
       buildSnapshot({
-        chapterIdx,
-        goalIdx,
-        goalDetailIdx,
-        policyIdx,
-        subPolicyIdx,
-        subLevelIdx,
+        planItems,
         actionDetails,
         actionTitle,
         department,
@@ -105,12 +89,7 @@ export function App() {
         attachments,
       }),
     [
-      chapterIdx,
-      goalIdx,
-      goalDetailIdx,
-      policyIdx,
-      subPolicyIdx,
-      subLevelIdx,
+      planItems,
       actionDetails,
       actionTitle,
       department,
@@ -145,13 +124,8 @@ export function App() {
     }
     const stored = loadDraftFromStorage();
     const snap = stored ? normalizeDraft(data, stored) : emptyDraft();
-    // Always start hierarchy at "Select chapter..."; restore record fields only from draft.
-    setChapterIdx(-1);
-    setGoalIdx(-1);
-    setGoalDetailIdx(-1);
-    setPolicyIdx(-1);
-    setSubPolicyIdx(-1);
-    setSubLevelIdx(-1);
+    setPlanItems(snap.planItems.map((p) => ({ ...p })));
+    setActivePlanItemIndex(0);
     setActionDetails(snap.actionDetails);
     setActionTitle(snap.actionTitle);
     setDepartment(snap.department);
@@ -162,12 +136,8 @@ export function App() {
   }, [data]);
 
   function applySnapshot(snap: DraftSnapshot) {
-    setChapterIdx(snap.chapterIdx);
-    setGoalIdx(snap.goalIdx);
-    setGoalDetailIdx(snap.goalDetailIdx);
-    setPolicyIdx(snap.policyIdx);
-    setSubPolicyIdx(snap.subPolicyIdx);
-    setSubLevelIdx(snap.subLevelIdx);
+    setPlanItems(snap.planItems.map((p) => ({ ...p })));
+    setActivePlanItemIndex(0);
     setActionDetails(snap.actionDetails);
     setActionTitle(snap.actionTitle);
     setDepartment(snap.department);
@@ -184,39 +154,98 @@ export function App() {
     return () => window.clearTimeout(id);
   }, [data, hydrationDone, draftSnapshot]);
 
-  const onChapterChange = (i: number) => {
-    setChapterIdx(i);
-    setGoalIdx(-1);
-    setGoalDetailIdx(-1);
-    setPolicyIdx(-1);
-    setSubPolicyIdx(-1);
-    setSubLevelIdx(-1);
+  useEffect(() => {
+    if (!pendingActiveAfterAdd.current) return;
+    pendingActiveAfterAdd.current = false;
+    setActivePlanItemIndex(planItems.length - 1);
+  }, [planItems]);
+
+  const onChapterChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) =>
+        j !== itemIndex
+          ? p
+          : {
+              ...p,
+              chapterIdx: i,
+              goalIdx: -1,
+              goalDetailIdx: -1,
+              policyIdx: -1,
+              subPolicyIdx: -1,
+              subLevelIdx: -1,
+            },
+      ),
+    );
   };
 
-  const onGoalChange = (i: number) => {
-    setGoalIdx(i);
-    setGoalDetailIdx(-1);
-    setPolicyIdx(-1);
-    setSubPolicyIdx(-1);
-    setSubLevelIdx(-1);
+  const onGoalChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) =>
+        j !== itemIndex
+          ? p
+          : {
+              ...p,
+              goalIdx: i,
+              goalDetailIdx: -1,
+              policyIdx: -1,
+              subPolicyIdx: -1,
+              subLevelIdx: -1,
+            },
+      ),
+    );
   };
 
-  const onGoalDetailChange = (i: number) => {
-    setGoalDetailIdx(i);
-    setPolicyIdx(-1);
-    setSubPolicyIdx(-1);
-    setSubLevelIdx(-1);
+  const onGoalDetailChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) =>
+        j !== itemIndex
+          ? p
+          : {
+              ...p,
+              goalDetailIdx: i,
+              policyIdx: -1,
+              subPolicyIdx: -1,
+              subLevelIdx: -1,
+            },
+      ),
+    );
   };
 
-  const onPolicyChange = (i: number) => {
-    setPolicyIdx(i);
-    setSubPolicyIdx(-1);
-    setSubLevelIdx(-1);
+  const onPolicyChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) =>
+        j !== itemIndex ? p : { ...p, policyIdx: i, subPolicyIdx: -1, subLevelIdx: -1 },
+      ),
+    );
   };
 
-  const onSubPolicyChange = (i: number) => {
-    setSubPolicyIdx(i);
-    setSubLevelIdx(-1);
+  const onSubPolicyChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) => (j !== itemIndex ? p : { ...p, subPolicyIdx: i, subLevelIdx: -1 })),
+    );
+  };
+
+  const onSubLevelChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) => (j !== itemIndex ? p : { ...p, subLevelIdx: i })),
+    );
+  };
+
+  const addPlanItem = () => {
+    pendingActiveAfterAdd.current = true;
+    setPlanItems((prev) => [...prev, emptyPlanItem()]);
+  };
+
+  const removePlanItemAt = (idx: number) => {
+    const items = planItems;
+    const active = activePlanItemIndex;
+    if (items.length <= 1) return;
+    const nextItems = items.filter((_, i) => i !== idx);
+    let nextActive = active;
+    if (active === idx) nextActive = Math.min(idx, nextItems.length - 1);
+    else if (active > idx) nextActive = active - 1;
+    setPlanItems(nextItems);
+    setActivePlanItemIndex(nextActive);
   };
 
   const clearForm = () => {
@@ -340,12 +369,21 @@ export function App() {
   };
 
   const applyHierarchyJump = (t: HierarchyJumpTarget) => {
-    setChapterIdx(t.chapterIdx);
-    setGoalIdx(t.goalIdx);
-    setGoalDetailIdx(t.goalDetailIdx);
-    setPolicyIdx(t.policyIdx);
-    setSubPolicyIdx(t.subPolicyIdx);
-    setSubLevelIdx(t.subLevelIdx);
+    const i = activePlanItemIndex;
+    setPlanItems((prev) => {
+      const next = [...prev];
+      const row = next[i] ?? emptyPlanItem();
+      next[i] = {
+        ...row,
+        chapterIdx: t.chapterIdx,
+        goalIdx: t.goalIdx,
+        goalDetailIdx: t.goalDetailIdx,
+        policyIdx: t.policyIdx,
+        subPolicyIdx: t.subPolicyIdx,
+        subLevelIdx: t.subLevelIdx,
+      };
+      return next;
+    });
     setValidationErrors([]);
   };
 
@@ -420,12 +458,8 @@ export function App() {
         {tab === "compose" && (
           <Composer
             data={data}
-            chapterIdx={chapterIdx}
-            goalIdx={goalIdx}
-            goalDetailIdx={goalDetailIdx}
-            policyIdx={policyIdx}
-            subPolicyIdx={subPolicyIdx}
-            subLevelIdx={subLevelIdx}
+            planItems={planItems}
+            activePlanItemIndex={activePlanItemIndex}
             actionTitle={actionTitle}
             department={department}
             primaryContact={primaryContact}
@@ -435,12 +469,15 @@ export function App() {
             validationErrors={validationErrors}
             exportStatus={exportStatus}
             editingLabel={editingLabel}
+            onActivePlanItemChange={setActivePlanItemIndex}
+            onAddPlanItem={addPlanItem}
+            onRemovePlanItem={removePlanItemAt}
             onChapterChange={onChapterChange}
             onGoalChange={onGoalChange}
             onGoalDetailChange={onGoalDetailChange}
             onPolicyChange={onPolicyChange}
             onSubPolicyChange={onSubPolicyChange}
-            onSubLevelChange={setSubLevelIdx}
+            onSubLevelChange={onSubLevelChange}
             onActionTitleChange={setActionTitle}
             onDepartmentChange={setDepartment}
             onPrimaryContactChange={setPrimaryContact}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { PlanData } from "../types";
 import { loadSavedActions, type SavedAction } from "../savedActionsStore";
-import { resolveSelection } from "../planSelection";
+import { resolvePlanItem } from "../planSelection";
 import { policyLabel, chapterLabel } from "../labels";
 
 export interface SavedActionsPanelProps {
@@ -11,6 +11,16 @@ export interface SavedActionsPanelProps {
   onDuplicate: (action: SavedAction) => void;
   onDelete: (id: string) => void;
   onExportAll: () => void;
+}
+
+function policyLabelsForSnapshot(plan: PlanData, snapshot: SavedAction["snapshot"]): string[] {
+  const rows = snapshot.planItems?.length ? snapshot.planItems : [];
+  return rows
+    .map((item) => {
+      const sel = resolvePlanItem(plan, item);
+      return sel.policy ? policyLabel(sel.policy) : "";
+    })
+    .filter((s) => s.length > 0);
 }
 
 export function SavedActionsPanel({
@@ -36,13 +46,12 @@ export function SavedActionsPanel({
       const contactBlob = [pc.name, pc.role, pc.email, pc.phone, ac.name, ac.role, ac.email, ac.phone]
         .join(" ")
         .toLowerCase();
-      const sel = resolveSelection(plan, a.snapshot);
-      const pol = sel.policy ? policyLabel(sel.policy).toLowerCase() : "";
+      const policiesBlob = policyLabelsForSnapshot(plan, s).join(" ").toLowerCase();
       return (
         t.includes(q) ||
         d.includes(q) ||
         contactBlob.includes(q) ||
-        pol.includes(q)
+        policiesBlob.includes(q)
       );
     });
   }, [plan, version, query]);
@@ -66,7 +75,7 @@ export function SavedActionsPanel({
           <input
             type="search"
             className="search-input"
-            placeholder="Filter by action title, department, contacts, or policy…"
+            placeholder="Filter by action title, department, contacts, or policies…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Filter saved actions"
@@ -93,9 +102,15 @@ export function SavedActionsPanel({
             </thead>
             <tbody>
               {actions.map((a) => {
-                const sel = resolveSelection(plan, a.snapshot);
-                const pol = sel.policy ? policyLabel(sel.policy) : "—";
-                const ch = sel.chapter ? chapterLabel(sel.chapter) : "—";
+                const labels = policyLabelsForSnapshot(plan, a.snapshot);
+                const firstPol = labels[0] ?? "—";
+                const extra = labels.length > 1 ? labels.length - 1 : 0;
+                const polDisplay =
+                  extra > 0 ? `${firstPol} (+${extra} more)` : firstPol;
+                const polTitle = labels.join("\n");
+                const firstRow = a.snapshot.planItems?.[0];
+                const sel0 = firstRow ? resolvePlanItem(plan, firstRow) : undefined;
+                const ch = sel0?.chapter ? chapterLabel(sel0.chapter) : "—";
                 return (
                   <tr key={a.id}>
                     <td>
@@ -110,8 +125,8 @@ export function SavedActionsPanel({
                       <div className="muted small">{ch}</div>
                     </td>
                     <td>{a.snapshot.department.trim() || "—"}</td>
-                    <td className="cell-clip" title={pol}>
-                      {pol}
+                    <td className="cell-clip" title={polTitle}>
+                      {polDisplay}
                     </td>
                     <td className="muted small">
                       {new Date(a.updatedAt).toLocaleString()}

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.0] — 2026-03-31
+
+- **Multiple comprehensive plan items:** The composer supports **one or more** hierarchy rows per action. Use **Add another plan item** to append a row; **Remove** appears when there is more than one row. Hierarchy search applies to the row you last focused (highlighted). Saved draft JSON and library entries store `planItems` (legacy flat `chapterIdx` / … fields in stored JSON are migrated to `planItems[0]` on load).
+- **Export JSON (breaking):** Root `chapter` / `goal` / `policy` / … fields are replaced by **`compPlanItems`**, an array of hierarchy objects in composer order. Downstream consumers should read `compPlanItems` (and handle length ≥ 1).
+
 ## [0.10.0] — 2026-04-01
 
 - **Workflow feature shelved (not deleted):** The full workflow stack is **copied to `archive/workflow-shelved/`** with restore instructions. The live app drops the **Workflow** tab, **Submit to workflow**, and **`#/fi/...`** department view. The running API is **minimal** (`GET /api/health` with `{ workflow: "shelved" }`) so `dev:server` / Vite `/api` proxy still work.

@@ -13,13 +13,19 @@ export interface StoredAttachment {
   dataBase64: string;
 }
 
-export interface DraftSnapshot {
+/** One path through the comprehensive plan hierarchy (indices into loaded JSON). */
+export interface PlanItemSelection {
   chapterIdx: number;
   goalIdx: number;
   goalDetailIdx: number;
   policyIdx: number;
   subPolicyIdx: number;
   subLevelIdx: number;
+}
+
+export interface DraftSnapshot {
+  /** One or more plan paths this action applies to. */
+  planItems: PlanItemSelection[];
   actionDetails: string;
   actionTitle: string;
   department: string;
@@ -28,26 +34,7 @@ export interface DraftSnapshot {
   attachments: StoredAttachment[];
 }
 
-function packMeta(raw: DraftSnapshot): Pick<
-  DraftSnapshot,
-  | "actionDetails"
-  | "actionTitle"
-  | "department"
-  | "primaryContact"
-  | "alternateContact"
-  | "attachments"
-> {
-  return {
-    actionDetails: raw.actionDetails,
-    actionTitle: raw.actionTitle ?? "",
-    department: raw.department ?? "",
-    primaryContact: raw.primaryContact ?? emptyContact(),
-    alternateContact: raw.alternateContact ?? emptyContact(),
-    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
-  };
-}
-
-export function emptyDraft(): DraftSnapshot {
+export function emptyPlanItem(): PlanItemSelection {
   return {
     chapterIdx: -1,
     goalIdx: -1,
@@ -55,6 +42,36 @@ export function emptyDraft(): DraftSnapshot {
     policyIdx: -1,
     subPolicyIdx: -1,
     subLevelIdx: -1,
+  };
+}
+
+function packMeta(
+  raw: DraftSnapshot,
+): Pick<
+  DraftSnapshot,
+  | "actionDetails"
+  | "actionTitle"
+  | "department"
+  | "primaryContact"
+  | "alternateContact"
+  | "attachments"
+  | "planItems"
+> {
+  const items = Array.isArray(raw.planItems) ? raw.planItems : [];
+  return {
+    actionDetails: raw.actionDetails,
+    actionTitle: raw.actionTitle ?? "",
+    department: raw.department ?? "",
+    primaryContact: raw.primaryContact ?? emptyContact(),
+    alternateContact: raw.alternateContact ?? emptyContact(),
+    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+    planItems: items.length > 0 ? items.map((p) => ({ ...p })) : [emptyPlanItem()],
+  };
+}
+
+export function emptyDraft(): DraftSnapshot {
+  return {
+    planItems: [emptyPlanItem()],
     actionDetails: "",
     actionTitle: "",
     department: "",
@@ -110,13 +127,7 @@ function parseAttachments(raw: unknown): StoredAttachment[] {
   return out;
 }
 
-/** Parse JSON from localStorage; migrates legacy `title` → `actionTitle`. */
-export function parseDraftJson(raw: unknown): DraftSnapshot {
-  if (!raw || typeof raw !== "object") return emptyDraft();
-  const o = raw as Record<string, unknown>;
-  const legacyTitle = readStr(o.title);
-  const actionTitle = readStr(o.actionTitle) || legacyTitle;
-
+function parsePlanItem(o: Record<string, unknown>): PlanItemSelection {
   return {
     chapterIdx: readIdx(o.chapterIdx),
     goalIdx: readIdx(o.goalIdx),
@@ -124,6 +135,38 @@ export function parseDraftJson(raw: unknown): DraftSnapshot {
     policyIdx: readIdx(o.policyIdx),
     subPolicyIdx: readIdx(o.subPolicyIdx),
     subLevelIdx: readIdx(o.subLevelIdx),
+  };
+}
+
+/** Parse JSON from localStorage; migrates legacy flat indices → `planItems[0]`. */
+export function parseDraftJson(raw: unknown): DraftSnapshot {
+  if (!raw || typeof raw !== "object") return emptyDraft();
+  const o = raw as Record<string, unknown>;
+  const legacyTitle = readStr(o.title);
+  const actionTitle = readStr(o.actionTitle) || legacyTitle;
+
+  let planItems: PlanItemSelection[];
+  const pi = o.planItems;
+  if (Array.isArray(pi) && pi.length > 0) {
+    planItems = pi
+      .filter((x): x is Record<string, unknown> => x !== null && typeof x === "object")
+      .map((x) => parsePlanItem(x));
+    if (planItems.length === 0) planItems = [emptyPlanItem()];
+  } else {
+    planItems = [
+      {
+        chapterIdx: readIdx(o.chapterIdx),
+        goalIdx: readIdx(o.goalIdx),
+        goalDetailIdx: readIdx(o.goalDetailIdx),
+        policyIdx: readIdx(o.policyIdx),
+        subPolicyIdx: readIdx(o.subPolicyIdx),
+        subLevelIdx: readIdx(o.subLevelIdx),
+      },
+    ];
+  }
+
+  return {
+    planItems,
     actionDetails: readStr(o.actionDetails),
     actionTitle,
     department: readStr(o.department),
@@ -163,13 +206,12 @@ export function clearDraftStorage(): void {
 }
 
 /**
- * Clamp indices to valid paths in the loaded plan so a stale draft does not break the UI.
+ * Clamp one plan item to a valid path in the loaded plan.
  */
-export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapshot {
-  const meta = packMeta(raw);
+export function normalizePlanItem(plan: PlanData, raw: PlanItemSelection): PlanItemSelection {
   const chapters = plan.chapters;
   if (raw.chapterIdx < 0 || raw.chapterIdx >= chapters.length) {
-    return { ...emptyDraft(), ...meta };
+    return emptyPlanItem();
   }
 
   const chapterIdx = raw.chapterIdx;
@@ -182,7 +224,6 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx: -1,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      ...meta,
     };
   }
 
@@ -196,7 +237,6 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx: -1,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      ...meta,
     };
   }
 
@@ -210,7 +250,6 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx: -1,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      ...meta,
     };
   }
 
@@ -224,7 +263,6 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx,
       subPolicyIdx: -1,
       subLevelIdx: -1,
-      ...meta,
     };
   }
 
@@ -238,7 +276,6 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx,
       subPolicyIdx,
       subLevelIdx: -1,
-      ...meta,
     };
   }
 
@@ -250,7 +287,6 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
       policyIdx,
       subPolicyIdx,
       subLevelIdx: -1,
-      ...meta,
     };
   }
 
@@ -261,6 +297,28 @@ export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapsho
     policyIdx,
     subPolicyIdx,
     subLevelIdx: raw.subLevelIdx,
+  };
+}
+
+/**
+ * Clamp all plan items to valid paths; ensures at least one row exists.
+ */
+export function normalizeDraft(plan: PlanData, raw: DraftSnapshot): DraftSnapshot {
+  const meta = packMeta(raw);
+  const items = meta.planItems.map((it) => normalizePlanItem(plan, it));
+  return {
     ...meta,
+    planItems: items.length > 0 ? items : [emptyPlanItem()],
+  };
+}
+
+/** Deep-clone snapshot for library persistence (avoids shared `planItems` row refs). */
+export function cloneDraftSnapshot(s: DraftSnapshot): DraftSnapshot {
+  return {
+    ...s,
+    planItems: s.planItems.map((p) => ({ ...p })),
+    primaryContact: { ...s.primaryContact },
+    alternateContact: { ...s.alternateContact },
+    attachments: s.attachments.map((a) => ({ ...a })),
   };
 }

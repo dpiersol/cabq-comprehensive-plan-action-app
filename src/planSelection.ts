@@ -1,5 +1,6 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubLevel, SubPolicy } from "./types";
-import type { DraftSnapshot } from "./draftStorage";
+import type { DraftSnapshot, PlanItemSelection } from "./draftStorage";
+import { emptyPlanItem } from "./draftStorage";
 
 export interface ResolvedSelection {
   chapter: Chapter | undefined;
@@ -12,33 +13,32 @@ export interface ResolvedSelection {
   subLevels: SubLevel[];
 }
 
-/** Resolve plan hierarchy objects from flat indices and loaded plan data. */
-export function resolveSelection(plan: PlanData, snap: DraftSnapshot): ResolvedSelection {
+/** Resolve plan hierarchy objects from one plan-item row. */
+export function resolvePlanItem(plan: PlanData, item: PlanItemSelection): ResolvedSelection {
   const chapters = plan.chapters;
   const chapter =
-    snap.chapterIdx >= 0 && snap.chapterIdx < chapters.length
-      ? chapters[snap.chapterIdx]
+    item.chapterIdx >= 0 && item.chapterIdx < chapters.length
+      ? chapters[item.chapterIdx]
       : undefined;
   const goals = chapter?.goals ?? [];
-  const goal =
-    snap.goalIdx >= 0 && snap.goalIdx < goals.length ? goals[snap.goalIdx] : undefined;
+  const goal = item.goalIdx >= 0 && item.goalIdx < goals.length ? goals[item.goalIdx] : undefined;
   const goalDetails = goal?.goalDetails ?? [];
   const goalDetail =
-    snap.goalDetailIdx >= 0 && snap.goalDetailIdx < goalDetails.length
-      ? goalDetails[snap.goalDetailIdx]
+    item.goalDetailIdx >= 0 && item.goalDetailIdx < goalDetails.length
+      ? goalDetails[item.goalDetailIdx]
       : undefined;
   const policies = goalDetail?.policies ?? [];
   const policy =
-    snap.policyIdx >= 0 && snap.policyIdx < policies.length ? policies[snap.policyIdx] : undefined;
+    item.policyIdx >= 0 && item.policyIdx < policies.length ? policies[item.policyIdx] : undefined;
   const subPolicies = policy?.subPolicies ?? [];
   const subPolicy =
-    snap.subPolicyIdx >= 0 && snap.subPolicyIdx < subPolicies.length
-      ? subPolicies[snap.subPolicyIdx]
+    item.subPolicyIdx >= 0 && item.subPolicyIdx < subPolicies.length
+      ? subPolicies[item.subPolicyIdx]
       : undefined;
   const subLevels = subPolicy?.subLevels ?? [];
   const subLevel =
-    snap.subLevelIdx >= 0 && snap.subLevelIdx < subLevels.length
-      ? subLevels[snap.subLevelIdx]
+    item.subLevelIdx >= 0 && item.subLevelIdx < subLevels.length
+      ? subLevels[item.subLevelIdx]
       : undefined;
 
   return {
@@ -51,4 +51,13 @@ export function resolveSelection(plan: PlanData, snap: DraftSnapshot): ResolvedS
     subPolicies,
     subLevels,
   };
+}
+
+/**
+ * Resolve the first plan item (library table / backward-compatible helpers).
+ * Prefer `resolvePlanItem` when iterating `snapshot.planItems`.
+ */
+export function resolveSelection(plan: PlanData, snap: DraftSnapshot): ResolvedSelection {
+  const first = snap.planItems?.[0] ?? emptyPlanItem();
+  return resolvePlanItem(plan, first);
 }

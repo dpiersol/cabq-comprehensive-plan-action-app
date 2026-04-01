@@ -1,7 +1,7 @@
 import type { PlanData } from "./types";
 import type { DraftSnapshot } from "./draftStorage";
 import type { ContactBlock } from "./contacts";
-import { resolveSelection } from "./planSelection";
+import { resolvePlanItem } from "./planSelection";
 import { plainTextFromHtml } from "./htmlUtils";
 
 const ACTION_TITLE_MIN = 3;
@@ -37,6 +37,18 @@ export interface ValidationResult {
   errors: string[];
 }
 
+function validatePlanItems(plan: PlanData, snap: DraftSnapshot, errors: string[]): void {
+  const items = snap.planItems?.length ? snap.planItems : [];
+  items.forEach((item, i) => {
+    const n = i + 1;
+    const sel = resolvePlanItem(plan, item);
+    if (!sel.chapter) errors.push(`Plan item ${n}: Select a chapter.`);
+    if (!sel.goal) errors.push(`Plan item ${n}: Select a goal.`);
+    if (!sel.goalDetail) errors.push(`Plan item ${n}: Select a goal detail.`);
+    if (!sel.policy) errors.push(`Plan item ${n}: Select a policy.`);
+  });
+}
+
 export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): ValidationResult {
   const errors: string[] = [];
   const actionTitle = snap.actionTitle.trim();
@@ -52,11 +64,7 @@ export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): Valid
     errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
   }
 
-  const sel = resolveSelection(plan, snap);
-  if (!sel.chapter) errors.push("Select a chapter.");
-  if (!sel.goal) errors.push("Select a goal.");
-  if (!sel.goalDetail) errors.push("Select a goal detail.");
-  if (!sel.policy) errors.push("Select a policy.");
+  validatePlanItems(plan, snap, errors);
   errors.push(...validatePrimaryContact(snap.primaryContact));
 
   return { ok: errors.length === 0, errors };
@@ -77,11 +85,7 @@ export function validateDraftForExport(plan: PlanData, snap: DraftSnapshot): Val
     errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
   }
 
-  const sel = resolveSelection(plan, snap);
-  if (!sel.chapter) errors.push("Select a chapter.");
-  if (!sel.goal) errors.push("Select a goal.");
-  if (!sel.goalDetail) errors.push("Select a goal detail.");
-  if (!sel.policy) errors.push("Select a policy.");
+  validatePlanItems(plan, snap, errors);
   errors.push(...validatePrimaryContact(snap.primaryContact));
   return { ok: errors.length === 0, errors };
 }

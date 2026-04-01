@@ -1,16 +1,11 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubLevel, SubPolicy } from "./types";
 import type { DraftSnapshot, StoredAttachment } from "./draftStorage";
 import type { ContactBlock } from "./contacts";
-import { resolveSelection } from "./planSelection";
+import { resolvePlanItem } from "./planSelection";
+import type { ResolvedSelection } from "./planSelection";
 
-export interface ActionRecordPayload {
-  appVersion: string;
-  exportedAt: string;
-  actionTitle: string;
-  department: string;
-  primaryContact: ContactBlock;
-  alternateContact: ContactBlock;
-  attachments: Pick<StoredAttachment, "id" | "fileName" | "mimeType" | "size" | "dataBase64">[];
+/** One row in the comprehensive plan hierarchy (export JSON). */
+export interface CompPlanItemRecord {
   chapter: { number: number; title: string } | null;
   goal: { number: string; description: string } | null;
   goalDetail: string | null;
@@ -21,7 +16,43 @@ export interface ActionRecordPayload {
     text?: string;
   } | null;
   subLevel: { roman: string | null; description: string | null } | null;
+}
+
+export interface ActionRecordPayload {
+  appVersion: string;
+  exportedAt: string;
+  actionTitle: string;
+  department: string;
+  primaryContact: ContactBlock;
+  alternateContact: ContactBlock;
+  attachments: Pick<StoredAttachment, "id" | "fileName" | "mimeType" | "size" | "dataBase64">[];
+  /** All plan paths this action documents (order matches the composer). */
+  compPlanItems: CompPlanItemRecord[];
   actionDetails: string;
+}
+
+function compPlanItemFromResolved(sel: ResolvedSelection): CompPlanItemRecord {
+  const c = sel.chapter;
+  const g = sel.goal;
+  const gd = sel.goalDetail;
+  const p = sel.policy;
+  const sp = sel.subPolicy;
+  const sl = sel.subLevel;
+
+  return {
+    chapter: c ? { number: c.chapterNumber, title: c.chapterTitle } : null,
+    goal: g ? { number: g.goalNumber, description: g.goalDescription } : null,
+    goalDetail: gd?.detail?.trim() ? gd.detail : null,
+    policy: p ? { number: p.policyNumber, description: p.policyDescription } : null,
+    subPolicy: sp
+      ? {
+          letter: sp.letter,
+          description: sp.description,
+          text: sp.text,
+        }
+      : null,
+    subLevel: sl ? { roman: sl.roman, description: sl.description } : null,
+  };
 }
 
 export function buildActionRecord(
@@ -43,12 +74,16 @@ export function buildActionRecord(
   },
   actionDetails: string,
 ): ActionRecordPayload {
-  const c = selected.chapter;
-  const g = selected.goal;
-  const gd = selected.goalDetail;
-  const p = selected.policy;
-  const sp = selected.subPolicy;
-  const sl = selected.subLevel;
+  const sel: ResolvedSelection = {
+    chapter: selected.chapter,
+    goal: selected.goal,
+    goalDetail: selected.goalDetail,
+    policy: selected.policy,
+    subPolicy: selected.subPolicy,
+    subLevel: selected.subLevel,
+    subPolicies: selected.policy?.subPolicies ?? [],
+    subLevels: selected.subPolicy?.subLevels ?? [],
+  };
 
   return {
     appVersion,
@@ -74,46 +109,46 @@ export function buildActionRecord(
       size: a.size,
       dataBase64: a.dataBase64,
     })),
-    chapter: c ? { number: c.chapterNumber, title: c.chapterTitle } : null,
-    goal: g ? { number: g.goalNumber, description: g.goalDescription } : null,
-    goalDetail: gd?.detail?.trim() ? gd.detail : null,
-    policy: p ? { number: p.policyNumber, description: p.policyDescription } : null,
-    subPolicy: sp
-      ? {
-          letter: sp.letter,
-          description: sp.description,
-          text: sp.text,
-        }
-      : null,
-    subLevel: sl ? { roman: sl.roman, description: sl.description } : null,
+    compPlanItems: [compPlanItemFromResolved(sel)],
     actionDetails,
   };
 }
 
-/** Build a record from a full draft snapshot and plan data (single export path). */
+/** Build export JSON from a draft snapshot and loaded plan (all plan items). */
 export function buildActionRecordFromSnapshot(
   plan: PlanData,
   appVersion: string,
   snap: DraftSnapshot,
 ): ActionRecordPayload {
-  const sel = resolveSelection(plan, snap);
-  return buildActionRecord(
-    appVersion,
-    {
-      actionTitle: snap.actionTitle,
-      department: snap.department,
-      primaryContact: snap.primaryContact,
-      alternateContact: snap.alternateContact,
-      attachments: snap.attachments,
-    },
-    {
-      chapter: sel.chapter,
-      goal: sel.goal,
-      goalDetail: sel.goalDetail,
-      policy: sel.policy,
-      subPolicy: sel.subPolicy,
-      subLevel: sel.subLevel,
-    },
-    snap.actionDetails,
+  const items = (snap.planItems?.length ? snap.planItems : []).map((row) =>
+    compPlanItemFromResolved(resolvePlanItem(plan, row)),
   );
+
+  return {
+    appVersion,
+    exportedAt: new Date().toISOString(),
+    actionTitle: snap.actionTitle.trim(),
+    department: snap.department.trim(),
+    primaryContact: {
+      name: snap.primaryContact.name.trim(),
+      role: snap.primaryContact.role.trim(),
+      email: snap.primaryContact.email.trim(),
+      phone: snap.primaryContact.phone.trim(),
+    },
+    alternateContact: {
+      name: snap.alternateContact.name.trim(),
+      role: snap.alternateContact.role.trim(),
+      email: snap.alternateContact.email.trim(),
+      phone: snap.alternateContact.phone.trim(),
+    },
+    attachments: snap.attachments.map((a) => ({
+      id: a.id,
+      fileName: a.fileName,
+      mimeType: a.mimeType,
+      size: a.size,
+      dataBase64: a.dataBase64,
+    })),
+    compPlanItems: items,
+    actionDetails: snap.actionDetails,
+  };
 }
