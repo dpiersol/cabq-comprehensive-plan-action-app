@@ -11,7 +11,7 @@ import {
   type StoredAttachment,
 } from "./draftStorage";
 import type { PlanData } from "./types";
-import { ACTION_DETAILS_MAX, validateDraftForExport, validateDraftForSave } from "./validation";
+import { validateDraftForExport, validateDraftForSave } from "./validation";
 import { emptyContact, type ContactBlock } from "./contacts";
 import {
   deleteAction,
@@ -484,7 +484,6 @@ export function App() {
             alternateContact={alternateContact}
             attachments={attachments}
             actionDetails={actionDetails}
-            actionDetailsMax={ACTION_DETAILS_MAX}
             validationErrors={validationErrors}
             exportStatus={exportStatus}
             editingLabel={editingLabel}
@@ -499,7 +498,7 @@ export function App() {
             onPrimaryContactChange={setPrimaryContact}
             onAlternateContactChange={setAlternateContact}
             onAttachmentsChange={setAttachments}
-            onActionDetailsChange={(v) => setActionDetails(v.slice(0, ACTION_DETAILS_MAX))}
+            onActionDetailsChange={setActionDetails}
             onClear={clearForm}
             onSaveToLibrary={saveToLibrary}
             onCopyJson={copyJson}

@@ -50,7 +50,7 @@ function baseSnap(over: Partial<DraftSnapshot> = {}): DraftSnapshot {
     policyIdx: 0,
     subPolicyIdx: -1,
     subLevelIdx: -1,
-    actionDetails: "1234567890abcd",
+    actionDetails: "<p>1234567890abcd</p>",
     actionTitle: "Valid title here",
     department: "",
     primaryContact: { ...emptyContact(), ...validPrimary },
@@ -73,8 +73,9 @@ describe("validateDraftForSave", () => {
   });
 
   it("fails when action text too short", () => {
-    const r = validateDraftForSave(plan, baseSnap({ actionDetails: "short" }));
+    const r = validateDraftForSave(plan, baseSnap({ actionDetails: "<p>short</p>" }));
     expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.toLowerCase().includes("action description"))).toBe(true);
   });
 
   it("passes when policy selected but sub-policy not selected", () => {
@@ -106,18 +107,19 @@ describe("validatePrimaryContact", () => {
 });
 
 describe("validateDraftForExport", () => {
-  it("passes without action title when hierarchy and primary contact complete", () => {
+  it("fails without action title when hierarchy and primary contact complete", () => {
     const r = validateDraftForExport(
       plan,
-      baseSnap({ actionTitle: "", actionDetails: "1234567890" }),
+      baseSnap({ actionTitle: "", actionDetails: "<p>1234567890abcd</p>" }),
     );
-    expect(r.ok).toBe(true);
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.toLowerCase().includes("action title"))).toBe(true);
   });
 
-  it("fails when action details exceed max length", () => {
+  it("fails when action details exceed max length (plain text)", () => {
     const r = validateDraftForExport(
       plan,
-      baseSnap({ actionDetails: "x".repeat(501) }),
+      baseSnap({ actionDetails: `<p>${"x".repeat(501)}</p>` }),
     );
     expect(r.ok).toBe(false);
   });

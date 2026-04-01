@@ -537,6 +537,106 @@ textarea {
   color: var(--cabq-muted);
 }
 
+.char-count-over {
+  color: #c53030;
+  font-weight: 600;
+}
+
+.action-description-editor {
+  margin-top: 0.35rem;
+}
+
+.tiptap-editor-wrap {
+  border: 1px solid var(--cabq-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--cabq-border);
+  background: #fafbfd;
+}
+
+.tiptap-toolbar button {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--cabq-text);
+  cursor: pointer;
+}
+
+.tiptap-toolbar button:hover {
+  background: #edf2f7;
+}
+
+.tiptap-toolbar button.is-active {
+  background: #e2e8f0;
+  border-color: #cbd5e0;
+}
+
+.tiptap-toolbar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 1.1rem;
+  margin: 0 0.15rem;
+  background: var(--cabq-border);
+}
+
+.tiptap-underline {
+  text-decoration: underline;
+}
+
+.tiptap-editor-surface .ProseMirror {
+  outline: none;
+  min-height: 9rem;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.tiptap-editor-surface .ProseMirror:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.tiptap-editor-surface .ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--cabq-muted);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tiptap-editor-surface .ProseMirror ul,
+.tiptap-editor-surface .ProseMirror ol {
+  margin: 0.35rem 0;
+  padding-left: 1.25rem;
+}
+
+.tiptap-editor-surface .ProseMirror h1 {
+  font-size: 1.35rem;
+  margin: 0.35rem 0;
+}
+
+.tiptap-editor-surface .ProseMirror h2 {
+  font-size: 1.2rem;
+  margin: 0.35rem 0;
+}
+
+.tiptap-editor-surface .ProseMirror h3 {
+  font-size: 1.05rem;
+  margin: 0.35rem 0;
+}
+
 .attachment-field .field-label {
   display: block;
   font-weight: 600;
@@ -679,5 +779,13 @@ textarea {
   .card {
     box-shadow: none;
     break-inside: avoid;
+  }
+
+  .tiptap-toolbar {
+    display: none !important;
+  }
+
+  .tiptap-editor-wrap {
+    border-radius: 6px;
   }
 }

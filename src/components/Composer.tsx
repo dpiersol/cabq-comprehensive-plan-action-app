@@ -12,6 +12,7 @@ import {
 import { HierarchySearch } from "./HierarchySearch";
 import { AttachmentField } from "../attachments/AttachmentField";
 import { DepartmentCombobox } from "./DepartmentCombobox";
+import { ActionDescriptionEditor } from "./ActionDescriptionEditor";
 
 export interface ComposerProps {
   data: PlanData;
@@ -27,7 +28,6 @@ export interface ComposerProps {
   alternateContact: ContactBlock;
   attachments: StoredAttachment[];
   actionDetails: string;
-  actionDetailsMax: number;
   validationErrors: string[];
   exportStatus: string | null;
   editingLabel: string | null;
@@ -148,7 +148,6 @@ export function Composer(props: ComposerProps) {
     alternateContact,
     attachments,
     actionDetails,
-    actionDetailsMax,
     validationErrors,
     exportStatus,
     editingLabel,
@@ -376,29 +375,29 @@ export function Composer(props: ComposerProps) {
       <section className="card print-section" aria-labelledby="action-heading">
         <h2 id="action-heading">Action details</h2>
         <div className="field">
-          <label htmlFor="action-title">Action title</label>
+          <label htmlFor="action-title">
+            Action title<span className="req-mark"> (required)</span>
+          </label>
           <input
             id="action-title"
             type="text"
             autoComplete="off"
             value={actionTitle}
+            aria-required
             onChange={(e) => onActionTitleChange(e.target.value)}
-            placeholder="Short name for this action (required to save)"
+            placeholder="Short name for this action"
           />
         </div>
         <div className="field">
-          <label htmlFor="action-details">Describe the departmental action</label>
-          <textarea
+          <label htmlFor="action-details" id="action-details-label">
+            Action description<span className="req-mark"> (required)</span>
+          </label>
+          <ActionDescriptionEditor
             id="action-details"
+            labelledBy="action-details-label"
             value={actionDetails}
-            maxLength={actionDetailsMax}
-            onChange={(e) => onActionDetailsChange(e.target.value)}
-            placeholder="How this action relates to the selected plan elements (implementation, review, coordination, etc.)."
-            rows={6}
+            onChange={onActionDetailsChange}
           />
-          <p className="hint char-count" aria-live="polite">
-            {actionDetails.length} / {actionDetailsMax} characters
-          </p>
         </div>
 
         <AttachmentField attachments={attachments} onChange={onAttachmentsChange} />

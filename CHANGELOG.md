@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.9.0] — 2026-04-01
+
+**First iteration complete** — milestone release: composer (rich action description, validation), local library, workflow API (SQLite), staff inboxes, FI department link, Word placeholder export, Playwright E2E, demo workflow seed, and toolchain upgrades (Vite 8, Vitest 4, TypeScript 6, React 19.2, TipTap).
+
+- Bumps app and API health version to **0.9.0**.
+- **`WORKFLOW_DEMO_SEED` on startup** is skipped when Vitest or `NODE_ENV=test` runs the API, so unit tests stay fast and reliable.
+
+## [0.8.6] — 2026-04-01
+
+- **Demo workflow seed:** `npm run seed:demo` inserts **30** submissions — **5** per workflow position: Planning review, Planning (after council review), City Council review, Further information (requested by Planning), Further information (requested by Council), and Complete. Rows use ids prefixed with `demo-` (re-seeding clears previous demo rows). Optional: start the API with `WORKFLOW_DEMO_SEED=1` to seed on startup.
+- API **GET /api/health** `version` field updated to **0.8.6**.
+
+## [0.8.5] — 2026-04-01
+
+### Stage A — Toolchain (latest stable where compatible)
+
+- **Vite 8**, **Vitest 4**, **TypeScript 6**, **React 19.2**, **@vitejs/plugin-react 6**, **@fastify/cors 11**, **typescript-eslint 8.58**, **globals 17**, **ESLint 9.39** + **eslint-plugin-react-hooks 7**. (ESLint 10 is not used yet: `eslint-plugin-react-hooks` still peers ESLint `^9` only.)
+- Removed **`@types/uuid`** (uuid ships its own types; the `@types` package is deprecated).
+- **Department combobox:** reset highlight without `setState` inside `useEffect` (satisfies new `react-hooks/set-state-in-effect` rule).
+
+### Stage B — Browser verification
+
+- **Playwright** (Chromium) end-to-end tests: `npm run test:e2e` runs **`npm run build`** then **`vite preview`** and exercises shell, tabs, hierarchy + save to library, department combobox, and TipTap bold. Use `npm run test:e2e:ui` for the Playwright UI runner.
+- Preview URL for manual checks: after `npm run build`, run `npm run preview` and open the URL shown (default **http://localhost:4173**).
+
+## [0.8.3] — 2026-03-31
+
+- **Fix (React 19):** Replaced **react-quill** with **TipTap** for the action description editor. `react-quill` relied on `ReactDOM.findDOMNode`, which was removed in React 19 and caused *“Something went wrong”* / `findDOMNode is not a function` at runtime. Behavior is unchanged: HTML storage, plain-text validation, toolbar (headings, bold/italic/underline, lists, links, clear).
+
+## [0.8.2] — 2026-03-31
+
+- **Action title** and **Action description** (renamed from “Describe the departmental action”) are **required** for save, JSON export, and workflow submit. Validation uses **plain-text length** after stripping rich text markup (max **500** characters of plain text).
+- **Action description** is a **rich text** field (Quill toolbar: headings, bold/italic/underline, lists, links). Character counts and limits apply to plain text, not raw HTML.
+- Word export (Complete) writes plain text for the description column.
+
 ## [0.8.1] — 2026-04-01
 
 - **Department** field uses the City of Albuquerque department list (sorted A–Z) with a **combobox**: type to filter, click **▾** or focus to open the full list, keyboard arrows + Enter. Custom text is still allowed if there is no match.

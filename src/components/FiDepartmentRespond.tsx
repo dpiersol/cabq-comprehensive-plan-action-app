@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { DraftSnapshot } from "../draftStorage";
 import { apiFiRespond, apiGetFi } from "../api/workflowApi";
 import { AttachmentField } from "../attachments/AttachmentField";
+import { ActionDescriptionEditor } from "./ActionDescriptionEditor";
 
 interface FiDepartmentRespondProps {
   token: string;
@@ -70,12 +71,14 @@ export function FiDepartmentRespond({ token }: FiDepartmentRespondProps) {
             </div>
           )}
           <div className="field">
-            <label htmlFor="fi-action">Action description</label>
-            <textarea
+            <label htmlFor="fi-action" id="fi-action-label">
+              Action description<span className="req-mark"> (required)</span>
+            </label>
+            <ActionDescriptionEditor
               id="fi-action"
-              rows={8}
+              labelledBy="fi-action-label"
               value={snap.actionDetails}
-              onChange={(e) => setSnap({ ...snap, actionDetails: e.target.value })}
+              onChange={(html) => setSnap({ ...snap, actionDetails: html })}
             />
           </div>
           <AttachmentField attachments={snap.attachments} onChange={(a) => setSnap({ ...snap, attachments: a })} />

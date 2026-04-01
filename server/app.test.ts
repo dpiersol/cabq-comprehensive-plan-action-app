@@ -16,7 +16,7 @@ describe("API", () => {
     const app = buildServer();
     const res = await app.inject({ method: "GET", url: "/api/health" });
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ ok: true, version: "0.8.0" });
+    expect(JSON.parse(res.body)).toEqual({ ok: true, version: "0.9.0" });
     await app.close();
   });
 

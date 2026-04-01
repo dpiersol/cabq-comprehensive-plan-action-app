@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { initDb } from "./db/client.js";
 import { seedUsers } from "./db/seed.js";
+import { runDemoWorkflowSeed } from "./db/seedDemoWorkflow.js";
 import { submissions, workflowEvents, users } from "./db/schema.js";
 import {
   actionsForState,
@@ -49,11 +50,19 @@ function canReadSubmission(role: UserRole, queue: Queue): boolean {
 export function buildServer() {
   const { sqlite, db } = initDb();
   seedUsers(sqlite);
+  const skipDemoSeed =
+    process.env.VITEST === "true" ||
+    process.env.NODE_ENV === "test" ||
+    process.env.VITEST_WORKER_ID !== undefined;
+  if (process.env.WORKFLOW_DEMO_SEED === "1" && !skipDemoSeed) {
+    const { inserted } = runDemoWorkflowSeed(sqlite, db);
+    console.info(`[WORKFLOW_DEMO_SEED] Inserted ${inserted} demo submissions.`);
+  }
 
   const app = Fastify({ logger: process.env.VITEST ? false : true });
   app.register(cors, { origin: true });
 
-  app.get("/api/health", async () => ({ ok: true, version: "0.8.0" }));
+  app.get("/api/health", async () => ({ ok: true, version: "0.9.0" }));
 
   app.post("/api/auth/login", async (req, reply) => {
     const body = (req.body ?? {}) as { userId?: string };

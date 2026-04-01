@@ -2,6 +2,7 @@ import type { PlanData } from "./types";
 import type { DraftSnapshot } from "./draftStorage";
 import type { ContactBlock } from "./contacts";
 import { resolveSelection } from "./planSelection";
+import { plainTextFromHtml } from "./htmlUtils";
 
 const ACTION_TITLE_MIN = 3;
 const ACTION_DETAILS_MIN = 10;
@@ -43,11 +44,11 @@ export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): Valid
     errors.push(`Action title must be at least ${ACTION_TITLE_MIN} characters.`);
   }
 
-  const action = snap.actionDetails.trim();
-  if (action.length < ACTION_DETAILS_MIN) {
+  const actionPlain = plainTextFromHtml(snap.actionDetails);
+  if (actionPlain.length < ACTION_DETAILS_MIN) {
     errors.push(`Action description must be at least ${ACTION_DETAILS_MIN} characters.`);
   }
-  if (action.length > ACTION_DETAILS_MAX) {
+  if (actionPlain.length > ACTION_DETAILS_MAX) {
     errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
   }
 
@@ -63,15 +64,24 @@ export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): Valid
 
 export function validateDraftForExport(plan: PlanData, snap: DraftSnapshot): ValidationResult {
   const errors: string[] = [];
+  const actionTitle = snap.actionTitle.trim();
+  if (actionTitle.length < ACTION_TITLE_MIN) {
+    errors.push(`Action title must be at least ${ACTION_TITLE_MIN} characters.`);
+  }
+
+  const actionPlain = plainTextFromHtml(snap.actionDetails);
+  if (actionPlain.length < ACTION_DETAILS_MIN) {
+    errors.push(`Action description must be at least ${ACTION_DETAILS_MIN} characters.`);
+  }
+  if (actionPlain.length > ACTION_DETAILS_MAX) {
+    errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
+  }
+
   const sel = resolveSelection(plan, snap);
   if (!sel.chapter) errors.push("Select a chapter.");
   if (!sel.goal) errors.push("Select a goal.");
   if (!sel.goalDetail) errors.push("Select a goal detail.");
   if (!sel.policy) errors.push("Select a policy.");
   errors.push(...validatePrimaryContact(snap.primaryContact));
-  const action = snap.actionDetails.trim();
-  if (action.length > ACTION_DETAILS_MAX) {
-    errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
-  }
   return { ok: errors.length === 0, errors };
 }

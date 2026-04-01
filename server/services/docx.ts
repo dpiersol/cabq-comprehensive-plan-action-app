@@ -1,6 +1,8 @@
 import { Document, Packer, Paragraph, TextRun } from "docx";
+import { plainTextFromHtml } from "../htmlUtils.js";
 
 export async function buildActionDocx(actionTitle: string, actionDescription: string): Promise<Buffer> {
+  const descriptionPlain = plainTextFromHtml(actionDescription);
   const doc = new Document({
     sections: [
       {
@@ -23,13 +25,13 @@ export async function buildActionDocx(actionTitle: string, actionDescription: st
             children: [new TextRun({ text: "Action description", bold: true })],
           }),
           new Paragraph({
-            children: [new TextRun(actionDescription || "(none)")],
+            children: [new TextRun(descriptionPlain || "(none)")],
           }),
           new Paragraph({ children: [new TextRun("")] }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "This is a placeholder document for v0.8.0. Replace with your formatted template later.",
+                text: "This is a placeholder document for v0.9.0. Replace with your formatted template later.",
                 italics: true,
               }),
             ],

@@ -69,4 +69,8 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.8.1** — see `CHANGELOG.md`.
+Current release: **v0.9.0** — see `CHANGELOG.md`.
+
+**Workflow demo data:** with the API running against a local DB, run **`npm run seed:demo`** to insert 30 sample submissions (5 per workflow step). To seed automatically when the server starts, set **`WORKFLOW_DEMO_SEED=1`**. Demo rows have ids starting with **`demo-`**; re-running the seed script removes previous demo rows before inserting.
+
+**Quality checks:** `npm test` (Vitest), `npm run lint`, `npm run build`, `npm run test:e2e` (Playwright against production preview; installs Chromium via Playwright on first run).

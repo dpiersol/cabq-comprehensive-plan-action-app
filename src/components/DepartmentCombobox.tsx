@@ -44,10 +44,6 @@ export function DepartmentCombobox({
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [open, close]);
 
-  useEffect(() => {
-    if (open) setHighlight(0);
-  }, [value, open]);
-
   function pick(dept: string) {
     onChange(dept);
     close();
@@ -56,6 +52,7 @@ export function DepartmentCombobox({
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      setHighlight(0);
       setOpen(true);
       return;
     }
@@ -96,9 +93,13 @@ export function DepartmentCombobox({
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
+            setHighlight(0);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setHighlight(0);
+            setOpen(true);
+          }}
           onKeyDown={onKeyDown}
         />
         <button
@@ -107,7 +108,12 @@ export function DepartmentCombobox({
           aria-label="Show department list"
           tabIndex={-1}
           onClick={() => {
-            setOpen((o) => !o);
+            if (open) {
+              setOpen(false);
+            } else {
+              setHighlight(0);
+              setOpen(true);
+            }
             inputRef.current?.focus();
           }}
         >
