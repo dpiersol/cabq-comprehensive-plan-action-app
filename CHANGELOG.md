@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.2] — 2026-04-01
+
+- Section title **Comprehensive Plan Items** (replaces abbreviated “Compl Plan Items”).
+- Chapter placeholder text **Select chapter...** (ASCII ellipsis).
+- **Default hierarchy:** On load, the composer always starts with **Select chapter...** (no chapter pre-selected). Browser draft still restores record title, department, reference #, and action details only; library **Edit** still loads full hierarchy from a saved record.
+
 ## [0.6.1] — 2026-04-01
 
 - UI copy: section title **Compl Plan Items** (was “Plan hierarchy”); search label **Search Comprehensive Plan** (was “Find in plan”).

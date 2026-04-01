@@ -133,7 +133,17 @@ export function App() {
     }
     const stored = loadDraftFromStorage();
     const snap = stored ? normalizeDraft(data, stored) : emptyDraft();
-    applySnapshot(snap);
+    // Always start hierarchy at "Select chapter..."; restore record fields only from draft.
+    setChapterIdx(-1);
+    setGoalIdx(-1);
+    setGoalDetailIdx(-1);
+    setPolicyIdx(-1);
+    setSubPolicyIdx(-1);
+    setSubLevelIdx(-1);
+    setActionDetails(snap.actionDetails);
+    setTitle(snap.title);
+    setDepartment(snap.department);
+    setReferenceId(snap.referenceId);
     setHydrationDone(true);
   }, [data]);
 

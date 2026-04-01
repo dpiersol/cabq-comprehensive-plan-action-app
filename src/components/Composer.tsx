@@ -121,7 +121,7 @@ export function Composer(props: ComposerProps) {
       )}
 
       <section className="card print-section" aria-labelledby="hierarchy-heading">
-        <h2 id="hierarchy-heading">Compl Plan Items</h2>
+        <h2 id="hierarchy-heading">Comprehensive Plan Items</h2>
 
         <HierarchySearch data={data} onJump={onHierarchyJump} />
 
@@ -132,7 +132,7 @@ export function Composer(props: ComposerProps) {
             value={chapterIdx}
             onChange={(e) => onChapterChange(Number.parseInt(e.target.value, 10))}
           >
-            <option value={-1}>Select chapter…</option>
+            <option value={-1}>Select chapter...</option>
             {chapters.map((c, i) => (
               <option key={`${c.chapterNumber}-${c.chapterTitle}`} value={i}>
                 {chapterLabel(c)}

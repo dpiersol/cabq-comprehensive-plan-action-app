@@ -4,7 +4,7 @@ Internal application for documenting departmental actions against the Albuquerqu
 
 - **Stack:** React 19, TypeScript, Vite 6, Vitest, ESLint 9
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
-- **Storage:** Browser-only (`localStorage`) for drafts and the saved **Library**. No server or SSO in this release.
+- **Storage:** Browser-only (`localStorage`) for drafts and the saved **Library**. Draft restores record fields and action text on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search). No server or SSO in this release.
 
 ## Setup
 
@@ -62,4 +62,4 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.6.1** — see `CHANGELOG.md`.
+Current release: **v0.6.2** — see `CHANGELOG.md`.
