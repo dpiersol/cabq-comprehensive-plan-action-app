@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.1] — 2026-04-01
+
+- **Department** field uses the City of Albuquerque department list (sorted A–Z) with a **combobox**: type to filter, click **▾** or focus to open the full list, keyboard arrows + Enter. Custom text is still allowed if there is no match.
+
 ## [0.8.0] — 2026-04-01
 
 ### Product

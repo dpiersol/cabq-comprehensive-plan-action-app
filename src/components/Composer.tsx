@@ -11,6 +11,7 @@ import {
 } from "../labels";
 import { HierarchySearch } from "./HierarchySearch";
 import { AttachmentField } from "../attachments/AttachmentField";
+import { DepartmentCombobox } from "./DepartmentCombobox";
 
 export interface ComposerProps {
   data: PlanData;
@@ -350,17 +351,13 @@ export function Composer(props: ComposerProps) {
 
       <section className="card print-section" aria-labelledby="contact-heading">
         <h2 id="contact-heading">Contact Information</h2>
-        <div className="field">
-          <label htmlFor="department">Department</label>
-          <input
-            id="department"
-            type="text"
-            autoComplete="organization"
-            value={department}
-            onChange={(e) => onDepartmentChange(e.target.value)}
-            placeholder="Optional"
-          />
-        </div>
+        <DepartmentCombobox
+          id="department"
+          label="Department"
+          value={department}
+          onChange={onDepartmentChange}
+          placeholder="Optional — type to search or pick from list"
+        />
         <ContactGroup
           legend="Primary contact information"
           prefix="primary-contact"
