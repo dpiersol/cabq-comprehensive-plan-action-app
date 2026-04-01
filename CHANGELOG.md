@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0] — 2026-04-01
+
+- **Workflow feature shelved (not deleted):** The full workflow stack is **copied to `archive/workflow-shelved/`** with restore instructions. The live app drops the **Workflow** tab, **Submit to workflow**, and **`#/fi/...`** department view. The running API is **minimal** (`GET /api/health` with `{ workflow: "shelved" }`) so `dev:server` / Vite `/api` proxy still work.
+- **Removed** from the active tree: Drizzle/SQLite workflow server, demo seed script, `drizzle.config.ts`, `scripts/gen-workflow-plan.mjs` (archived copy kept). **Dependencies** trimmed (no `better-sqlite3`, `drizzle-orm`, `docx`, `uuid`, `zod` in the default install).
+- **E2E:** Smoke test no longer opens the Workflow tab.
+
+Restore workflow from Git tag **`v0.9.0`** or from `archive/workflow-shelved/` — see `archive/workflow-shelved/README.md`.
+
 ## [0.9.0] — 2026-04-01
 
 **First iteration complete** — milestone release: composer (rich action description, validation), local library, workflow API (SQLite), staff inboxes, FI department link, Word placeholder export, Playwright E2E, demo workflow seed, and toolchain upgrades (Vite 8, Vitest 4, TypeScript 6, React 19.2, TipTap).

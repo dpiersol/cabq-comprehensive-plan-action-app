@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Composer", () => {
+test.describe("Composer workflow", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator(".site-header h1")).toContainText(/CABQ Comprehensive Plan/i, {

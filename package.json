@@ -1,7 +1,7 @@
 {
   "name": "cabq-comprehensive-plan-action-app",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.10.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,9 +13,7 @@
     "test:e2e": "npm run build && playwright test",
     "test:e2e:ui": "npm run build && playwright test --ui",
     "lint": "eslint .",
-    "data": "python scripts/excel_to_hierarchy.py",
-    "workflow:doc": "node scripts/gen-workflow-plan.mjs",
-    "seed:demo": "tsx server/scripts/seed-demo-workflow.ts"
+    "data": "python scripts/excel_to_hierarchy.py"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -24,25 +22,18 @@
     "@tiptap/extension-underline": "^3.22.0",
     "@tiptap/react": "^3.22.0",
     "@tiptap/starter-kit": "^3.22.0",
-    "better-sqlite3": "^12.8.0",
-    "docx": "^9.6.1",
-    "drizzle-orm": "^0.45.2",
     "fastify": "^5.8.4",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "uuid": "^13.0.0",
-    "zod": "^4.3.6"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
     "@playwright/test": "^1.59.1",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
-    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.4.0",

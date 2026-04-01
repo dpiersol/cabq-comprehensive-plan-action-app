@@ -2,43 +2,43 @@
 
 Internal application for documenting departmental actions against the Albuquerque / Bernalillo County (ABC) Comprehensive Plan hierarchy (chapter → goal → goal detail → policy → sub-policy → optional sub-level), with **cascading dropdowns** and structured exports.
 
-- **Stack:** React 19, TypeScript, Vite 6, Vitest, ESLint 9; **workflow API** — Fastify 5, Drizzle ORM, SQLite (`data/workflow.db`).
+- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; optional **minimal API** — Fastify 5 with `GET /api/health` only (Vite dev proxies `/api` when the server runs).
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
-- **Storage:** Browser `localStorage` for drafts and **Library**; **workflow** submissions and audit in SQLite when the API runs. Draft restores contact fields, action title, attachments, and action text on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search). Mock staff auth only until SSO.
+- **Storage:** Browser `localStorage` for drafts and **Library**. Draft restores contact fields, action title, attachments, and action description on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search).
+
+**Workflow shelved:** The previous Fastify + SQLite workflow (submit, staff inboxes, FI links, Word export) is **preserved under `archive/workflow-shelved/`** and restorable from Git tag **`v0.9.0`**. See `archive/workflow-shelved/README.md`.
 
 ## Setup
 
 ```bash
 npm install
 npm run dev
-# Optional: app + API together (workflow submit & Workflow tab)
+# Optional: app + minimal API (same /api proxy)
 npm run dev:all
 ```
 
-Open the URL shown in the terminal (typically `http://localhost:5173`). The API listens on **8787**; in dev, Vite proxies `/api` to it when using `dev:all` or with `dev:server` running separately.
-
-Environment: **`WORKFLOW_DB_PATH`** — optional path to the SQLite file (default `./data/workflow.db`).
+Open the URL shown in the terminal (typically `http://localhost:5173`). The API listens on **8787**; in dev, Vite proxies `/api` when using `dev:all` or with `dev:server` running separately.
 
 ## Scripts
 
 | Command | Description |
 |--------|-------------|
 | `npm run dev` | Vite dev server only |
-| `npm run dev:server` | Workflow API (SQLite, port 8787) |
+| `npm run dev:server` | Minimal API — health only (port 8787) |
 | `npm run dev:all` | API + Vite (concurrently) |
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview production build |
 | `npm run test` | Unit tests (Vitest) |
 | `npm run lint` | ESLint |
+| `npm run test:e2e` | Playwright E2E (build + preview) |
 | `npm run data` | Regenerate JSON from Excel (edit paths in script if needed) |
 
 ## Features (review scope)
 
-1. **Composer** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (department, primary and alternate contacts); **Action details** (action title, narrative up to 500 characters, optional attachments — business documents and images only).
+1. **Composer** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (department, primary and alternate contacts); **Action details** (action title, rich text description with plain-text length limits, optional attachments — business documents and images only).
 2. **Library** — Save many records locally; open for edit; duplicate; delete; filter; export all as one JSON file.
 3. **Export** — Single-record JSON (Copy / Download) or bundle export from Library. Schema includes `actionTitle`, `department`, `primaryContact`, `alternateContact`, `attachments`, plan nodes, and `actionDetails`.
 4. **Print** — Use **Print summary** for a clean printout (toolbar hidden via CSS).
-5. **Workflow (v0.8+)** — **Submit to workflow** on the composer (API must be running). **Workflow** tab for staff (mock users from seed). See **`workflow_plan.docx`** at the repo root for the process narrative.
 
 ## Review checklist (stakeholder demo)
 
@@ -69,8 +69,6 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v0.9.0** — see `CHANGELOG.md`.
-
-**Workflow demo data:** with the API running against a local DB, run **`npm run seed:demo`** to insert 30 sample submissions (5 per workflow step). To seed automatically when the server starts, set **`WORKFLOW_DEMO_SEED=1`**. Demo rows have ids starting with **`demo-`**; re-running the seed script removes previous demo rows before inserting.
+Current release: **v0.10.0** — see `CHANGELOG.md`.
 
 **Quality checks:** `npm test` (Vitest), `npm run lint`, `npm run build`, `npm run test:e2e` (Playwright against production preview; installs Chromium via Playwright on first run).

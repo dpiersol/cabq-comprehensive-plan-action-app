@@ -23,6 +23,8 @@ test.describe("App shell", () => {
     await expect(page.locator(".site-header h1")).toBeVisible({ timeout: 60_000 });
     await page.locator('nav[aria-label="Main"]').getByRole("button", { name: /^Library/ }).click();
     await expect(page.getByRole("heading", { name: /Saved actions/i })).toBeVisible();
+    await page.getByRole("button", { name: "Workflow" }).click();
+    await expect(page.getByRole("heading", { name: /Workflow/i })).toBeVisible();
     await page.getByRole("button", { name: "Composer" }).click();
     await expect(page.getByRole("heading", { name: "Comprehensive Plan Items" })).toBeVisible();
   });

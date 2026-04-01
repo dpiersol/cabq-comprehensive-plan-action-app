@@ -21,16 +21,13 @@ import {
   updateAction,
   type SavedAction,
 } from "./savedActionsStore";
-import { apiSubmitSnapshot } from "./api/workflowApi";
 import { Composer } from "./components/Composer";
-import { FiDepartmentRespond } from "./components/FiDepartmentRespond";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
-import { WorkflowPanel } from "./components/WorkflowPanel";
 import type { HierarchyJumpTarget } from "./planSearch/types";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 
-type Tab = "compose" | "library" | "workflow";
+type Tab = "compose" | "library";
 
 function buildSnapshot(state: {
   chapterIdx: number;
@@ -85,9 +82,6 @@ export function App() {
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [fiToken, setFiToken] = useState<string | null>(null);
-  const [workflowBusy, setWorkflowBusy] = useState(false);
-  const [workflowMsg, setWorkflowMsg] = useState<string | null>(null);
 
   const savedCount = useMemo(() => {
     void libraryVersion;
@@ -125,16 +119,6 @@ export function App() {
       attachments,
     ],
   );
-
-  useEffect(() => {
-    function parseFiHash() {
-      const m = window.location.hash.match(/^#\/fi\/(.+)$/);
-      setFiToken(m?.[1] ?? null);
-    }
-    parseFiHash();
-    window.addEventListener("hashchange", parseFiHash);
-    return () => window.removeEventListener("hashchange", parseFiHash);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -365,34 +349,6 @@ export function App() {
     setValidationErrors([]);
   };
 
-  const handleWorkflowSubmit = async () => {
-    if (!data) return;
-    setValidationErrors([]);
-    const v = validateDraftForSave(data, draftSnapshot);
-    if (!v.ok) {
-      setValidationErrors(v.errors);
-      return;
-    }
-    setWorkflowBusy(true);
-    setWorkflowMsg(null);
-    try {
-      const r = await apiSubmitSnapshot(draftSnapshot);
-      setWorkflowMsg(
-        `Submitted to workflow. Record ID: ${r.id}. Staff can open the Workflow tab to process.`,
-      );
-    } catch (e) {
-      setWorkflowMsg(
-        e instanceof Error ? e.message : "Submit failed. Start the API with npm run dev:server.",
-      );
-    } finally {
-      setWorkflowBusy(false);
-    }
-  };
-
-  if (fiToken) {
-    return <FiDepartmentRespond token={fiToken} />;
-  }
-
   if (loadError) {
     return (
       <div className="app-shell">
@@ -439,8 +395,7 @@ export function App() {
           </a>
           {" · "}
           <a href="https://compplan.abq-zone.com/">Interactive plan</a>
-          ). Use the composer for cascading selections, save records locally, and export JSON for
-          downstream workflows.
+          ). Use the composer for cascading selections, save records locally, and export JSON.
         </p>
       </header>
 
@@ -458,13 +413,6 @@ export function App() {
           onClick={() => setTab("library")}
         >
           Library ({savedCount})
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${tab === "workflow" ? "active" : ""}`}
-          onClick={() => setTab("workflow")}
-        >
-          Workflow
         </button>
       </nav>
 
@@ -505,9 +453,6 @@ export function App() {
             onDownloadJson={downloadJson}
             onPrint={onPrint}
             onHierarchyJump={applyHierarchyJump}
-            onSubmitToWorkflow={handleWorkflowSubmit}
-            workflowSubmitBusy={workflowBusy}
-            workflowSubmitMessage={workflowMsg}
           />
         )}
         {tab === "library" && (
@@ -520,7 +465,6 @@ export function App() {
             onExportAll={exportAllJson}
           />
         )}
-        {tab === "workflow" && <WorkflowPanel />}
       </main>
 
       <footer className="site-footer no-print">
