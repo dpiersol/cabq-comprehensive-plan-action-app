@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.11.1] — 2026-04-02
+
+- **Docs / process:** Added **`agent.md`** (release and build checklist: version bump, `npm run build` / `test` / `lint` / `test:e2e`, update **`CHANGELOG.md`** and **`change.md`**, push to GitHub including **`v0.11.1`** tag, open **`npm run preview`** in the browser). Added **`change.md`** as a short “current release” summary; full history stays here.
+
 ## [0.11.0] — 2026-03-31
 
 - **Multiple comprehensive plan items:** The composer supports **one or more** hierarchy rows per action. Use **Add another plan item** to append a row; **Remove** appears when there is more than one row. Hierarchy search applies to the row you last focused (highlighted). Saved draft JSON and library entries store `planItems` (legacy flat `chapterIdx` / … fields in stored JSON are migrated to `planItems[0]` on load).
