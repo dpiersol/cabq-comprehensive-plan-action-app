@@ -1,11 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import { ACTION_DETAILS_MAX } from "../validation";
-import { plainTextFromHtml } from "../htmlUtils";
 
 const extensions = [
   StarterKit.configure({
@@ -142,9 +140,6 @@ export function ActionDescriptionEditor({
   onChange,
   labelledBy,
 }: ActionDescriptionEditorProps) {
-  const plainLen = useMemo(() => plainTextFromHtml(value).length, [value]);
-  const overMax = plainLen > ACTION_DETAILS_MAX;
-
   const editor = useEditor({
     extensions,
     content: value || "",
@@ -177,12 +172,6 @@ export function ActionDescriptionEditor({
         <Toolbar editor={editor} />
         <EditorContent editor={editor} className="tiptap-editor-surface" />
       </div>
-      <p
-        className={`hint char-count ${overMax ? "char-count-over" : ""}`}
-        aria-live="polite"
-      >
-        {plainLen} / {ACTION_DETAILS_MAX} characters (plain text)
-      </p>
     </div>
   );
 }

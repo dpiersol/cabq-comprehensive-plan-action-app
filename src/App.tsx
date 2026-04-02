@@ -10,7 +10,6 @@ import {
   saveDraftToStorage,
   type DraftSnapshot,
   type PlanItemSelection,
-  type StoredAttachment,
 } from "./draftStorage";
 import type { PlanData } from "./types";
 import { validateDraftForExport, validateDraftForSave } from "./validation";
@@ -38,7 +37,6 @@ function buildSnapshot(state: {
   department: string;
   primaryContact: ContactBlock;
   alternateContact: ContactBlock;
-  attachments: StoredAttachment[];
 }): DraftSnapshot {
   return {
     planItems: state.planItems.map((p) => ({ ...p })),
@@ -47,7 +45,6 @@ function buildSnapshot(state: {
     department: state.department,
     primaryContact: state.primaryContact,
     alternateContact: state.alternateContact,
-    attachments: state.attachments,
   };
 }
 
@@ -62,7 +59,6 @@ export function App() {
   const [department, setDepartment] = useState("");
   const [primaryContact, setPrimaryContact] = useState(emptyContact());
   const [alternateContact, setAlternateContact] = useState(emptyContact());
-  const [attachments, setAttachments] = useState<StoredAttachment[]>([]);
 
   const [hydrationDone, setHydrationDone] = useState(false);
   const [tab, setTab] = useState<Tab>("compose");
@@ -86,7 +82,6 @@ export function App() {
         department,
         primaryContact,
         alternateContact,
-        attachments,
       }),
     [
       planItems,
@@ -95,7 +90,6 @@ export function App() {
       department,
       primaryContact,
       alternateContact,
-      attachments,
     ],
   );
 
@@ -131,7 +125,6 @@ export function App() {
     setDepartment(snap.department);
     setPrimaryContact(snap.primaryContact);
     setAlternateContact(snap.alternateContact);
-    setAttachments(snap.attachments);
     setHydrationDone(true);
   }, [data]);
 
@@ -143,7 +136,6 @@ export function App() {
     setDepartment(snap.department);
     setPrimaryContact(snap.primaryContact);
     setAlternateContact(snap.alternateContact);
-    setAttachments(snap.attachments);
   }
 
   useEffect(() => {
@@ -179,19 +171,34 @@ export function App() {
   };
 
   const onGoalChange = (itemIndex: number, i: number) => {
+    if (!data) return;
     setPlanItems((prev) =>
-      prev.map((p, j) =>
-        j !== itemIndex
-          ? p
-          : {
-              ...p,
-              goalIdx: i,
-              goalDetailIdx: -1,
-              policyIdx: -1,
-              subPolicyIdx: -1,
-              subLevelIdx: -1,
-            },
-      ),
+      prev.map((p, j) => {
+        if (j !== itemIndex) return p;
+        if (i < 0) {
+          return {
+            ...p,
+            goalIdx: -1,
+            goalDetailIdx: -1,
+            policyIdx: -1,
+            subPolicyIdx: -1,
+            subLevelIdx: -1,
+          };
+        }
+        const chapter = data.chapters[p.chapterIdx];
+        const goals = chapter?.goals ?? [];
+        const goal = goals[i];
+        const goalDetails = goal?.goalDetails ?? [];
+        const goalDetailIdx = goalDetails.length > 0 ? 0 : -1;
+        return {
+          ...p,
+          goalIdx: i,
+          goalDetailIdx,
+          policyIdx: -1,
+          subPolicyIdx: -1,
+          subLevelIdx: -1,
+        };
+      }),
     );
   };
 
@@ -464,7 +471,6 @@ export function App() {
             department={department}
             primaryContact={primaryContact}
             alternateContact={alternateContact}
-            attachments={attachments}
             actionDetails={actionDetails}
             validationErrors={validationErrors}
             exportStatus={exportStatus}
@@ -482,7 +488,6 @@ export function App() {
             onDepartmentChange={setDepartment}
             onPrimaryContactChange={setPrimaryContact}
             onAlternateContactChange={setAlternateContact}
-            onAttachmentsChange={setAttachments}
             onActionDetailsChange={setActionDetails}
             onClear={clearForm}
             onSaveToLibrary={saveToLibrary}

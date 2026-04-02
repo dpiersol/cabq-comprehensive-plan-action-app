@@ -83,7 +83,6 @@ describe("draftStorage", () => {
       department: "",
       primaryContact: emptyContact(),
       alternateContact: emptyContact(),
-      attachments: [],
     });
     expect(d.planItems[0].subLevelIdx).toBe(0);
     expect(d.planItems[0].subPolicyIdx).toBe(1);
@@ -106,7 +105,6 @@ describe("draftStorage", () => {
       department: "",
       primaryContact: emptyContact(),
       alternateContact: emptyContact(),
-      attachments: [],
     });
     expect(d.planItems[0].subLevelIdx).toBe(-1);
   });

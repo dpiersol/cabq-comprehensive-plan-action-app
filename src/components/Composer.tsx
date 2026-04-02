@@ -1,7 +1,7 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubPolicy } from "../types";
 import type { HierarchyJumpTarget } from "../planSearch/types";
 import type { ContactBlock } from "../contacts";
-import type { PlanItemSelection, StoredAttachment } from "../draftStorage";
+import type { PlanItemSelection } from "../draftStorage";
 import {
   chapterLabel,
   goalLabel,
@@ -10,7 +10,6 @@ import {
   subPolicyOptionLabel,
 } from "../labels";
 import { HierarchySearch } from "./HierarchySearch";
-import { AttachmentField } from "../attachments/AttachmentField";
 import { DepartmentCombobox } from "./DepartmentCombobox";
 import { ActionDescriptionEditor } from "./ActionDescriptionEditor";
 
@@ -22,7 +21,6 @@ export interface ComposerProps {
   department: string;
   primaryContact: ContactBlock;
   alternateContact: ContactBlock;
-  attachments: StoredAttachment[];
   actionDetails: string;
   validationErrors: string[];
   exportStatus: string | null;
@@ -40,7 +38,6 @@ export interface ComposerProps {
   onDepartmentChange: (v: string) => void;
   onPrimaryContactChange: (c: ContactBlock) => void;
   onAlternateContactChange: (c: ContactBlock) => void;
-  onAttachmentsChange: (a: StoredAttachment[]) => void;
   onActionDetailsChange: (v: string) => void;
   onClear: () => void;
   onSaveToLibrary: () => void;
@@ -326,7 +323,6 @@ export function Composer(props: ComposerProps) {
     department,
     primaryContact,
     alternateContact,
-    attachments,
     actionDetails,
     validationErrors,
     exportStatus,
@@ -344,7 +340,6 @@ export function Composer(props: ComposerProps) {
     onDepartmentChange,
     onPrimaryContactChange,
     onAlternateContactChange,
-    onAttachmentsChange,
     onActionDetailsChange,
     onClear,
     onSaveToLibrary,
@@ -512,8 +507,6 @@ export function Composer(props: ComposerProps) {
             onChange={onActionDetailsChange}
           />
         </div>
-
-        <AttachmentField attachments={attachments} onChange={onAttachmentsChange} />
 
         <p className="hint">
           Draft auto-saves in this browser. Saving to the library stores a local copy.

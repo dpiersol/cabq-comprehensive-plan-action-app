@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2] — 2026-04-02
+
+- **Composer:** Choosing a **Goal** automatically selects the first **Goal detail** for that goal (users can still change goal detail afterward).
+- **Action description:** Plain-text maximum increased to **2500** characters; the live character counter was removed (validation unchanged otherwise).
+- **Attachments removed** from the UI, draft snapshot, library records, and export JSON (`attachments` field removed from export payload). Legacy drafts with stored attachments ignore attachment data on load.
+- **API:** `GET /api/health` `version` updated to **0.11.2** (keep in sync with `package.json` when releasing).
+
 ## [0.11.1] — 2026-04-02
 
 - **Docs / process:** Added **`agent.md`** (release and build checklist: version bump, `npm run build` / `test` / `lint` / `test:e2e`, update **`CHANGELOG.md`** and **`change.md`**, push to GitHub including **`v0.11.1`** tag, open **`npm run preview`** in the browser). Added **`change.md`** as a short “current release” summary; full history stays here.

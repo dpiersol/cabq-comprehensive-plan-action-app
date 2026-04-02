@@ -6,7 +6,7 @@ import { plainTextFromHtml } from "./htmlUtils";
 
 const ACTION_TITLE_MIN = 3;
 const ACTION_DETAILS_MIN = 10;
-export const ACTION_DETAILS_MAX = 500;
+export const ACTION_DETAILS_MAX = 2500;
 
 /** Loose email check for required primary contact. */
 function isValidEmail(s: string): boolean {

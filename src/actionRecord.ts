@@ -1,5 +1,5 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubLevel, SubPolicy } from "./types";
-import type { DraftSnapshot, StoredAttachment } from "./draftStorage";
+import type { DraftSnapshot } from "./draftStorage";
 import type { ContactBlock } from "./contacts";
 import { resolvePlanItem } from "./planSelection";
 import type { ResolvedSelection } from "./planSelection";
@@ -25,7 +25,6 @@ export interface ActionRecordPayload {
   department: string;
   primaryContact: ContactBlock;
   alternateContact: ContactBlock;
-  attachments: Pick<StoredAttachment, "id" | "fileName" | "mimeType" | "size" | "dataBase64">[];
   /** All plan paths this action documents (order matches the composer). */
   compPlanItems: CompPlanItemRecord[];
   actionDetails: string;
@@ -62,7 +61,6 @@ export function buildActionRecord(
     department: string;
     primaryContact: ContactBlock;
     alternateContact: ContactBlock;
-    attachments: StoredAttachment[];
   },
   selected: {
     chapter: Chapter | undefined;
@@ -102,13 +100,6 @@ export function buildActionRecord(
       email: meta.alternateContact.email.trim(),
       phone: meta.alternateContact.phone.trim(),
     },
-    attachments: meta.attachments.map((a) => ({
-      id: a.id,
-      fileName: a.fileName,
-      mimeType: a.mimeType,
-      size: a.size,
-      dataBase64: a.dataBase64,
-    })),
     compPlanItems: [compPlanItemFromResolved(sel)],
     actionDetails,
   };
@@ -141,13 +132,6 @@ export function buildActionRecordFromSnapshot(
       email: snap.alternateContact.email.trim(),
       phone: snap.alternateContact.phone.trim(),
     },
-    attachments: snap.attachments.map((a) => ({
-      id: a.id,
-      fileName: a.fileName,
-      mimeType: a.mimeType,
-      size: a.size,
-      dataBase64: a.dataBase64,
-    })),
     compPlanItems: items,
     actionDetails: snap.actionDetails,
   };

@@ -4,15 +4,6 @@ import { emptyContact } from "./contacts";
 
 export const DRAFT_STORAGE_KEY = "cabq-comp-plan-action-draft-v1";
 
-export interface StoredAttachment {
-  id: string;
-  fileName: string;
-  mimeType: string;
-  size: number;
-  /** Raw base64 only (no data: URL prefix). */
-  dataBase64: string;
-}
-
 /** One path through the comprehensive plan hierarchy (indices into loaded JSON). */
 export interface PlanItemSelection {
   chapterIdx: number;
@@ -31,7 +22,6 @@ export interface DraftSnapshot {
   department: string;
   primaryContact: ContactBlock;
   alternateContact: ContactBlock;
-  attachments: StoredAttachment[];
 }
 
 export function emptyPlanItem(): PlanItemSelection {
@@ -49,13 +39,7 @@ function packMeta(
   raw: DraftSnapshot,
 ): Pick<
   DraftSnapshot,
-  | "actionDetails"
-  | "actionTitle"
-  | "department"
-  | "primaryContact"
-  | "alternateContact"
-  | "attachments"
-  | "planItems"
+  "actionDetails" | "actionTitle" | "department" | "primaryContact" | "alternateContact" | "planItems"
 > {
   const items = Array.isArray(raw.planItems) ? raw.planItems : [];
   return {
@@ -64,7 +48,6 @@ function packMeta(
     department: raw.department ?? "",
     primaryContact: raw.primaryContact ?? emptyContact(),
     alternateContact: raw.alternateContact ?? emptyContact(),
-    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
     planItems: items.length > 0 ? items.map((p) => ({ ...p })) : [emptyPlanItem()],
   };
 }
@@ -77,7 +60,6 @@ export function emptyDraft(): DraftSnapshot {
     department: "",
     primaryContact: emptyContact(),
     alternateContact: emptyContact(),
-    attachments: [],
   };
 }
 
@@ -101,32 +83,6 @@ function parseContact(raw: unknown): ContactBlock {
   };
 }
 
-function parseAttachments(raw: unknown): StoredAttachment[] {
-  if (!Array.isArray(raw)) return [];
-  const out: StoredAttachment[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
-    const o = item as Record<string, unknown>;
-    if (
-      typeof o.id !== "string" ||
-      typeof o.fileName !== "string" ||
-      typeof o.mimeType !== "string" ||
-      typeof o.size !== "number" ||
-      typeof o.dataBase64 !== "string"
-    ) {
-      continue;
-    }
-    out.push({
-      id: o.id,
-      fileName: o.fileName,
-      mimeType: o.mimeType,
-      size: o.size,
-      dataBase64: o.dataBase64,
-    });
-  }
-  return out;
-}
-
 function parsePlanItem(o: Record<string, unknown>): PlanItemSelection {
   return {
     chapterIdx: readIdx(o.chapterIdx),
@@ -138,7 +94,7 @@ function parsePlanItem(o: Record<string, unknown>): PlanItemSelection {
   };
 }
 
-/** Parse JSON from localStorage; migrates legacy flat indices → `planItems[0]`. */
+/** Parse JSON from localStorage; migrates legacy flat indices → `planItems[0]`. Ignores legacy `attachments`. */
 export function parseDraftJson(raw: unknown): DraftSnapshot {
   if (!raw || typeof raw !== "object") return emptyDraft();
   const o = raw as Record<string, unknown>;
@@ -172,7 +128,6 @@ export function parseDraftJson(raw: unknown): DraftSnapshot {
     department: readStr(o.department),
     primaryContact: parseContact(o.primaryContact),
     alternateContact: parseContact(o.alternateContact),
-    attachments: parseAttachments(o.attachments),
   };
 }
 
@@ -319,6 +274,5 @@ export function cloneDraftSnapshot(s: DraftSnapshot): DraftSnapshot {
     planItems: s.planItems.map((p) => ({ ...p })),
     primaryContact: { ...s.primaryContact },
     alternateContact: { ...s.alternateContact },
-    attachments: s.attachments.map((a) => ({ ...a })),
   };
 }

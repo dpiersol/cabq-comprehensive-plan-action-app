@@ -61,7 +61,6 @@ function baseSnap(over: Partial<DraftSnapshot> = {}): DraftSnapshot {
     department: "",
     primaryContact: { ...emptyContact(), ...validPrimary },
     alternateContact: emptyContact(),
-    attachments: [],
     ...over,
   };
 }
@@ -142,7 +141,7 @@ describe("validateDraftForExport", () => {
   it("fails when action details exceed max length (plain text)", () => {
     const r = validateDraftForExport(
       plan,
-      baseSnap({ actionDetails: `<p>${"x".repeat(501)}</p>` }),
+      baseSnap({ actionDetails: `<p>${"x".repeat(2501)}</p>` }),
     );
     expect(r.ok).toBe(false);
   });

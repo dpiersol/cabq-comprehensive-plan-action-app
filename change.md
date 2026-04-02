@@ -1,15 +1,12 @@
 # Current release summary
 
-**Version:** 0.11.1  
+**Version:** 0.11.2  
 **Date:** 2026-04-02
 
 ## What changed
 
-- Added **`agent.md`**: documented the standard release pipeline (version bump → build → unit tests → lint → E2E → update changelog files → GitHub → preview in browser).
-- Added **`change.md`**: this file — short summary of the latest release; full history remains in **`CHANGELOG.md`**.
+- **Goal → Goal detail:** Selecting a **Goal** auto-selects the first **Goal detail** for that goal (still changeable).
+- **Action description:** Max **2500** characters (plain text); **no** on-screen character count.
+- **Attachments:** Removed from the form, storage, and JSON export.
 
-## Previous highlights (0.11.0)
-
-- Multiple comprehensive plan items per action (`planItems`), **Add another plan item**, export JSON via **`compPlanItems`**.
-
-See **`CHANGELOG.md`** for the complete log.
+See **`CHANGELOG.md`** for the full history. Release steps: **`agent.md`**.
