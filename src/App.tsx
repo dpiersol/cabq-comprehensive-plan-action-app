@@ -23,6 +23,8 @@ import {
 } from "./savedActionsStore";
 import { ComprehensivePlanForm } from "./components/ComprehensivePlanForm";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
+import { PrintPreview } from "./components/PrintPreview";
+import { buildPrintFields, type PrintFields } from "./printFields";
 import type { HierarchyJumpTarget } from "./planSearch/types";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
@@ -68,6 +70,7 @@ export function App() {
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [printFields, setPrintFields] = useState<PrintFields | null>(null);
   const pendingActiveAfterAdd = useRef(false);
 
   const savedCount = useMemo(() => {
@@ -313,7 +316,9 @@ export function App() {
   };
 
   const printDocument = () => {
-    window.print();
+    if (!data) return;
+    setPrintFields(buildPrintFields(data, draftSnapshot));
+    requestAnimationFrame(() => window.print());
   };
 
   const openEdit = (action: SavedAction) => {
@@ -397,6 +402,7 @@ export function App() {
   }
 
   return (
+    <>
     <div className="app-shell">
       <header className="site-header no-print">
         <h1>CABQ Comprehensive Plan — Action documentation</h1>
@@ -481,5 +487,8 @@ export function App() {
         hierarchy JSON
       </footer>
     </div>
+
+    <PrintPreview fields={printFields} />
+    </>
   );
 }

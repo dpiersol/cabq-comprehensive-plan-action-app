@@ -791,30 +791,70 @@ textarea {
   margin: 0.35rem 0 0;
 }
 
+/* ── Print document layout ── */
+
+.print-doc {
+  display: none;
+}
+
+.print-doc-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 1.5rem;
+  color: #1a365d;
+}
+
+.print-doc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.print-doc-label {
+  font-weight: 600;
+  vertical-align: top;
+  text-align: left;
+  width: 30%;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  border-bottom: 1px solid #cbd5e0;
+  color: #1a365d;
+}
+
+.print-doc-value {
+  vertical-align: top;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #cbd5e0;
+  white-space: pre-wrap;
+}
+
 @media print {
   body {
     background: #fff;
   }
 
-  .no-print {
+  .no-print,
+  .app-shell {
     display: none !important;
   }
 
-  .site-main {
-    max-width: none;
-    padding: 0;
+  .print-doc {
+    display: block !important;
+    padding: 0.5in;
+    font-family: "Source Sans 3", system-ui, serif;
+    font-size: 11pt;
+    color: #000;
   }
 
-  .card {
-    box-shadow: none;
-    break-inside: avoid;
+  .print-doc-title {
+    color: #000;
+    font-size: 14pt;
   }
 
-  .tiptap-toolbar {
-    display: none !important;
+  .print-doc-label {
+    color: #000;
   }
 
-  .tiptap-editor-wrap {
-    border-radius: 6px;
+  .print-doc-value {
+    color: #000;
   }
 }

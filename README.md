@@ -37,7 +37,7 @@ Open the URL Vite prints (typically `http://localhost:5173`). **Submit** saves t
 
 ## Features (review scope)
 
-1. **Comprehensive Plan** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (**department required**, primary and alternate contacts); **Legislation details** (legislation title, rich text legislation description, and how the legislation furthers selected policies — each with plain-text length rules). **Save for later** persists the draft (and updates the library row when editing). **Submit** validates and saves to **Your submissions** (no network). **Print document** opens the browser print dialog. The server can still generate a **PDF** via `POST /api/submissions/pdf` (Word template / PDFKit) for integrations separate from Submit.
+1. **Comprehensive Plan** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (**department required**, primary and alternate contacts); **Legislation details** (legislation title, rich text legislation description, and how the legislation furthers selected policies — each with plain-text length rules). **Save for later** persists the draft (and updates the library row when editing). **Submit** validates and saves to **Your submissions** (no network). **Print document** populates a structured document with the 11 Word-template fields (Date, Department, Legislation Title, Chapter Number/Description, Goal/Description, Policy/Description, Legislation Description, How Furthers) and opens the browser print dialog (Save as PDF from there). No server required.
 2. **Your submissions** — Local library with **`CP-######`** record ids; open for edit; duplicate; delete; filter.
 3. **Admin / staff tools** — Planned separately; see `docs/ARCHITECTURE.md` and `src/admin/README.md`.
 
@@ -47,9 +47,7 @@ Open the URL Vite prints (typically `http://localhost:5173`). **Submit** saves t
 - [ ] Walk through full hierarchy for one chapter (e.g. Chapter 4) through at least **policy** (sub-policy / sub-level optional for save).
 - [ ] Confirm validation when saving with missing action title, short action text, incomplete **primary contact**, or plan not selected through policy.
 - [ ] Save at least two library entries, filter, edit one, duplicate one, delete one.
-- [ ] Export a single JSON and confirm fields match the on-screen selection.
-- [ ] Use **Export all** and confirm `records` array length matches the library.
-- [ ] Print preview from **Print summary** looks acceptable for internal filing.
+- [ ] Click **Print document** (with form filled); confirm the print preview shows the 11 mapped fields (Date, Department, Legislation Title, Chapter, Goal, Policy, Legislation Description, How Furthers). Save as PDF from the print dialog.
 
 ## Deploying static build
 
