@@ -1,12 +1,10 @@
 # Current release summary
 
-**Version:** 0.11.3  
+**Version:** 0.11.4  
 **Date:** 2026-04-02
 
 ## What changed
 
-- **Legislation title** and **Legislation description** (renamed from action title / description).
-- New required field: **How does this legislation further policies selected?** (plain text, 10–1000 characters, `maxLength` 1000 in the UI).
-- Export JSON includes **`howFurthersPolicies`**.
+- **Department** is required (validation + UI). Users must enter or pick a department before save/export.
 
 See **`CHANGELOG.md`** for the full history. Release steps: **`agent.md`**.

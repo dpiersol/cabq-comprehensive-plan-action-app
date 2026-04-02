@@ -81,6 +81,10 @@ export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): Valid
     );
   }
 
+  if (!snap.department.trim()) {
+    errors.push("Enter a department.");
+  }
+
   validatePlanItems(plan, snap, errors);
   errors.push(...validatePrimaryContact(snap.primaryContact));
 
@@ -112,6 +116,10 @@ export function validateDraftForExport(plan: PlanData, snap: DraftSnapshot): Val
     errors.push(
       `${FURTHERS_POLICIES_LABEL} must be at most ${FURTHERS_POLICIES_MAX} characters.`,
     );
+  }
+
+  if (!snap.department.trim()) {
+    errors.push("Enter a department.");
   }
 
   validatePlanItems(plan, snap, errors);

@@ -30,6 +30,8 @@ test.describe("Composer", () => {
       "This text explains how the legislation furthers the selected comprehensive plan policies for E2E testing.",
     );
 
+    await page.locator("#department").fill("Planning");
+
     await page.locator("#primary-contact-name").fill("Jane Planner");
     await page.locator("#primary-contact-role").fill("Planner");
     await page.locator("#primary-contact-email").fill("jane.planner@cabq.gov");

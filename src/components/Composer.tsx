@@ -468,7 +468,8 @@ export function Composer(props: ComposerProps) {
           label="Department"
           value={department}
           onChange={onDepartmentChange}
-          placeholder="Optional — type to search or pick from list"
+          placeholder="Required — type to search or pick from list"
+          required
         />
         <ContactGroup
           legend="Primary contact information"

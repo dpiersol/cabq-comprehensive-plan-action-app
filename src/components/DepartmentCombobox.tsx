@@ -7,6 +7,8 @@ export interface DepartmentComboboxProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** When true, label shows required copy and the input is `aria-required`. */
+  required?: boolean;
 }
 
 function filterDepartments(query: string): string[] {
@@ -21,6 +23,7 @@ export function DepartmentCombobox({
   value,
   onChange,
   placeholder = "Type to search or open list…",
+  required = false,
 }: DepartmentComboboxProps) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -78,7 +81,10 @@ export function DepartmentCombobox({
 
   return (
     <div className="field department-combobox-wrap" ref={wrapRef}>
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id}>
+        {label}
+        {required ? <span className="req-mark"> (required)</span> : null}
+      </label>
       <div className="department-combobox">
         <input
           ref={inputRef}
@@ -89,6 +95,7 @@ export function DepartmentCombobox({
           aria-expanded={open}
           aria-controls={listId}
           aria-autocomplete="list"
+          aria-required={required ? true : undefined}
           placeholder={placeholder}
           value={value}
           onChange={(e) => {

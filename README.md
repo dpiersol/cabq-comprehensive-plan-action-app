@@ -35,7 +35,7 @@ Open the URL shown in the terminal (typically `http://localhost:5173`). The API 
 
 ## Features (review scope)
 
-1. **Composer** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (department, primary and alternate contacts); **Legislation details** (legislation title, rich text legislation description, and how the legislation furthers selected policies — each with plain-text length rules).
+1. **Composer** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (**department required**, primary and alternate contacts); **Legislation details** (legislation title, rich text legislation description, and how the legislation furthers selected policies — each with plain-text length rules).
 2. **Library** — Save many records locally; open for edit; duplicate; delete; filter; export all as one JSON file.
 3. **Export** — Single-record JSON (Copy / Download) or bundle export from Library. Schema includes `actionTitle`, `department`, `primaryContact`, `alternateContact`, `compPlanItems`, `actionDetails`, and `howFurthersPolicies`.
 4. **Print** — Use **Print summary** for a clean printout (toolbar hidden via CSS).

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.4] — 2026-04-02
+
+- **Department** is **required** for save and export: validation error **Enter a department.** if blank; combobox shows **(required)** and updated placeholder.
+- **API:** `GET /api/health` `version` **0.11.4**.
+
 ## [0.11.3] — 2026-04-02
 
 - **Labels:** **Action title** → **Legislation title**; **Action description** → **Legislation description**; section heading **Legislation details**.

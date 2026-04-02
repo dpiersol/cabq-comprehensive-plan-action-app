@@ -59,7 +59,7 @@ function baseSnap(over: Partial<DraftSnapshot> = {}): DraftSnapshot {
     actionDetails: "<p>1234567890abcd</p>",
     actionTitle: "Valid title here",
     howFurthersPolicies: "1234567890",
-    department: "",
+    department: "Planning",
     primaryContact: { ...emptyContact(), ...validPrimary },
     alternateContact: emptyContact(),
     ...over,
@@ -88,6 +88,12 @@ describe("validateDraftForSave", () => {
     const r = validateDraftForSave(plan, baseSnap({ howFurthersPolicies: "short" }));
     expect(r.ok).toBe(false);
     expect(r.errors.some((e) => e.includes("further policies"))).toBe(true);
+  });
+
+  it("fails when department is empty", () => {
+    const r = validateDraftForSave(plan, baseSnap({ department: "" }));
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.toLowerCase().includes("department"))).toBe(true);
   });
 
   it("fails when primary contact incomplete", () => {
