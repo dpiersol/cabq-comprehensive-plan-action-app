@@ -843,7 +843,8 @@ textarea {
 
 @media print {
   @page {
-    margin: 0.75in 0.6in;
+    margin: 0;
+    size: letter;
   }
 
   body {
@@ -859,6 +860,6 @@ textarea {
   .print-doc {
     display: block !important;
     margin: 0;
-    padding: 0;
+    padding: 0.75in 0.75in 0.5in;
   }
 }
