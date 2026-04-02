@@ -25,6 +25,7 @@ import {
 import { ComprehensivePlanForm } from "./components/ComprehensivePlanForm";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
 import type { HierarchyJumpTarget } from "./planSearch/types";
+import { apiUrl } from "./apiConfig";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 
@@ -311,7 +312,7 @@ export function App() {
     setLibraryVersion((n) => n + 1);
     const payload = buildSubmissionPdfPayload(data, draftSnapshot);
     try {
-      const res = await fetch("/api/submissions/pdf", {
+      const res = await fetch(apiUrl("/api/submissions/pdf"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

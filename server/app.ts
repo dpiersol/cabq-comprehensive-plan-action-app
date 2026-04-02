@@ -11,7 +11,11 @@ const pkg = JSON.parse(readFileSync(join(__dirname, "../package.json"), "utf8"))
 /** API for the CABQ Comprehensive Plan Action app (user form + PDF generation). */
 export function buildServer() {
   const app = Fastify({ logger: process.env.VITEST ? false : true });
-  app.register(cors, { origin: true });
+  app.register(cors, {
+    origin: true,
+    methods: ["GET", "HEAD", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  });
 
   app.get("/api/health", async () => ({
     ok: true,
