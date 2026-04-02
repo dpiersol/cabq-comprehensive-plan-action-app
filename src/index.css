@@ -791,45 +791,101 @@ textarea {
   margin: 0.35rem 0 0;
 }
 
-/* ── Print document layout ── */
+/* ── Print document layout (mirrors Word template) ── */
 
 .print-doc {
   display: none;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 12pt;
+  color: #000;
+  line-height: 1.4;
 }
 
-.print-doc-title {
-  font-size: 1.4rem;
-  font-weight: 700;
+.print-doc-header {
+  position: relative;
   text-align: center;
-  margin: 0 0 1.5rem;
-  color: #1a365d;
+  padding-top: 0.1in;
+  min-height: 1.1in;
 }
 
-.print-doc-table {
-  width: 100%;
-  border-collapse: collapse;
+.print-doc-seal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0.8in;
+  height: 0.8in;
 }
 
-.print-doc-label {
-  font-weight: 600;
-  vertical-align: top;
-  text-align: left;
-  width: 30%;
-  padding: 0.5rem 0.75rem 0.5rem 0;
-  border-bottom: 1px solid #cbd5e0;
-  color: #1a365d;
+.print-doc-header-text {
+  margin-left: 1in;
 }
 
-.print-doc-value {
-  vertical-align: top;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #cbd5e0;
+.print-doc-city {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16pt;
+  font-weight: 400;
+  margin: 0;
+  color: #000;
+}
+
+.print-doc-dept {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14pt;
+  font-weight: 700;
+  margin: 0.15em 0 0;
+}
+
+.print-doc-mayor {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  font-weight: 400;
+  margin: 0.3em 0 0;
+}
+
+.print-doc-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 0.4in;
+}
+
+.print-doc-action-title {
+  font-size: 16pt;
+  font-weight: 700;
+}
+
+.print-doc-date {
+  font-size: 12pt;
+  font-weight: 700;
+}
+
+.print-doc-rule {
+  border: none;
+  border-top: 2pt solid #339;
+  margin: 0.08in 0 0.25in;
+}
+
+.print-doc-fields {
+  font-size: 12pt;
+}
+
+.print-doc-field {
+  margin: 0 0 0.5em;
+}
+
+.print-doc-heading {
+  margin: 1em 0 0.15em;
+}
+
+.print-doc-body {
+  margin: 0 0 0.5em;
   white-space: pre-wrap;
 }
 
 @media print {
   body {
     background: #fff;
+    margin: 0;
   }
 
   .no-print,
@@ -839,22 +895,7 @@ textarea {
 
   .print-doc {
     display: block !important;
-    padding: 0.5in;
-    font-family: "Source Sans 3", system-ui, serif;
-    font-size: 11pt;
-    color: #000;
-  }
-
-  .print-doc-title {
-    color: #000;
-    font-size: 14pt;
-  }
-
-  .print-doc-label {
-    color: #000;
-  }
-
-  .print-doc-value {
-    color: #000;
+    margin: 0;
+    padding: 0;
   }
 }

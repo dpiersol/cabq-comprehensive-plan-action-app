@@ -4,68 +4,75 @@ interface Props {
   fields: PrintFields | null;
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  if (!value) return null;
-  return (
-    <tr>
-      <th className="print-doc-label">{label}</th>
-      <td className="print-doc-value">{value}</td>
-    </tr>
-  );
-}
-
 /**
- * Hidden on screen, visible only in `@media print`.
- * Mirrors the 11 Word template placeholders.
+ * Mirrors the Word print template layout.
+ * Hidden on screen; becomes the sole visible content during @media print.
  */
 export function PrintPreview({ fields }: Props) {
   if (!fields) return null;
 
+  const chapterLine = [fields.chapterNumber, fields.chapterDescription]
+    .filter(Boolean)
+    .join(" - ");
+  const goalLine = [fields.goal, fields.goalDescription]
+    .filter(Boolean)
+    .join(" - ");
+  const policyLine = [fields.policy, fields.policyDescription]
+    .filter(Boolean)
+    .join(" \u2013 ");
+
   return (
     <div className="print-doc" aria-hidden="true">
-      <h1 className="print-doc-title">
-        Comprehensive Plan — Legislation Documentation
-      </h1>
+      {/* Header block — matches Word heading area */}
+      <div className="print-doc-header">
+        <img
+          className="print-doc-seal"
+          src="/city-seal.png"
+          alt="City of Albuquerque seal"
+        />
+        <div className="print-doc-header-text">
+          <h1 className="print-doc-city">City of Albuquerque</h1>
+          <h2 className="print-doc-dept">{fields.departmentName || "\u00A0"}</h2>
+          <p className="print-doc-mayor">Timothy M. Keller, Mayor</p>
+        </div>
+      </div>
 
-      <table className="print-doc-table">
-        <tbody>
-          <Row label="Date" value={fields.currentDate} />
-          <Row label="Department" value={fields.departmentName} />
-          <Row label="Legislation Title" value={fields.legislationTitle} />
-          <Row
-            label="Chapter"
-            value={
-              fields.chapterNumber && fields.chapterDescription
-                ? `${fields.chapterNumber} — ${fields.chapterDescription}`
-                : fields.chapterNumber || fields.chapterDescription
-            }
-          />
-          <Row
-            label="Goal"
-            value={
-              fields.goal && fields.goalDescription
-                ? `${fields.goal} — ${fields.goalDescription}`
-                : fields.goal || fields.goalDescription
-            }
-          />
-          <Row
-            label="Policy"
-            value={
-              fields.policy && fields.policyDescription
-                ? `${fields.policy} — ${fields.policyDescription}`
-                : fields.policy || fields.policyDescription
-            }
-          />
-          <Row
-            label="Legislation Description"
-            value={fields.legislationDescription}
-          />
-          <Row
-            label="How does this legislation further the policies selected?"
-            value={fields.howFurthers}
-          />
-        </tbody>
-      </table>
+      {/* Title row — "Comprehensive Plan Action" left, date right */}
+      <div className="print-doc-title-row">
+        <span className="print-doc-action-title">Comprehensive Plan Action</span>
+        <span className="print-doc-date">{fields.currentDate}</span>
+      </div>
+
+      <hr className="print-doc-rule" />
+
+      {/* Field rows matching Word template order */}
+      <div className="print-doc-fields">
+        <p className="print-doc-field">
+          <strong>Legislation Title:</strong> {fields.legislationTitle}
+        </p>
+
+        <p className="print-doc-field">
+          <strong>Chapter:</strong> {chapterLine}
+        </p>
+
+        <p className="print-doc-field">
+          <strong>Goal:</strong> {goalLine}
+        </p>
+
+        <p className="print-doc-field">
+          <strong>Policy:</strong> {policyLine}
+        </p>
+
+        <p className="print-doc-heading">
+          <strong>Legislation Description:</strong>
+        </p>
+        <p className="print-doc-body">{fields.legislationDescription}</p>
+
+        <p className="print-doc-heading">
+          <strong>How does this legislation further the policies selected?</strong>
+        </p>
+        <p className="print-doc-body">{fields.howFurthers}</p>
+      </div>
     </div>
   );
 }
