@@ -17,7 +17,7 @@ npm run dev:all
 # Or: two terminals — npm run dev:server  (port 8787)  and  npm run dev  (port 5173)
 ```
 
-Open the URL Vite prints (typically `http://localhost:5173`). **Submit** calls `POST /api/submissions/pdf` via the `/api` proxy to **8787**. If only `npm run dev` is running, the proxy has nothing to connect to and PDF download fails — use **`dev:all`** or keep **`dev:server`** running in another terminal.
+Open the URL Vite prints (typically `http://localhost:5173`). **Submit** calls the PDF API on **8787**. In development the app uses **`http://127.0.0.1:8787`** directly (see `src/apiConfig.ts`) so Submit works even if the Vite `/api` proxy misbehaves; ensure **`npm run dev:server`** (or **`dev:all`**) is running. Production builds still use same-origin `/api/...`. Optional: set **`VITE_API_ORIGIN`** if the API is not on 8787.
 
 ## Scripts
 
