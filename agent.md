@@ -26,6 +26,8 @@ npm run test:e2e
 
 - **`CHANGELOG.md`** — add a dated section for the new version (full history).
 - **`change.md`** — update the **current release** summary (short, scannable).
+- **`current_task.md`** — update status, recent activity, and next steps.
+- **`agents.md`** — update if the repo structure or conventions change.
 - **`agent.md`** — update this file if the release process itself changes.
 
 ## 4. GitHub

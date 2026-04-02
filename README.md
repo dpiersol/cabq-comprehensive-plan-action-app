@@ -2,7 +2,8 @@
 
 Internal application for documenting departmental actions against the Albuquerque / Bernalillo County (ABC) Comprehensive Plan hierarchy (chapter → goal → goal detail → policy → sub-policy → optional sub-level), with **cascading dropdowns** and structured exports.
 
-- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health` and `POST /api/submissions/pdf`. PDFs are produced from the **Word print template** (`server/templates/comp-plan-print-template.docx` or see `server/templates/README.md`) via **docxtemplater** + **LibreOffice** headless conversion, with a PDFKit fallback when the template or LibreOffice is unavailable (e.g. unit tests). Vite **dev** and **preview** proxy `/api` when the server runs.
+- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health` and `POST /api/submissions/pdf`. Vite **dev** and **preview** proxy `/api` when the server runs.
+- **Multi-page build:** `index.html` (user app) + `admin.html` (admin console). Both share `src/` utilities and localStorage.
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
 - **Storage:** Browser `localStorage` for drafts and **Library**. Draft restores contact fields, action title, attachments, and action description on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search).
 
@@ -39,7 +40,7 @@ Open the URL Vite prints (typically `http://localhost:5173`). **Submit** saves t
 
 1. **Comprehensive Plan** — Cascading selects; **Search Comprehensive Plan** across the full plan text (chapter through sub-level) with level-balanced results; jump the hierarchy without knowing the full path; current selection summary; **Contact Information** (**department required**, primary and alternate contacts); **Legislation details** (legislation title, rich text legislation description, and how the legislation furthers selected policies — each with plain-text length rules). **Save for later** persists the draft (and updates the library row when editing). **Submit** validates and saves to **Your submissions** (no network). **Print document** populates a structured document with the 11 Word-template fields (Date, Department, Legislation Title, Chapter Number/Description, Goal/Description, Policy/Description, Legislation Description, How Furthers) and opens the browser print dialog (Save as PDF from there). No server required.
 2. **Your submissions** — Local library with **`CP-######`** record ids; open for edit; duplicate; delete; filter.
-3. **Admin / staff tools** — Planned separately; see `docs/ARCHITECTURE.md` and `src/admin/README.md`.
+3. **Admin Console** (`/admin.html`) — Searchable list of all submissions (name, department, legislation text, contacts, policies, record ID). Click to view full detail; **Edit** contacts, legislation, plan items; **Print document**; **Share link**. Placeholder auth module ready for SSO. Test seed data (48 submissions across 24 departments) loads on first visit. See `src/admin/`.
 
 ## Review checklist (stakeholder demo)
 
@@ -48,6 +49,7 @@ Open the URL Vite prints (typically `http://localhost:5173`). **Submit** saves t
 - [ ] Confirm validation when saving with missing action title, short action text, incomplete **primary contact**, or plan not selected through policy.
 - [ ] Save at least two library entries, filter, edit one, duplicate one, delete one.
 - [ ] Click **Print document** (with form filled); confirm the print preview shows the 11 mapped fields (Date, Department, Legislation Title, Chapter, Goal, Policy, Legislation Description, How Furthers). Save as PDF from the print dialog.
+- [ ] Open **Admin Console** from the footer link. Verify the submissions list loads with seed data. Search by department name and by legislation text. Click into a submission; verify all fields display. Toggle **Edit**, change a contact, save. Click **Print document** from the detail page. Click **Share link** and verify clipboard.
 
 ## Deploying static build
 
@@ -68,6 +70,6 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v1.1.0** — see `CHANGELOG.md`. Milestone tag: **`v1.1.0`**.
+Current release: **v2.0.0** — see `CHANGELOG.md`.
 
 **Quality checks:** `npm test` (Vitest), `npm run lint`, `npm run build`, `npm run test:e2e` (Playwright against production preview; installs Chromium via Playwright on first run).

@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.0.0] — 2026-04-02
+
+### Admin Console
+
+- **New `/admin.html` entry point** — separate React app (multi-page Vite build via `rollupOptions.input`). Shares `src/` utilities, types, and localStorage with the main app.
+- **Submissions list** — table of all submitted actions with columns: Record ID, Legislation Title, Department, Primary Contact, Policy, Date. Full-text search across name, department, legislation text, contacts, policies, and record IDs (multi-word AND matching).
+- **Submission detail page** — view the complete submitted document. Actions: **Edit** (toggle inline editing for department, legislation title, legislation description, how-furthers text, contacts, plan items with cascading dropdowns), **Print document** (reuses `PrintPreview` component and `window.print()`), **Share link** (copies direct URL to clipboard), **Save changes** (persists edits to localStorage).
+- **Hash-based routing** — `#` = list, `#submission/{id}` = detail. No extra dependencies; uses `hashchange` event.
+- **Placeholder auth module** — `src/auth.ts` exports `loginAsAdmin()`, `logout()`, `isAdmin()`, `getAuthUser()` with a `comp-plan-admin` role. `src/useAuth.ts` provides a React hook via `useSyncExternalStore`. Ready for SSO (SAML/OIDC) integration.
+- **Admin link** in main app footer (`/admin.html`); visible to all users for now (role gating pending SSO).
+- **Test seed data** — `src/admin/seedTestData.ts` generates **48 realistic submissions** across **24 departments** on first admin page load. Each has unique legislation title, detailed description, named contacts, and valid plan hierarchy selections. Remove before production.
+- **Admin CSS** — `src/admin/admin.css` with dark header, wider layout (68rem), clickable table rows, edit forms, contact fieldsets, responsive breakpoints.
+
+### Vite config
+
+- Multi-page build: `build.rollupOptions.input` includes both `index.html` and `admin.html`.
+
+### Print
+
+- `@media print` now hides `.admin-shell` alongside `.app-shell`.
+
+## [1.2.0] — 2026-04-02
+
+- **Print document button** — new button in form actions opens the browser print dialog. Maps 11 fields from the form to a structured print layout matching the Word template: Date, Department, Legislation Title, Chapter Number/Description, Goal/Description, Policy/Description, Legislation Description, How Furthers. Uses `PrintPreview` component (hidden on screen, visible during `@media print`) and `printFields.ts` for field extraction.
+- **`@page { margin: 0 }`** suppresses Chrome's default print headers/footers (date, URL, page numbers).
+- Removed city seal, city/department/mayor header lines from print output per user request.
+
 ## [1.1.0] — 2026-03-31
 
 - **Word template PDF** — `POST /api/submissions/pdf` merges into **`comp plan print template.docx`** (see `server/templates/`, Desktop path, or `COMP_PLAN_DOCX_TEMPLATE`) using **docxtemplater**, then converts to PDF with **Libreoffice-convert** (requires LibreOffice installed). XML preprocessing fixes placeholders Word split across runs; chapter/goal/policy combined lines split into number + description for `{Chapter Number}` / `{Chapter Description}` (etc.). **PDFKit** fallback when the template or conversion is unavailable.
