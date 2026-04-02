@@ -8,6 +8,11 @@ const ACTION_TITLE_MIN = 3;
 const ACTION_DETAILS_MIN = 10;
 export const ACTION_DETAILS_MAX = 2500;
 
+const FURTHERS_POLICIES_MIN = 10;
+export const FURTHERS_POLICIES_MAX = 1000;
+/** Form label text (used in validation messages). */
+export const FURTHERS_POLICIES_LABEL = "How does this legislation further policies selected?";
+
 /** Loose email check for required primary contact. */
 function isValidEmail(s: string): boolean {
   const t = s.trim();
@@ -53,15 +58,27 @@ export function validateDraftForSave(plan: PlanData, snap: DraftSnapshot): Valid
   const errors: string[] = [];
   const actionTitle = snap.actionTitle.trim();
   if (actionTitle.length < ACTION_TITLE_MIN) {
-    errors.push(`Action title must be at least ${ACTION_TITLE_MIN} characters.`);
+    errors.push(`Legislation title must be at least ${ACTION_TITLE_MIN} characters.`);
   }
 
   const actionPlain = plainTextFromHtml(snap.actionDetails);
   if (actionPlain.length < ACTION_DETAILS_MIN) {
-    errors.push(`Action description must be at least ${ACTION_DETAILS_MIN} characters.`);
+    errors.push(`Legislation description must be at least ${ACTION_DETAILS_MIN} characters.`);
   }
   if (actionPlain.length > ACTION_DETAILS_MAX) {
-    errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
+    errors.push(`Legislation description must be at most ${ACTION_DETAILS_MAX} characters.`);
+  }
+
+  const furthers = snap.howFurthersPolicies.trim();
+  if (furthers.length < FURTHERS_POLICIES_MIN) {
+    errors.push(
+      `${FURTHERS_POLICIES_LABEL} must be at least ${FURTHERS_POLICIES_MIN} characters.`,
+    );
+  }
+  if (furthers.length > FURTHERS_POLICIES_MAX) {
+    errors.push(
+      `${FURTHERS_POLICIES_LABEL} must be at most ${FURTHERS_POLICIES_MAX} characters.`,
+    );
   }
 
   validatePlanItems(plan, snap, errors);
@@ -74,15 +91,27 @@ export function validateDraftForExport(plan: PlanData, snap: DraftSnapshot): Val
   const errors: string[] = [];
   const actionTitle = snap.actionTitle.trim();
   if (actionTitle.length < ACTION_TITLE_MIN) {
-    errors.push(`Action title must be at least ${ACTION_TITLE_MIN} characters.`);
+    errors.push(`Legislation title must be at least ${ACTION_TITLE_MIN} characters.`);
   }
 
   const actionPlain = plainTextFromHtml(snap.actionDetails);
   if (actionPlain.length < ACTION_DETAILS_MIN) {
-    errors.push(`Action description must be at least ${ACTION_DETAILS_MIN} characters.`);
+    errors.push(`Legislation description must be at least ${ACTION_DETAILS_MIN} characters.`);
   }
   if (actionPlain.length > ACTION_DETAILS_MAX) {
-    errors.push(`Action description must be at most ${ACTION_DETAILS_MAX} characters.`);
+    errors.push(`Legislation description must be at most ${ACTION_DETAILS_MAX} characters.`);
+  }
+
+  const furthers = snap.howFurthersPolicies.trim();
+  if (furthers.length < FURTHERS_POLICIES_MIN) {
+    errors.push(
+      `${FURTHERS_POLICIES_LABEL} must be at least ${FURTHERS_POLICIES_MIN} characters.`,
+    );
+  }
+  if (furthers.length > FURTHERS_POLICIES_MAX) {
+    errors.push(
+      `${FURTHERS_POLICIES_LABEL} must be at most ${FURTHERS_POLICIES_MAX} characters.`,
+    );
   }
 
   validatePlanItems(plan, snap, errors);

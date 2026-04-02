@@ -581,6 +581,11 @@ textarea {
   margin-top: 0.35rem;
 }
 
+.how-furthers-policies-input {
+  min-height: 6rem;
+  resize: vertical;
+}
+
 .tiptap-editor-wrap {
   border: 1px solid var(--cabq-border);
   border-radius: 6px;

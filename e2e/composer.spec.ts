@@ -18,12 +18,16 @@ test.describe("Composer", () => {
     await expect(page.locator("#pi-0-policy")).toBeVisible();
     await page.locator("#pi-0-policy").selectOption("0");
 
-    await page.locator("#action-title").fill("E2E action title test");
+    await page.locator("#legislation-title").fill("E2E legislation title test");
 
     const editor = page.locator(".tiptap-editor-surface .ProseMirror");
     await editor.click();
     await page.keyboard.type(
-      "This is a departmental action description written in the rich text editor for end-to-end testing. ",
+      "This is a departmental legislation description written in the rich text editor for end-to-end testing. ",
+    );
+
+    await page.locator("#how-furthers-policies").fill(
+      "This text explains how the legislation furthers the selected comprehensive plan policies for E2E testing.",
     );
 
     await page.locator("#primary-contact-name").fill("Jane Planner");

@@ -58,6 +58,7 @@ function baseSnap(over: Partial<DraftSnapshot> = {}): DraftSnapshot {
     ],
     actionDetails: "<p>1234567890abcd</p>",
     actionTitle: "Valid title here",
+    howFurthersPolicies: "1234567890",
     department: "",
     primaryContact: { ...emptyContact(), ...validPrimary },
     alternateContact: emptyContact(),
@@ -71,16 +72,22 @@ describe("validateDraftForSave", () => {
     expect(r.ok).toBe(true);
   });
 
-  it("fails when action title too short", () => {
+  it("fails when legislation title too short", () => {
     const r = validateDraftForSave(plan, baseSnap({ actionTitle: "ab" }));
     expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => e.toLowerCase().includes("action title"))).toBe(true);
+    expect(r.errors.some((e) => e.toLowerCase().includes("legislation title"))).toBe(true);
   });
 
-  it("fails when action text too short", () => {
+  it("fails when legislation description too short", () => {
     const r = validateDraftForSave(plan, baseSnap({ actionDetails: "<p>short</p>" }));
     expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => e.toLowerCase().includes("action description"))).toBe(true);
+    expect(r.errors.some((e) => e.toLowerCase().includes("legislation description"))).toBe(true);
+  });
+
+  it("fails when policy furtherance text too short", () => {
+    const r = validateDraftForSave(plan, baseSnap({ howFurthersPolicies: "short" }));
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.includes("further policies"))).toBe(true);
   });
 
   it("fails when primary contact incomplete", () => {
@@ -129,16 +136,16 @@ describe("validatePrimaryContact", () => {
 });
 
 describe("validateDraftForExport", () => {
-  it("fails without action title when hierarchy and primary contact complete", () => {
+  it("fails without legislation title when hierarchy and primary contact complete", () => {
     const r = validateDraftForExport(
       plan,
       baseSnap({ actionTitle: "", actionDetails: "<p>1234567890abcd</p>" }),
     );
     expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => e.toLowerCase().includes("action title"))).toBe(true);
+    expect(r.errors.some((e) => e.toLowerCase().includes("legislation title"))).toBe(true);
   });
 
-  it("fails when action details exceed max length (plain text)", () => {
+  it("fails when legislation description exceeds max length (plain text)", () => {
     const r = validateDraftForExport(
       plan,
       baseSnap({ actionDetails: `<p>${"x".repeat(2501)}</p>` }),

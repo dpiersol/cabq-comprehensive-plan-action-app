@@ -19,6 +19,8 @@ export interface DraftSnapshot {
   planItems: PlanItemSelection[];
   actionDetails: string;
   actionTitle: string;
+  /** Plain text: how this legislation furthers selected policies (max 1000 in UI). */
+  howFurthersPolicies: string;
   department: string;
   primaryContact: ContactBlock;
   alternateContact: ContactBlock;
@@ -39,12 +41,19 @@ function packMeta(
   raw: DraftSnapshot,
 ): Pick<
   DraftSnapshot,
-  "actionDetails" | "actionTitle" | "department" | "primaryContact" | "alternateContact" | "planItems"
+  | "actionDetails"
+  | "actionTitle"
+  | "howFurthersPolicies"
+  | "department"
+  | "primaryContact"
+  | "alternateContact"
+  | "planItems"
 > {
   const items = Array.isArray(raw.planItems) ? raw.planItems : [];
   return {
     actionDetails: raw.actionDetails,
     actionTitle: raw.actionTitle ?? "",
+    howFurthersPolicies: typeof raw.howFurthersPolicies === "string" ? raw.howFurthersPolicies : "",
     department: raw.department ?? "",
     primaryContact: raw.primaryContact ?? emptyContact(),
     alternateContact: raw.alternateContact ?? emptyContact(),
@@ -57,6 +66,7 @@ export function emptyDraft(): DraftSnapshot {
     planItems: [emptyPlanItem()],
     actionDetails: "",
     actionTitle: "",
+    howFurthersPolicies: "",
     department: "",
     primaryContact: emptyContact(),
     alternateContact: emptyContact(),
@@ -125,6 +135,7 @@ export function parseDraftJson(raw: unknown): DraftSnapshot {
     planItems,
     actionDetails: readStr(o.actionDetails),
     actionTitle,
+    howFurthersPolicies: readStr(o.howFurthersPolicies),
     department: readStr(o.department),
     primaryContact: parseContact(o.primaryContact),
     alternateContact: parseContact(o.alternateContact),

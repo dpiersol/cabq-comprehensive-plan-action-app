@@ -40,6 +40,7 @@ export function SavedActionsPanel({
     return list.filter((a) => {
       const s = a.snapshot;
       const t = s.actionTitle.toLowerCase();
+      const furthers = (s.howFurthersPolicies ?? "").toLowerCase();
       const d = s.department.toLowerCase();
       const pc = s.primaryContact;
       const ac = s.alternateContact;
@@ -49,6 +50,7 @@ export function SavedActionsPanel({
       const policiesBlob = policyLabelsForSnapshot(plan, s).join(" ").toLowerCase();
       return (
         t.includes(q) ||
+        furthers.includes(q) ||
         d.includes(q) ||
         contactBlob.includes(q) ||
         policiesBlob.includes(q)
@@ -75,7 +77,7 @@ export function SavedActionsPanel({
           <input
             type="search"
             className="search-input"
-            placeholder="Filter by action title, department, contacts, or policies…"
+            placeholder="Filter by legislation title, policy furtherance text, department, contacts, or policies…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Filter saved actions"
@@ -93,7 +95,7 @@ export function SavedActionsPanel({
           <table className="saved-table">
             <thead>
               <tr>
-                <th>Action title</th>
+                <th>Legislation title</th>
                 <th>Department</th>
                 <th>Policy</th>
                 <th>Updated</th>

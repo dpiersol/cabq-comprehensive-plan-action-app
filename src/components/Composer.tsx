@@ -12,12 +12,14 @@ import {
 import { HierarchySearch } from "./HierarchySearch";
 import { DepartmentCombobox } from "./DepartmentCombobox";
 import { ActionDescriptionEditor } from "./ActionDescriptionEditor";
+import { FURTHERS_POLICIES_MAX } from "../validation";
 
 export interface ComposerProps {
   data: PlanData;
   planItems: PlanItemSelection[];
   activePlanItemIndex: number;
   actionTitle: string;
+  howFurthersPolicies: string;
   department: string;
   primaryContact: ContactBlock;
   alternateContact: ContactBlock;
@@ -35,6 +37,7 @@ export interface ComposerProps {
   onSubPolicyChange: (itemIndex: number, i: number) => void;
   onSubLevelChange: (itemIndex: number, i: number) => void;
   onActionTitleChange: (v: string) => void;
+  onHowFurthersPoliciesChange: (v: string) => void;
   onDepartmentChange: (v: string) => void;
   onPrimaryContactChange: (c: ContactBlock) => void;
   onAlternateContactChange: (c: ContactBlock) => void;
@@ -320,6 +323,7 @@ export function Composer(props: ComposerProps) {
     planItems,
     activePlanItemIndex,
     actionTitle,
+    howFurthersPolicies,
     department,
     primaryContact,
     alternateContact,
@@ -337,6 +341,7 @@ export function Composer(props: ComposerProps) {
     onSubPolicyChange,
     onSubLevelChange,
     onActionTitleChange,
+    onHowFurthersPoliciesChange,
     onDepartmentChange,
     onPrimaryContactChange,
     onAlternateContactChange,
@@ -481,30 +486,45 @@ export function Composer(props: ComposerProps) {
       </section>
 
       <section className="card print-section" aria-labelledby="action-heading">
-        <h2 id="action-heading">Action details</h2>
+        <h2 id="action-heading">Legislation details</h2>
         <div className="field">
-          <label htmlFor="action-title">
-            Action title<span className="req-mark"> (required)</span>
+          <label htmlFor="legislation-title">
+            Legislation title<span className="req-mark"> (required)</span>
           </label>
           <input
-            id="action-title"
+            id="legislation-title"
             type="text"
             autoComplete="off"
             value={actionTitle}
             aria-required
             onChange={(e) => onActionTitleChange(e.target.value)}
-            placeholder="Short name for this action"
+            placeholder="Short name for this legislation"
           />
         </div>
         <div className="field">
-          <label htmlFor="action-details" id="action-details-label">
-            Action description<span className="req-mark"> (required)</span>
+          <label htmlFor="legislation-description" id="legislation-description-label">
+            Legislation description<span className="req-mark"> (required)</span>
           </label>
           <ActionDescriptionEditor
-            id="action-details"
-            labelledBy="action-details-label"
+            id="legislation-description"
+            labelledBy="legislation-description-label"
             value={actionDetails}
             onChange={onActionDetailsChange}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="how-furthers-policies">
+            How does this legislation further policies selected?<span className="req-mark"> (required)</span>
+          </label>
+          <textarea
+            id="how-furthers-policies"
+            className="how-furthers-policies-input"
+            rows={5}
+            maxLength={FURTHERS_POLICIES_MAX}
+            value={howFurthersPolicies}
+            aria-required
+            onChange={(e) => onHowFurthersPoliciesChange(e.target.value)}
+            placeholder="Explain how this legislation advances the policies you selected above."
           />
         </div>
 

@@ -12,7 +12,7 @@ const extensions = [
   Underline,
   Link.configure({ openOnClick: false, autolink: true }),
   Placeholder.configure({
-    placeholder: "Describe this departmental action (required)…",
+    placeholder: "Describe this legislation (required)…",
   }),
 ];
 
@@ -147,7 +147,7 @@ export function ActionDescriptionEditor({
     editorProps: {
       attributes: {
         "aria-multiline": "true",
-        "aria-label": "Action description",
+        "aria-label": "Legislation description",
       },
     },
     onUpdate: ({ editor: ed }) => {

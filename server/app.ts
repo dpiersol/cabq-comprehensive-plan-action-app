@@ -7,7 +7,7 @@ export function buildServer() {
   app.register(cors, { origin: true });
   app.get("/api/health", async () => ({
     ok: true,
-    version: "0.11.2",
+    version: "0.11.3",
     workflow: "shelved",
   }));
   return app;

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.3] — 2026-04-02
+
+- **Labels:** **Action title** → **Legislation title**; **Action description** → **Legislation description**; section heading **Legislation details**.
+- **New field:** **How does this legislation further policies selected?** — required plain-text area, **10–1000** characters (stored as `howFurthersPolicies`, included in JSON export).
+- **Validation messages** updated to use “legislation” wording where applicable. **Library** table column **Legislation title**.
+
 ## [0.11.2] — 2026-04-02
 
 - **Composer:** Choosing a **Goal** automatically selects the first **Goal detail** for that goal (users can still change goal detail afterward).

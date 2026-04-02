@@ -34,6 +34,7 @@ function buildSnapshot(state: {
   planItems: PlanItemSelection[];
   actionDetails: string;
   actionTitle: string;
+  howFurthersPolicies: string;
   department: string;
   primaryContact: ContactBlock;
   alternateContact: ContactBlock;
@@ -42,6 +43,7 @@ function buildSnapshot(state: {
     planItems: state.planItems.map((p) => ({ ...p })),
     actionDetails: state.actionDetails,
     actionTitle: state.actionTitle,
+    howFurthersPolicies: state.howFurthersPolicies,
     department: state.department,
     primaryContact: state.primaryContact,
     alternateContact: state.alternateContact,
@@ -56,6 +58,7 @@ export function App() {
   const [activePlanItemIndex, setActivePlanItemIndex] = useState(0);
   const [actionDetails, setActionDetails] = useState("");
   const [actionTitle, setActionTitle] = useState("");
+  const [howFurthersPolicies, setHowFurthersPolicies] = useState("");
   const [department, setDepartment] = useState("");
   const [primaryContact, setPrimaryContact] = useState(emptyContact());
   const [alternateContact, setAlternateContact] = useState(emptyContact());
@@ -79,6 +82,7 @@ export function App() {
         planItems,
         actionDetails,
         actionTitle,
+        howFurthersPolicies,
         department,
         primaryContact,
         alternateContact,
@@ -87,6 +91,7 @@ export function App() {
       planItems,
       actionDetails,
       actionTitle,
+      howFurthersPolicies,
       department,
       primaryContact,
       alternateContact,
@@ -122,6 +127,7 @@ export function App() {
     setActivePlanItemIndex(0);
     setActionDetails(snap.actionDetails);
     setActionTitle(snap.actionTitle);
+    setHowFurthersPolicies(snap.howFurthersPolicies);
     setDepartment(snap.department);
     setPrimaryContact(snap.primaryContact);
     setAlternateContact(snap.alternateContact);
@@ -133,6 +139,7 @@ export function App() {
     setActivePlanItemIndex(0);
     setActionDetails(snap.actionDetails);
     setActionTitle(snap.actionTitle);
+    setHowFurthersPolicies(snap.howFurthersPolicies);
     setDepartment(snap.department);
     setPrimaryContact(snap.primaryContact);
     setAlternateContact(snap.alternateContact);
@@ -359,7 +366,7 @@ export function App() {
     setEditingId(null);
     setTab("compose");
     setValidationErrors([]);
-    setExportStatus("Duplicate loaded — adjust the action title and save.");
+    setExportStatus("Duplicate loaded — adjust the legislation title and save.");
     window.setTimeout(() => setExportStatus(null), 5000);
   };
 
@@ -468,6 +475,7 @@ export function App() {
             planItems={planItems}
             activePlanItemIndex={activePlanItemIndex}
             actionTitle={actionTitle}
+            howFurthersPolicies={howFurthersPolicies}
             department={department}
             primaryContact={primaryContact}
             alternateContact={alternateContact}
@@ -485,6 +493,7 @@ export function App() {
             onSubPolicyChange={onSubPolicyChange}
             onSubLevelChange={onSubLevelChange}
             onActionTitleChange={setActionTitle}
+            onHowFurthersPoliciesChange={setHowFurthersPolicies}
             onDepartmentChange={setDepartment}
             onPrimaryContactChange={setPrimaryContact}
             onAlternateContactChange={setAlternateContact}

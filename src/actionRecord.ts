@@ -28,6 +28,8 @@ export interface ActionRecordPayload {
   /** All plan paths this action documents (order matches the composer). */
   compPlanItems: CompPlanItemRecord[];
   actionDetails: string;
+  /** Plain text: how this legislation furthers selected policies. */
+  howFurthersPolicies: string;
 }
 
 function compPlanItemFromResolved(sel: ResolvedSelection): CompPlanItemRecord {
@@ -61,6 +63,7 @@ export function buildActionRecord(
     department: string;
     primaryContact: ContactBlock;
     alternateContact: ContactBlock;
+    howFurthersPolicies: string;
   },
   selected: {
     chapter: Chapter | undefined;
@@ -102,6 +105,7 @@ export function buildActionRecord(
     },
     compPlanItems: [compPlanItemFromResolved(sel)],
     actionDetails,
+    howFurthersPolicies: meta.howFurthersPolicies.trim(),
   };
 }
 
@@ -134,5 +138,6 @@ export function buildActionRecordFromSnapshot(
     },
     compPlanItems: items,
     actionDetails: snap.actionDetails,
+    howFurthersPolicies: snap.howFurthersPolicies.trim(),
   };
 }
