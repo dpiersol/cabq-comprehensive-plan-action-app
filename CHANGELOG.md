@@ -2,6 +2,7 @@
 
 ## [1.1.0] — 2026-03-31
 
+- **Word template PDF** — `POST /api/submissions/pdf` merges into **`comp plan print template.docx`** (see `server/templates/`, Desktop path, or `COMP_PLAN_DOCX_TEMPLATE`) using **docxtemplater**, then converts to PDF with **Libreoffice-convert** (requires LibreOffice installed). XML preprocessing fixes placeholders Word split across runs; chapter/goal/policy combined lines split into number + description for `{Chapter Number}` / `{Chapter Description}` (etc.). **PDFKit** fallback when the template or conversion is unavailable.
 - **Milestone baseline** — Versioning starts at **1.1.0** for rollback (`v1.1.0` tag). Future work iterates **1.1.x** until the next minor/major bump.
 - **User-facing form** — Tab and UI renamed from **Composer** to **Comprehensive Plan**. **Save for later** (draft flush + optional library update when editing) and **Submit** (validated save + PDF download) at **top and bottom** of the form. Removed Clear, Copy/Download JSON, Print, and library **Export all (JSON)**.
 - **PDF** — `POST /api/submissions/pdf` generates a letter-size PDF (pdfkit) with merge fields aligned to the Word template placeholders: `{current date}`, `{legislation title}`, `{chapter}`, `{goal}`, `{policy}`, `{legislation description}`, `{How does this legislation further the policies selected?}`.

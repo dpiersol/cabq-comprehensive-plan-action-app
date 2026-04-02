@@ -2,7 +2,7 @@
 
 Internal application for documenting departmental actions against the Albuquerque / Bernalillo County (ABC) Comprehensive Plan hierarchy (chapter → goal → goal detail → policy → sub-policy → optional sub-level), with **cascading dropdowns** and structured exports.
 
-- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health` and `POST /api/submissions/pdf` (Vite dev and **preview** proxy `/api` when the server runs).
+- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health` and `POST /api/submissions/pdf`. PDFs are produced from the **Word print template** (`server/templates/comp-plan-print-template.docx` or see `server/templates/README.md`) via **docxtemplater** + **LibreOffice** headless conversion, with a PDFKit fallback when the template or LibreOffice is unavailable (e.g. unit tests). Vite **dev** and **preview** proxy `/api` when the server runs.
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
 - **Storage:** Browser `localStorage` for drafts and **Library**. Draft restores contact fields, action title, attachments, and action description on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search).
 
