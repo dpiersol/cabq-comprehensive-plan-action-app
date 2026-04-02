@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
@@ -24,6 +25,14 @@ function viteClientDevPlaceholderFix(): Plugin {
 
 export default defineConfig({
   plugins: [react(), viteClientDevPlaceholderFix()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        admin: resolve(__dirname, "admin.html"),
+      },
+    },
+  },
   server: {
     /** Listen on all interfaces so both http://127.0.0.1:* and http://localhost:* work on Windows. */
     host: true,

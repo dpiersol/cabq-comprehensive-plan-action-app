@@ -853,7 +853,8 @@ textarea {
   }
 
   .no-print,
-  .app-shell {
+  .app-shell,
+  .admin-shell {
     display: none !important;
   }
 

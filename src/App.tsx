@@ -483,8 +483,8 @@ export function App() {
       </main>
 
       <footer className="site-footer no-print">
-        CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Plan data: comprehensive plan
-        hierarchy JSON
+        CABQ Comprehensive Plan Action Application · v{APP_VERSION}{" · "}
+        <a href="/admin.html" className="admin-link">Admin Console</a>
       </footer>
     </div>
 

@@ -1,0 +1,297 @@
+/* ── Admin Console styles ── */
+
+.admin-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-header {
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  color: #f8fafc;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.admin-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.admin-header-sub {
+  margin: 0.3rem 0 0;
+  font-size: 0.92rem;
+  opacity: 0.85;
+  max-width: 52rem;
+}
+
+.admin-back-link {
+  color: #fef3c7;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-back-link:hover {
+  color: #fffbeb;
+  text-decoration: underline;
+}
+
+.admin-main {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 68rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.admin-footer {
+  padding: 1rem 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--cabq-muted);
+}
+
+.admin-card {
+  background: var(--cabq-card);
+  border: 1px solid var(--cabq-border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.admin-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--cabq-navy);
+}
+
+.admin-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--cabq-navy);
+  border-bottom: 1px solid var(--cabq-border);
+  padding-bottom: 0.3rem;
+}
+
+/* ── List page ── */
+
+.admin-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-search {
+  flex: 1;
+  min-width: 14rem;
+  max-width: 28rem;
+}
+
+.admin-empty {
+  font-size: 0.92rem;
+  color: var(--cabq-muted);
+  font-style: italic;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--cabq-border);
+  vertical-align: top;
+}
+
+.admin-table th {
+  font-weight: 600;
+  color: var(--cabq-navy);
+  background: #edf2f7;
+  white-space: nowrap;
+}
+
+.admin-row-clickable {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.admin-row-clickable:hover {
+  background: #ebf8ff;
+}
+
+.admin-row-clickable:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* ── Detail page ── */
+
+.admin-detail-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--cabq-border);
+}
+
+.admin-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-detail-header {
+  margin-bottom: 1.25rem;
+}
+
+.admin-detail-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.admin-detail-section {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.admin-detail-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admin-body-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.admin-input-full {
+  width: 100%;
+}
+
+.admin-textarea {
+  width: 100%;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--cabq-border);
+  border-radius: 6px;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.admin-save-status {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: 6px;
+  color: #276749;
+  font-size: 0.9rem;
+}
+
+/* ── Plan items (read-only & edit) ── */
+
+.admin-plan-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-plan-item-ro {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #f7fafc;
+  font-size: 0.92rem;
+  color: var(--cabq-text);
+}
+
+.admin-plan-item-ro:last-child {
+  border-bottom: none;
+}
+
+.admin-plan-item-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.admin-plan-item-edit select {
+  flex: 1;
+  min-width: 8rem;
+}
+
+/* ── Contacts (read-only & edit) ── */
+
+.admin-contact-ro {
+  margin: 0.35rem 0;
+  font-size: 0.92rem;
+}
+
+.admin-contact-edit {
+  border: 1px solid var(--cabq-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  background: #fafbfd;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.admin-contact-edit legend {
+  padding: 0 0.3rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.admin-contact-edit label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cabq-muted);
+}
+
+.admin-contact-edit input {
+  margin-top: 0.2rem;
+}
+
+/* Admin link in main app footer */
+.admin-link {
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .admin-contact-edit {
+    grid-template-columns: 1fr;
+  }
+  .admin-plan-item-edit {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
