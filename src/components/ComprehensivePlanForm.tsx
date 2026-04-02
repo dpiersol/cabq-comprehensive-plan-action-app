@@ -44,15 +44,18 @@ export interface ComprehensivePlanFormProps {
   onActionDetailsChange: (v: string) => void;
   onSaveForLater: () => void;
   onSubmit: () => void | Promise<void>;
+  onPrintDocument: () => void;
   onHierarchyJump: (target: HierarchyJumpTarget) => void;
 }
 
 function FormPrimaryActions({
   onSaveForLater,
   onSubmit,
+  onPrintDocument,
 }: {
   onSaveForLater: () => void;
   onSubmit: () => void | Promise<void>;
+  onPrintDocument: () => void;
 }) {
   return (
     <div className="form-primary-actions btn-row no-print">
@@ -61,6 +64,9 @@ function FormPrimaryActions({
       </button>
       <button type="button" className="btn btn-primary" onClick={() => void onSubmit()}>
         Submit
+      </button>
+      <button type="button" className="btn btn-secondary" onClick={onPrintDocument}>
+        Print document
       </button>
     </div>
   );
@@ -364,6 +370,7 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
     onActionDetailsChange,
     onSaveForLater,
     onSubmit,
+    onPrintDocument,
     onHierarchyJump,
   } = props;
 
@@ -419,7 +426,11 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
         </p>
       )}
 
-      <FormPrimaryActions onSaveForLater={onSaveForLater} onSubmit={onSubmit} />
+      <FormPrimaryActions
+        onSaveForLater={onSaveForLater}
+        onSubmit={onSubmit}
+        onPrintDocument={onPrintDocument}
+      />
 
       <section className="card print-section" aria-labelledby="hierarchy-heading">
         <h2 id="hierarchy-heading">Comprehensive Plan Items</h2>
@@ -546,7 +557,8 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
 
         <p className="hint">
           Draft auto-saves in this browser. Use <strong>Save for later</strong> to persist immediately;{" "}
-          <strong>Submit</strong> saves to your library and downloads the Comprehensive Plan PDF.
+          <strong>Submit</strong> adds this record to your library. <strong>Print document</strong> opens your
+          browser&apos;s print dialog (no server required).
         </p>
 
         {validationErrors.length > 0 && (
@@ -557,7 +569,11 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
           </ul>
         )}
 
-        <FormPrimaryActions onSaveForLater={onSaveForLater} onSubmit={onSubmit} />
+        <FormPrimaryActions
+        onSaveForLater={onSaveForLater}
+        onSubmit={onSubmit}
+        onPrintDocument={onPrintDocument}
+      />
         {exportStatus && (
           <p className="export-status" role="status" aria-live="polite">
             {exportStatus}

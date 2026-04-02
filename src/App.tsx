@@ -11,7 +11,6 @@ import {
 } from "./draftStorage";
 import type { PlanData } from "./types";
 import { validateDraftForSave } from "./validation";
-import { buildSubmissionPdfPayload } from "./submissionMerge";
 import { emptyContact, type ContactBlock } from "./contacts";
 import {
   deleteAction,
@@ -25,7 +24,6 @@ import {
 import { ComprehensivePlanForm } from "./components/ComprehensivePlanForm";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
 import type { HierarchyJumpTarget } from "./planSearch/types";
-import { apiUrl } from "./apiConfig";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 
@@ -281,12 +279,12 @@ export function App() {
     setExportStatus(
       editingId
         ? "Progress saved to this browser and to your library record."
-        : "Progress saved in this browser. Submit when ready to add to your library and download the PDF.",
+        : "Progress saved in this browser. Submit when ready to add to your library.",
     );
     window.setTimeout(() => setExportStatus(null), 5000);
   };
 
-  const submitForm = async () => {
+  const submitForm = () => {
     if (!data) return;
     setValidationErrors([]);
     const v = validateDraftForSave(data, draftSnapshot);
@@ -310,47 +308,12 @@ export function App() {
       setEditingId(saved.id);
     }
     setLibraryVersion((n) => n + 1);
-    const payload = buildSubmissionPdfPayload(data, draftSnapshot);
-    try {
-      const res = await fetch(apiUrl("/api/submissions/pdf"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        let serverDetail = "";
-        try {
-          const errBody = (await res.json()) as { error?: string };
-          if (typeof errBody.error === "string" && errBody.error.length > 0) {
-            serverDetail = ` (${errBody.error})`;
-          }
-        } catch {
-          /* response may not be JSON */
-        }
-        const unreachable =
-          res.status === 502 || res.status === 503 || res.status === 504;
-        const hint = unreachable
-          ? "The app could not reach the PDF API (nothing listening on port 8787). From the project folder run npm run dev:all, or run npm run dev:server in a second terminal while npm run dev is running."
-          : `The PDF service returned an error (HTTP ${res.status})${serverDetail}. In development, use npm run dev:all so Vite and the API both run, or keep npm run dev:server running on port 8787.`;
-        setExportStatus(`Saved to your library, but the PDF could not be downloaded. ${hint}`);
-        window.setTimeout(() => setExportStatus(null), 12_000);
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const safe = saved.cpRecordId.replace(/[^\w-]+/g, "_");
-      a.download = `${safe}-comprehensive-plan.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setExportStatus(`Submitted. Record ${saved.cpRecordId} saved; PDF download started.`);
-    } catch {
-      setExportStatus(
-        "Saved to your library, but the PDF request failed (network). Check your connection and try Submit again.",
-      );
-    }
-    window.setTimeout(() => setExportStatus(null), 6000);
+    setExportStatus(`Submitted. Record ${saved.cpRecordId} saved to your library. Use Print document for a paper copy.`);
+    window.setTimeout(() => setExportStatus(null), 8000);
+  };
+
+  const printDocument = () => {
+    window.print();
   };
 
   const openEdit = (action: SavedAction) => {
@@ -445,7 +408,7 @@ export function App() {
           {" · "}
           <a href="https://compplan.abq-zone.com/">Interactive plan</a>
           ). Use <strong>Comprehensive Plan</strong> for cascading selections; <strong>Submit</strong> saves
-          to your library and downloads the plan PDF.
+          to your library. Use <strong>Print document</strong> for your browser&apos;s print dialog.
         </p>
       </header>
 
@@ -498,6 +461,7 @@ export function App() {
             onActionDetailsChange={setActionDetails}
             onSaveForLater={saveForLater}
             onSubmit={submitForm}
+            onPrintDocument={printDocument}
             onHierarchyJump={applyHierarchyJump}
           />
         )}
