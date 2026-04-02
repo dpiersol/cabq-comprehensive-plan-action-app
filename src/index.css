@@ -801,47 +801,6 @@ textarea {
   line-height: 1.4;
 }
 
-.print-doc-header {
-  position: relative;
-  text-align: center;
-  padding-top: 0.1in;
-  min-height: 1.1in;
-}
-
-.print-doc-seal {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 0.8in;
-  height: 0.8in;
-}
-
-.print-doc-header-text {
-  margin-left: 1in;
-}
-
-.print-doc-city {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 16pt;
-  font-weight: 400;
-  margin: 0;
-  color: #000;
-}
-
-.print-doc-dept {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 14pt;
-  font-weight: 700;
-  margin: 0.15em 0 0;
-}
-
-.print-doc-mayor {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 10pt;
-  font-weight: 400;
-  margin: 0.3em 0 0;
-}
-
 .print-doc-title-row {
   display: flex;
   justify-content: space-between;
@@ -883,6 +842,10 @@ textarea {
 }
 
 @media print {
+  @page {
+    margin: 0.75in 0.6in;
+  }
+
   body {
     background: #fff;
     margin: 0;

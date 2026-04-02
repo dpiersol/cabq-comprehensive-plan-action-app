@@ -23,29 +23,13 @@ export function PrintPreview({ fields }: Props) {
 
   return (
     <div className="print-doc" aria-hidden="true">
-      {/* Header block — matches Word heading area */}
-      <div className="print-doc-header">
-        <img
-          className="print-doc-seal"
-          src="/city-seal.png"
-          alt="City of Albuquerque seal"
-        />
-        <div className="print-doc-header-text">
-          <h1 className="print-doc-city">City of Albuquerque</h1>
-          <h2 className="print-doc-dept">{fields.departmentName || "\u00A0"}</h2>
-          <p className="print-doc-mayor">Timothy M. Keller, Mayor</p>
-        </div>
-      </div>
-
-      {/* Title row — "Comprehensive Plan Action" left, date right */}
+      {/* Title row */}
       <div className="print-doc-title-row">
         <span className="print-doc-action-title">Comprehensive Plan Action</span>
         <span className="print-doc-date">{fields.currentDate}</span>
       </div>
 
       <hr className="print-doc-rule" />
-
-      {/* Field rows matching Word template order */}
       <div className="print-doc-fields">
         <p className="print-doc-field">
           <strong>Legislation Title:</strong> {fields.legislationTitle}
