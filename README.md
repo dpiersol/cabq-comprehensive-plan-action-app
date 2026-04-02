@@ -12,12 +12,12 @@ Internal application for documenting departmental actions against the Albuquerqu
 
 ```bash
 npm install
-npm run dev
-# Optional: app + minimal API (same /api proxy)
+# Recommended: Vite + PDF API together (Submit downloads a PDF)
 npm run dev:all
+# Or: two terminals — npm run dev:server  (port 8787)  and  npm run dev  (port 5173)
 ```
 
-Open the URL shown in the terminal (typically `http://localhost:5173`). The API listens on **8787**; in dev, Vite proxies `/api` when using `dev:all` or with `dev:server` running separately.
+Open the URL Vite prints (typically `http://localhost:5173`). **Submit** calls `POST /api/submissions/pdf` via the `/api` proxy to **8787**. If only `npm run dev` is running, the proxy has nothing to connect to and PDF download fails — use **`dev:all`** or keep **`dev:server`** running in another terminal.
 
 ## Scripts
 

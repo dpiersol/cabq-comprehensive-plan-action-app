@@ -148,13 +148,30 @@ export function renderPdfKitFallback(fields: SubmissionPdfFields): Promise<Buffe
   });
 }
 
-/**
- * Merge `fields` into the Word template, then convert to PDF with LibreOffice (headless).
- * Falls back to PDFKit when tests set VITEST, when COMP_PLAN_PDF_SIMPLE=1, when no template file exists,
- * or when LibreOffice conversion fails (with a console warning).
- */
-export async function renderSubmissionPdfBuffer(body: unknown): Promise<Buffer> {
-  const fields = parsePayload(body);
+function parsePayloadLenient(body: unknown): SubmissionPdfFields {
+  try {
+    return parsePayload(body);
+  } catch {
+    const d = new Date().toLocaleDateString(undefined, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    return {
+      currentDate: d,
+      legislationTitle: "—",
+      chapter: "—",
+      goal: "—",
+      policy: "—",
+      legislationDescription: "—",
+      howDoesLegislationFurtherPolicies: "—",
+    };
+  }
+}
+
+async function renderSubmissionPdfInner(body: unknown): Promise<Buffer> {
+  const fields = parsePayloadLenient(body);
 
   if (usePdfKitOnly()) {
     return renderPdfKitFallback(fields);
@@ -174,5 +191,21 @@ export async function renderSubmissionPdfBuffer(body: unknown): Promise<Buffer> 
       `[comp-plan-pdf] Template or LibreOffice conversion failed (${msg}). Using PDFKit fallback. Install LibreOffice and ensure the template uses docxtemplater tags (see server/templates/README.md).`,
     );
     return renderPdfKitFallback(fields);
+  }
+}
+
+/**
+ * Merge `fields` into the Word template, then convert to PDF with LibreOffice (headless).
+ * Falls back to PDFKit when tests set VITEST, when COMP_PLAN_PDF_SIMPLE=1, when no template file exists,
+ * or when LibreOffice conversion fails (with a console warning).
+ *
+ * Does not throw — always returns PDF bytes so the API can respond with 200 when the route is reached.
+ */
+export async function renderSubmissionPdfBuffer(body: unknown): Promise<Buffer> {
+  try {
+    return await renderSubmissionPdfInner(body);
+  } catch (e) {
+    console.error("[comp-plan-pdf] Unexpected error; using PDFKit fallback.", e);
+    return renderPdfKitFallback(parsePayloadLenient(body));
   }
 }

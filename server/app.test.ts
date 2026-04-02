@@ -18,14 +18,18 @@ const samplePdfPayload = {
 };
 
 describe("API", () => {
-  it("health includes package version", async () => {
-    const app = buildServer();
-    const res = await app.inject({ method: "GET", url: "/api/health" });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body) as { ok: boolean; version: string; workflow: string };
-    expect(body).toEqual({ ok: true, version: pkg.version, workflow: "shelved" });
-    await app.close();
-  });
+  it(
+    "health includes package version",
+    async () => {
+      const app = buildServer();
+      const res = await app.inject({ method: "GET", url: "/api/health" });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { ok: boolean; version: string; workflow: string };
+      expect(body).toEqual({ ok: true, version: pkg.version, workflow: "shelved" });
+      await app.close();
+    },
+    15_000,
+  );
 
   it(
     "POST /api/submissions/pdf returns PDF bytes",

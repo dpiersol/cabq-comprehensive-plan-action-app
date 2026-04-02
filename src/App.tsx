@@ -317,10 +317,22 @@ export function App() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        setExportStatus(
-          "Saved to your library, but PDF generation failed. Start the API server (npm run dev:server) and try Submit again.",
-        );
-        window.setTimeout(() => setExportStatus(null), 8000);
+        let serverDetail = "";
+        try {
+          const errBody = (await res.json()) as { error?: string };
+          if (typeof errBody.error === "string" && errBody.error.length > 0) {
+            serverDetail = ` (${errBody.error})`;
+          }
+        } catch {
+          /* response may not be JSON */
+        }
+        const unreachable =
+          res.status === 502 || res.status === 503 || res.status === 504;
+        const hint = unreachable
+          ? "The app could not reach the PDF API (nothing listening on port 8787). From the project folder run npm run dev:all, or run npm run dev:server in a second terminal while npm run dev is running."
+          : `The PDF service returned an error (HTTP ${res.status})${serverDetail}. In development, use npm run dev:all so Vite and the API both run, or keep npm run dev:server running on port 8787.`;
+        setExportStatus(`Saved to your library, but the PDF could not be downloaded. ${hint}`);
+        window.setTimeout(() => setExportStatus(null), 12_000);
         return;
       }
       const blob = await res.blob();
