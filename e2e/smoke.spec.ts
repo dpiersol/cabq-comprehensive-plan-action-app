@@ -15,15 +15,16 @@ test.describe("App shell", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator(".site-header h1")).toBeVisible({ timeout: 60_000 });
     const footer = page.locator("footer.site-footer");
-    await expect(footer).toContainText(/v\d+\.\d+\.\d+/);
+    await expect(footer).toContainText(/v\d+\.\d+\.\d+/, { timeout: 30_000 });
   });
 
   test("main tabs switch views", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator(".site-header h1")).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator('nav[aria-label="Main"]')).toBeVisible({ timeout: 60_000 });
     await page.locator('nav[aria-label="Main"]').getByRole("button", { name: /^Library/ }).click();
-    await expect(page.getByRole("heading", { name: /Saved actions/i })).toBeVisible();
-    await page.getByRole("button", { name: "Composer" }).click();
+    await expect(page.getByRole("heading", { name: /Your submissions/i })).toBeVisible();
+    await page.getByRole("button", { name: "Comprehensive Plan" }).click();
     await expect(page.getByRole("heading", { name: "Comprehensive Plan Items" })).toBeVisible();
   });
 });

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0] — 2026-03-31
+
+- **Milestone baseline** — Versioning starts at **1.1.0** for rollback (`v1.1.0` tag). Future work iterates **1.1.x** until the next minor/major bump.
+- **User-facing form** — Tab and UI renamed from **Composer** to **Comprehensive Plan**. **Save for later** (draft flush + optional library update when editing) and **Submit** (validated save + PDF download) at **top and bottom** of the form. Removed Clear, Copy/Download JSON, Print, and library **Export all (JSON)**.
+- **PDF** — `POST /api/submissions/pdf` generates a letter-size PDF (pdfkit) with merge fields aligned to the Word template placeholders: `{current date}`, `{legislation title}`, `{chapter}`, `{goal}`, `{policy}`, `{legislation description}`, `{How does this legislation further the policies selected?}`.
+- **Record IDs** — Each library row has a **`CP-######`** id (six digits); existing stored rows migrate on load.
+- **Library** — Renamed to **Your submissions** in the UI; table includes **Record** column.
+- **Header** — Stronger contrast for title, lede, and links on the navy gradient.
+- **API** — `GET /api/health` `version` is read from `package.json`.
+- **E2E** — `npm run e2e:serve` runs API + `vite preview` with `/api` proxy; Playwright uses it for Submit + PDF.
+- **Docs** — `docs/ARCHITECTURE.md` (user app vs future admin); `src/admin/README.md` placeholder.
+- **Fix** — Footer on loading and error shells so version is always visible; React hooks order (editing label `useMemo` before conditional returns).
+
 ## [0.11.4] — 2026-04-02
 
 - **Department** is **required** for save and export: validation error **Enter a department.** if blank; combobox shows **(required)** and updated placeholder.

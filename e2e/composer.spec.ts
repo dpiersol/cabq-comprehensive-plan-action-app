@@ -1,12 +1,16 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Composer", () => {
+test.describe.configure({ timeout: 90_000 });
+
+test.describe("Comprehensive Plan form", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator(".site-header h1")).toContainText(/CABQ Comprehensive Plan/i, {
       timeout: 60_000,
     });
-    await expect(page.locator("#pi-0-chapter")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "Comprehensive Plan Items" })).toBeVisible({
+      timeout: 60_000,
+    });
   });
 
   test("selects plan hierarchy and fills action + contacts", async ({ page }) => {
@@ -37,8 +41,9 @@ test.describe("Composer", () => {
     await page.locator("#primary-contact-email").fill("jane.planner@cabq.gov");
     await page.locator("#primary-contact-phone").fill("(505) 555-0100");
 
-    await page.getByRole("button", { name: "Save to library" }).click();
-    await expect(page.getByText(/Saved to library|Saved changes/i)).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "Submit" }).last().click();
+    await page.getByRole("button", { name: /^Library/ }).click();
+    await expect(page.getByRole("table").getByText(/^CP-\d{6}$/)).toBeVisible({ timeout: 20_000 });
   });
 
   test("department combobox opens and filters", async ({ page }) => {

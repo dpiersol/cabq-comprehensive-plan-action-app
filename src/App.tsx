@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APP_VERSION } from "./appVersion";
-import { buildActionRecordFromSnapshot } from "./actionRecord";
 import {
-  clearDraftStorage,
   emptyDraft,
   emptyPlanItem,
   loadDraftFromStorage,
@@ -12,17 +10,19 @@ import {
   type PlanItemSelection,
 } from "./draftStorage";
 import type { PlanData } from "./types";
-import { validateDraftForExport, validateDraftForSave } from "./validation";
+import { validateDraftForSave } from "./validation";
+import { buildSubmissionPdfPayload } from "./submissionMerge";
 import { emptyContact, type ContactBlock } from "./contacts";
 import {
   deleteAction,
   duplicateSnapshot,
+  getAction,
   loadSavedActions,
   saveNewAction,
   updateAction,
   type SavedAction,
 } from "./savedActionsStore";
-import { Composer } from "./components/Composer";
+import { ComprehensivePlanForm } from "./components/ComprehensivePlanForm";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
 import type { HierarchyJumpTarget } from "./planSearch/types";
 
@@ -97,6 +97,14 @@ export function App() {
       alternateContact,
     ],
   );
+
+  const editingLabel = useMemo(() => {
+    void libraryVersion;
+    if (!editingId) return null;
+    const rec = getAction(editingId);
+    const t = actionTitle.trim() || "Untitled record";
+    return rec ? `${rec.cpRecordId} — ${t}` : t;
+  }, [editingId, actionTitle, libraryVersion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -262,15 +270,22 @@ export function App() {
     setActivePlanItemIndex(nextActive);
   };
 
-  const clearForm = () => {
-    applySnapshot(emptyDraft());
-    clearDraftStorage();
-    setEditingId(null);
-    setExportStatus(null);
+  const saveForLater = () => {
+    saveDraftToStorage(draftSnapshot);
+    if (editingId) {
+      updateAction(editingId, draftSnapshot);
+      setLibraryVersion((n) => n + 1);
+    }
     setValidationErrors([]);
+    setExportStatus(
+      editingId
+        ? "Progress saved to this browser and to your library record."
+        : "Progress saved in this browser. Submit when ready to add to your library and download the PDF.",
+    );
+    window.setTimeout(() => setExportStatus(null), 5000);
   };
 
-  const saveToLibrary = () => {
+  const submitForm = async () => {
     if (!data) return;
     setValidationErrors([]);
     const v = validateDraftForSave(data, draftSnapshot);
@@ -279,78 +294,50 @@ export function App() {
       setExportStatus(null);
       return;
     }
+    setExportStatus(null);
+    let saved: SavedAction;
     if (editingId) {
-      updateAction(editingId, draftSnapshot);
-      setExportStatus("Saved changes to library.");
+      const u = updateAction(editingId, draftSnapshot);
+      if (!u) {
+        setExportStatus("Could not update the library record.");
+        window.setTimeout(() => setExportStatus(null), 6000);
+        return;
+      }
+      saved = u;
     } else {
-      saveNewAction(draftSnapshot);
-      setExportStatus("Saved to library. Open the Library tab to view or export.");
+      saved = saveNewAction(draftSnapshot);
+      setEditingId(saved.id);
     }
     setLibraryVersion((n) => n + 1);
-    window.setTimeout(() => setExportStatus(null), 5000);
-  };
-
-  const copyJson = async () => {
-    if (!data) return;
-    setValidationErrors([]);
-    const v = validateDraftForExport(data, draftSnapshot);
-    if (!v.ok) {
-      setValidationErrors(v.errors);
-      setExportStatus(null);
-      return;
-    }
-    const payload = buildActionRecordFromSnapshot(data, APP_VERSION, draftSnapshot);
-    const text = JSON.stringify(payload, null, 2);
+    const payload = buildSubmissionPdfPayload(data, draftSnapshot);
     try {
-      await navigator.clipboard.writeText(text);
-      setExportStatus("Copied JSON to clipboard.");
+      const res = await fetch("/api/submissions/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        setExportStatus(
+          "Saved to your library, but PDF generation failed. Start the API server (npm run dev:server) and try Submit again.",
+        );
+        window.setTimeout(() => setExportStatus(null), 8000);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safe = saved.cpRecordId.replace(/[^\w-]+/g, "_");
+      a.download = `${safe}-comprehensive-plan.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportStatus(`Submitted. Record ${saved.cpRecordId} saved; PDF download started.`);
     } catch {
-      setExportStatus("Could not copy to clipboard.");
+      setExportStatus(
+        "Saved to your library, but the PDF request failed (network). Check your connection and try Submit again.",
+      );
     }
-    window.setTimeout(() => setExportStatus(null), 4000);
-  };
-
-  const downloadJson = () => {
-    if (!data) return;
-    setValidationErrors([]);
-    const v = validateDraftForExport(data, draftSnapshot);
-    if (!v.ok) {
-      setValidationErrors(v.errors);
-      setExportStatus(null);
-      return;
-    }
-    const payload = buildActionRecordFromSnapshot(data, APP_VERSION, draftSnapshot);
-    const text = JSON.stringify(payload, null, 2);
-    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    a.href = url;
-    a.download = `cabq-comp-plan-action-${stamp}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setExportStatus("Download started.");
-    window.setTimeout(() => setExportStatus(null), 4000);
-  };
-
-  const exportAllJson = () => {
-    if (!data) return;
-    const actions = loadSavedActions();
-    const payloads = actions.map((a) => buildActionRecordFromSnapshot(data, APP_VERSION, a.snapshot));
-    const bundle = {
-      appVersion: APP_VERSION,
-      exportedAt: new Date().toISOString(),
-      recordCount: payloads.length,
-      records: payloads,
-    };
-    const text = JSON.stringify(bundle, null, 2);
-    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `cabq-comp-plan-actions-export-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => setExportStatus(null), 6000);
   };
 
   const openEdit = (action: SavedAction) => {
@@ -366,7 +353,7 @@ export function App() {
     setEditingId(null);
     setTab("compose");
     setValidationErrors([]);
-    setExportStatus("Duplicate loaded — adjust the legislation title and save.");
+    setExportStatus("Duplicate loaded — adjust the legislation title and submit when ready.");
     window.setTimeout(() => setExportStatus(null), 5000);
   };
 
@@ -376,10 +363,6 @@ export function App() {
       setEditingId(null);
     }
     setLibraryVersion((n) => n + 1);
-  };
-
-  const onPrint = () => {
-    globalThis.print?.();
   };
 
   const applyHierarchyJump = (t: HierarchyJumpTarget) => {
@@ -412,6 +395,10 @@ export function App() {
             {loadError}
           </div>
         </main>
+        <footer className="site-footer no-print">
+          CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Plan data: comprehensive plan
+          hierarchy JSON
+        </footer>
       </div>
     );
   }
@@ -425,29 +412,27 @@ export function App() {
         <main className="site-main">
           <div className="loading">Loading plan hierarchy…</div>
         </main>
+        <footer className="site-footer no-print">
+          CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Plan data: comprehensive plan
+          hierarchy JSON
+        </footer>
       </div>
     );
   }
-
-  const editingLabel =
-    editingId && actionTitle.trim()
-      ? actionTitle.trim()
-      : editingId
-        ? "Untitled record"
-        : null;
 
   return (
     <div className="app-shell">
       <header className="site-header no-print">
         <h1>CABQ Comprehensive Plan — Action documentation</h1>
-        <p>
+        <p className="site-header-lede">
           Document departmental actions against the ABC Comprehensive Plan hierarchy (
           <a href="https://www.cabq.gov/planning/plans-publications/abc-comprehensive-plan">
             City planning
           </a>
           {" · "}
           <a href="https://compplan.abq-zone.com/">Interactive plan</a>
-          ). Use the composer for cascading selections, save records locally, and export JSON.
+          ). Use <strong>Comprehensive Plan</strong> for cascading selections; <strong>Submit</strong> saves
+          to your library and downloads the plan PDF.
         </p>
       </header>
 
@@ -457,7 +442,7 @@ export function App() {
           className={`tab-btn ${tab === "compose" ? "active" : ""}`}
           onClick={() => setTab("compose")}
         >
-          Composer
+          Comprehensive Plan
         </button>
         <button
           type="button"
@@ -470,7 +455,7 @@ export function App() {
 
       <main className="site-main">
         {tab === "compose" && (
-          <Composer
+          <ComprehensivePlanForm
             data={data}
             planItems={planItems}
             activePlanItemIndex={activePlanItemIndex}
@@ -498,11 +483,8 @@ export function App() {
             onPrimaryContactChange={setPrimaryContact}
             onAlternateContactChange={setAlternateContact}
             onActionDetailsChange={setActionDetails}
-            onClear={clearForm}
-            onSaveToLibrary={saveToLibrary}
-            onCopyJson={copyJson}
-            onDownloadJson={downloadJson}
-            onPrint={onPrint}
+            onSaveForLater={saveForLater}
+            onSubmit={submitForm}
             onHierarchyJump={applyHierarchyJump}
           />
         )}
@@ -513,14 +495,13 @@ export function App() {
             onEdit={openEdit}
             onDuplicate={duplicateFromLibrary}
             onDelete={removeFromLibrary}
-            onExportAll={exportAllJson}
           />
         )}
       </main>
 
       <footer className="site-footer no-print">
-        CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Data: comprehensive plan
-        export
+        CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Plan data: comprehensive plan
+        hierarchy JSON
       </footer>
     </div>
   );

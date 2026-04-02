@@ -10,7 +10,6 @@ export interface SavedActionsPanelProps {
   onEdit: (action: SavedAction) => void;
   onDuplicate: (action: SavedAction) => void;
   onDelete: (id: string) => void;
-  onExportAll: () => void;
 }
 
 function policyLabelsForSnapshot(plan: PlanData, snapshot: SavedAction["snapshot"]): string[] {
@@ -29,7 +28,6 @@ export function SavedActionsPanel({
   onEdit,
   onDuplicate,
   onDelete,
-  onExportAll,
 }: SavedActionsPanelProps) {
   const [query, setQuery] = useState("");
   const actions = useMemo(() => {
@@ -40,6 +38,7 @@ export function SavedActionsPanel({
     return list.filter((a) => {
       const s = a.snapshot;
       const t = s.actionTitle.toLowerCase();
+      const cp = (a.cpRecordId ?? "").toLowerCase();
       const furthers = (s.howFurthersPolicies ?? "").toLowerCase();
       const d = s.department.toLowerCase();
       const pc = s.primaryContact;
@@ -50,6 +49,7 @@ export function SavedActionsPanel({
       const policiesBlob = policyLabelsForSnapshot(plan, s).join(" ").toLowerCase();
       return (
         t.includes(q) ||
+        cp.includes(q) ||
         furthers.includes(q) ||
         d.includes(q) ||
         contactBlob.includes(q) ||
@@ -61,9 +61,10 @@ export function SavedActionsPanel({
   if (actions.length === 0 && !query) {
     return (
       <section className="card">
-        <h2>Saved actions</h2>
+        <h2>Your submissions</h2>
         <p className="empty-hint">
-          No saved actions yet. Complete the composer and choose <strong>Save to library</strong>.
+          No submissions yet. Use the <strong>Comprehensive Plan</strong> tab and <strong>Submit</strong>{" "}
+          when your legislation record is complete.
         </p>
       </section>
     );
@@ -72,19 +73,16 @@ export function SavedActionsPanel({
   return (
     <section className="card">
       <div className="library-toolbar">
-        <h2>Saved actions</h2>
+        <h2>Your submissions</h2>
         <div className="library-actions no-print">
           <input
             type="search"
             className="search-input"
-            placeholder="Filter by legislation title, policy furtherance text, department, contacts, or policies…"
+            placeholder="Filter by record ID, legislation title, furtherance text, department, contacts, or policies…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Filter saved actions"
+            aria-label="Filter submissions"
           />
-          <button type="button" className="btn btn-secondary" onClick={onExportAll}>
-            Export all (JSON)
-          </button>
         </div>
       </div>
 
@@ -95,6 +93,7 @@ export function SavedActionsPanel({
           <table className="saved-table">
             <thead>
               <tr>
+                <th>Record</th>
                 <th>Legislation title</th>
                 <th>Department</th>
                 <th>Policy</th>
@@ -115,12 +114,13 @@ export function SavedActionsPanel({
                 const ch = sel0?.chapter ? chapterLabel(sel0.chapter) : "—";
                 return (
                   <tr key={a.id}>
+                    <td className="muted small">{a.cpRecordId || "—"}</td>
                     <td>
                       <button
                         type="button"
                         className="link-button"
                         onClick={() => onEdit(a)}
-                        title="Open in composer"
+                        title="Open in Comprehensive Plan"
                       >
                         {a.snapshot.actionTitle.trim() || "(Untitled)"}
                       </button>

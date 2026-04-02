@@ -8,6 +8,11 @@ export default defineConfig({
       "/api": { target: "http://127.0.0.1:8787", changeOrigin: true },
     },
   },
+  preview: {
+    proxy: {
+      "/api": { target: "http://127.0.0.1:8787", changeOrigin: true },
+    },
+  },
   test: {
     globals: true,
     include: ["src/**/*.test.ts", "server/**/*.test.ts"],

@@ -14,7 +14,7 @@ import { DepartmentCombobox } from "./DepartmentCombobox";
 import { ActionDescriptionEditor } from "./ActionDescriptionEditor";
 import { FURTHERS_POLICIES_MAX } from "../validation";
 
-export interface ComposerProps {
+export interface ComprehensivePlanFormProps {
   data: PlanData;
   planItems: PlanItemSelection[];
   activePlanItemIndex: number;
@@ -42,12 +42,28 @@ export interface ComposerProps {
   onPrimaryContactChange: (c: ContactBlock) => void;
   onAlternateContactChange: (c: ContactBlock) => void;
   onActionDetailsChange: (v: string) => void;
-  onClear: () => void;
-  onSaveToLibrary: () => void;
-  onCopyJson: () => void;
-  onDownloadJson: () => void;
-  onPrint: () => void;
+  onSaveForLater: () => void;
+  onSubmit: () => void | Promise<void>;
   onHierarchyJump: (target: HierarchyJumpTarget) => void;
+}
+
+function FormPrimaryActions({
+  onSaveForLater,
+  onSubmit,
+}: {
+  onSaveForLater: () => void;
+  onSubmit: () => void | Promise<void>;
+}) {
+  return (
+    <div className="form-primary-actions btn-row no-print">
+      <button type="button" className="btn btn-secondary" onClick={onSaveForLater}>
+        Save for later
+      </button>
+      <button type="button" className="btn btn-primary" onClick={() => void onSubmit()}>
+        Submit
+      </button>
+    </div>
+  );
 }
 
 function ContactGroup({
@@ -317,7 +333,7 @@ function PlanItemCard({
   );
 }
 
-export function Composer(props: ComposerProps) {
+export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
   const {
     data,
     planItems,
@@ -346,11 +362,8 @@ export function Composer(props: ComposerProps) {
     onPrimaryContactChange,
     onAlternateContactChange,
     onActionDetailsChange,
-    onClear,
-    onSaveToLibrary,
-    onCopyJson,
-    onDownloadJson,
-    onPrint,
+    onSaveForLater,
+    onSubmit,
     onHierarchyJump,
   } = props;
 
@@ -399,12 +412,14 @@ export function Composer(props: ComposerProps) {
     .filter((b): b is { idx: number; lines: { label: string; value: string }[] } => b !== null);
 
   return (
-    <div className="composer">
+    <div className="comprehensive-plan-form">
       {editingLabel && (
         <p className="editing-banner" role="status">
           Editing: <strong>{editingLabel}</strong>
         </p>
       )}
+
+      <FormPrimaryActions onSaveForLater={onSaveForLater} onSubmit={onSubmit} />
 
       <section className="card print-section" aria-labelledby="hierarchy-heading">
         <h2 id="hierarchy-heading">Comprehensive Plan Items</h2>
@@ -530,7 +545,8 @@ export function Composer(props: ComposerProps) {
         </div>
 
         <p className="hint">
-          Draft auto-saves in this browser. Saving to the library stores a local copy.
+          Draft auto-saves in this browser. Use <strong>Save for later</strong> to persist immediately;{" "}
+          <strong>Submit</strong> saves to your library and downloads the Comprehensive Plan PDF.
         </p>
 
         {validationErrors.length > 0 && (
@@ -541,23 +557,7 @@ export function Composer(props: ComposerProps) {
           </ul>
         )}
 
-        <div className="btn-row no-print">
-          <button type="button" className="btn btn-secondary" onClick={onClear}>
-            Clear form
-          </button>
-          <button type="button" className="btn btn-primary" onClick={onSaveToLibrary}>
-            Save to library
-          </button>
-          <button type="button" className="btn btn-primary" onClick={() => void onCopyJson()}>
-            Copy JSON
-          </button>
-          <button type="button" className="btn btn-primary" onClick={onDownloadJson}>
-            Download JSON
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={onPrint}>
-            Print summary
-          </button>
-        </div>
+        <FormPrimaryActions onSaveForLater={onSaveForLater} onSubmit={onSubmit} />
         {exportStatus && (
           <p className="export-status" role="status" aria-live="polite">
             {exportStatus}

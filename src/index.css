@@ -44,22 +44,49 @@ a:hover {
 
 .site-header {
   background: linear-gradient(135deg, var(--cabq-navy) 0%, var(--cabq-navy-light) 100%);
-  color: #fff;
+  color: #f8fafc;
   padding: 1.25rem 1.5rem;
   box-shadow: 0 2px 8px rgba(26, 54, 93, 0.25);
+  position: relative;
+  z-index: 2;
 }
 
 .site-header h1 {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.site-header p {
+.site-header p,
+.site-header-lede {
   margin: 0.35rem 0 0;
   font-size: 0.95rem;
-  opacity: 0.92;
+  opacity: 1;
+  color: #e2e8f0;
   max-width: 52rem;
+  line-height: 1.45;
+}
+
+.site-header a {
+  color: #fef3c7;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-header a:hover {
+  color: #fffbeb;
+}
+
+.site-header strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.form-primary-actions {
+  margin-bottom: 1rem;
 }
 
 .site-main {

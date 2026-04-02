@@ -4,9 +4,9 @@ Use this checklist for **every** change set that ships. The app version in `pack
 
 ## 1. Version
 
-- **Bump `package.json` `version`** whenever you deliver new work.
-- **Minimal API:** Update the hardcoded `version` string in **`server/app.ts`** (and **`server/app.test.ts`** expectation) so **`GET /api/health`** matches the app release.
-- **Patch-only iterations** (e.g. `0.1.0` → `0.1.1`): only skip a minor/major bump when the product owner explicitly says you are iterating *within* that version; otherwise bump as appropriate for the change.
+- **Bump `package.json` `version`** whenever you deliver new work (`src/appVersion.ts` reads it).
+- **API:** **`GET /api/health`** `version` is read from **`package.json`** in **`server/app.ts`** — no separate manual string. **`server/app.test.ts`** asserts against the same file.
+- **Patch-only iterations** (e.g. `1.1.0` → `1.1.1`): only skip a minor/major bump when the product owner explicitly says you are iterating *within* that version; otherwise bump as appropriate for the change.
 
 ## 2. Build and test (no known defects)
 
