@@ -1,0 +1,152 @@
+name: Deploy Pipeline
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Trigger rules:
+#   push develop  → runs full pipeline and deploys to DTIAPPSINTDEV
+#   push master   → runs full pipeline and deploys to DTIAPPSINTPRD
+#                   (only possible after a PR from develop is reviewed & merged)
+#   PR → master   → runs build + QA + security checks only (no deploy)
+#
+# Branch protection (configure in GitHub → Settings → Branches):
+#   Protect 'master': require PR review before merge, require status checks
+#   (develop, qa-check, security-check) to pass.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [develop, master]
+  pull_request:
+    branches: [master]
+
+jobs:
+
+  # ── Stage 1: Build & Lint ──────────────────────────────────────────────────
+  develop:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  # ── Stage 2: QA Tests ─────────────────────────────────────────────────────
+  qa-check:
+    name: QA Tests
+    needs: develop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+  # ── Stage 3: Security Scan ────────────────────────────────────────────────
+  security-check:
+    name: Security Scan
+    needs: develop
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dependency audit (high+)
+        # Fails on HIGH or CRITICAL vulnerabilities.
+        # To temporarily allow known issues: npm audit --audit-level=critical
+        run: npm audit --audit-level=high
+
+      - name: CodeQL – Initialize
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: CodeQL – Analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  # ── Stage 4: Deploy to DEV ────────────────────────────────────────────────
+  deploy-dev:
+    name: "Deploy → DEV (DTIAPPSINTDEV:8080)"
+    needs: [qa-check, security-check]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: development
+      url: http://DTIAPPSINTDEV:8080
+
+    steps:
+      - name: SSH deploy to DTIAPPSINTDEV
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: powershell -ExecutionPolicy Bypass -File "D:\cabq-plan\deployment\deploy.ps1" -Branch develop
+
+  # ── Stage 5: Deploy to PROD ───────────────────────────────────────────────
+  # Triggered only when a reviewed PR is merged into master.
+  # Additionally protected by the 'production' GitHub Environment
+  # (Settings → Environments → production → Required reviewers).
+  deploy-prod:
+    name: "Deploy → PROD (DTIAPPSINTPRD)"
+    needs: [qa-check, security-check]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    environment:
+      name: production
+      url: http://cabq-plan.dtiappsintprd.local
+
+    steps:
+      - name: SSH deploy to DTIAPPSINTPRD
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: powershell -ExecutionPolicy Bypass -File "D:\cabq-plan\deployment\deploy.ps1" -Branch master
