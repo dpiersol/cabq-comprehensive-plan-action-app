@@ -45,13 +45,14 @@ Write-Host "`n[3/4] Building application..." -ForegroundColor Yellow
 npm run build
 
 Write-Host "`n[4/4] Reloading PM2 process..." -ForegroundColor Yellow
-# --update-env picks up any changed system environment variables
+# Temporarily allow non-zero exit codes so we can fall back to pm2 start
+$ErrorActionPreference = "Continue"
 pm2 reload ecosystem.config.cjs --update-env --env production
-
 if ($LASTEXITCODE -ne 0) {
-  Write-Host "PM2 reload failed – starting fresh..." -ForegroundColor Red
+  Write-Host "  PM2 reload failed - starting fresh..." -ForegroundColor Red
   pm2 start ecosystem.config.cjs --env production
 }
+$ErrorActionPreference = "Stop"
 
 pm2 save
 
