@@ -80,20 +80,23 @@ npm install -g pm2 pm2-windows-startup
 pm2-startup install
 Write-Host "  PM2: $(pm2 --version)"
 
-# ── 4. IIS features ───────────────────────────────────────────────────────────
-Write-Host "`n[4/8] Enabling IIS features..." -ForegroundColor Yellow
+# ── 4. IIS features (Windows Server uses Install-WindowsFeature) ──────────────
+Write-Host "`n[4/8] Installing IIS features..." -ForegroundColor Yellow
 
-$features = @(
-  "IIS-WebServerRole", "IIS-WebServer", "IIS-CommonHttpFeatures",
-  "IIS-StaticContent", "IIS-DefaultDocument", "IIS-DirectoryBrowsing",
-  "IIS-HttpErrors", "IIS-HttpCompressionStatic", "IIS-ManagementConsole",
-  "IIS-ManagementService"
-)
-foreach ($f in $features) {
-  Enable-WindowsOptionalFeature -Online -FeatureName $f `
-    -NoRestart -WarningAction SilentlyContinue | Out-Null
-}
-Write-Host "  IIS core features enabled."
+Install-WindowsFeature -Name `
+  Web-Server, `
+  Web-WebServer, `
+  Web-Common-Http, `
+  Web-Static-Content, `
+  Web-Default-Doc, `
+  Web-Dir-Browsing, `
+  Web-Http-Errors, `
+  Web-Stat-Compression, `
+  Web-Mgmt-Console, `
+  Web-Mgmt-Service `
+  -IncludeManagementTools | Out-Null
+
+Write-Host "  IIS core features installed."
 
 # ── 5. ARR 3.0 + URL Rewrite 2.1 via Web Platform Installer ──────────────────
 Write-Host "`n[5/8] Installing ARR + URL Rewrite via Web Platform Installer..." -ForegroundColor Yellow
