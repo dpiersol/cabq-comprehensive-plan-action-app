@@ -51,13 +51,22 @@ if (-not (Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction Silentl
   Write-Host "  Firewall rule added for SSH (port 22)"
 }
 
-# ── 2. Node.js v22 via winget ─────────────────────────────────────────────────
-Write-Host "`n[2/8] Installing Node.js v22..." -ForegroundColor Yellow
+# ── 2. Node.js v22 LTS via MSI installer ──────────────────────────────────────
+Write-Host "`n[2/8] Installing Node.js v22 LTS..." -ForegroundColor Yellow
 
-winget install OpenJS.NodeJS.LTS `
-  --silent --accept-source-agreements --accept-package-agreements
+$nodeVersion = "v22.16.0"
+$nodeMsi = "$env:TEMP\node-$nodeVersion-x64.msi"
+$nodeUrl = "https://nodejs.org/dist/$nodeVersion/node-$nodeVersion-x64.msi"
 
-# Refresh PATH for this session so npm is available immediately
+if (-not (Test-Path $nodeMsi)) {
+  Write-Host "  Downloading Node.js $nodeVersion..."
+  Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeMsi -UseBasicParsing
+}
+
+Write-Host "  Installing Node.js $nodeVersion (silent)..."
+Start-Process msiexec.exe -ArgumentList "/i `"$nodeMsi`" /quiet /norestart" -Wait
+
+# Refresh PATH for this session so node/npm are available immediately
 $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 $userPath    = [System.Environment]::GetEnvironmentVariable("Path", "User")
 $env:Path    = "$machinePath;$userPath"
