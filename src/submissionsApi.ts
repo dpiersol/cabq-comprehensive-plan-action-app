@@ -1,6 +1,7 @@
 import { getAuthUser } from "./auth";
 import { parseDraftJson } from "./draftStorage";
 import type { DraftSnapshot } from "./draftStorage";
+import { acquireApiAccessToken } from "./msal/msalInstance";
 import type { SavedAction } from "./savedActionsStore";
 import type { SubmissionStatus } from "./submissionStatus";
 
@@ -14,20 +15,21 @@ interface SavedActionDto {
   snapshot: unknown;
 }
 
-function identityHeaders(): HeadersInit {
+async function identityHeaders(): Promise<HeadersInit> {
   const u = getAuthUser();
   if (!u?.email) throw new Error("Not signed in");
   const h: Record<string, string> = {
     "X-User-Email": u.email,
   };
   if (u.oid) h["X-User-Oid"] = u.oid;
+  const token = await acquireApiAccessToken();
+  if (token) h.Authorization = `Bearer ${token}`;
   return h;
 }
 
-function jsonHeaders(): HeadersInit {
-  const h = identityHeaders() as Record<string, string>;
-  h["Content-Type"] = "application/json";
-  return h;
+async function jsonHeaders(): Promise<HeadersInit> {
+  const base = (await identityHeaders()) as Record<string, string>;
+  return { ...base, "Content-Type": "application/json" };
 }
 
 function mapStatus(raw: string): SubmissionStatus {
@@ -62,7 +64,7 @@ async function readError(res: Response): Promise<string> {
 }
 
 export async function listSubmissions(): Promise<SavedAction[]> {
-  const res = await fetch("/api/submissions", { headers: identityHeaders() });
+  const res = await fetch("/api/submissions", { headers: await identityHeaders() });
   if (!res.ok) throw new Error(await readError(res));
   const body = (await res.json()) as unknown;
   if (!Array.isArray(body)) throw new Error("Invalid list response");
@@ -71,7 +73,7 @@ export async function listSubmissions(): Promise<SavedAction[]> {
 
 export async function getSubmission(id: string): Promise<SavedAction | null> {
   const res = await fetch(`/api/submissions/${encodeURIComponent(id)}`, {
-    headers: identityHeaders(),
+    headers: await identityHeaders(),
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(await readError(res));
@@ -86,7 +88,7 @@ export async function createSubmission(
   const status = opts?.status ?? "draft";
   const res = await fetch("/api/submissions", {
     method: "POST",
-    headers: jsonHeaders(),
+    headers: await jsonHeaders(),
     body: JSON.stringify({ snapshot, status }),
   });
   if (!res.ok) throw new Error(await readError(res));
@@ -103,7 +105,7 @@ export async function patchSubmission(
   if (patch.status !== undefined) body.status = patch.status;
   const res = await fetch(`/api/submissions/${encodeURIComponent(id)}`, {
     method: "PATCH",
-    headers: jsonHeaders(),
+    headers: await jsonHeaders(),
     body: JSON.stringify(body),
   });
   if (res.status === 404) return null;
@@ -123,7 +125,7 @@ export async function updateSubmission(
 export async function deleteSubmission(id: string): Promise<boolean> {
   const res = await fetch(`/api/submissions/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    headers: identityHeaders(),
+    headers: await identityHeaders(),
   });
   if (res.status === 404) return false;
   if (res.status === 409) throw new Error(await readError(res));

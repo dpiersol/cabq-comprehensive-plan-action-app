@@ -1,4 +1,5 @@
 import type { FastifyRequest } from "fastify";
+import { allowHeaderFallback, verifyAzureBearer } from "./azureJwt.js";
 
 export interface RequestOwner {
   ownerKey: string;
@@ -6,8 +7,8 @@ export interface RequestOwner {
   oid?: string;
 }
 
-/** Derive stable owner scope from trusted headers (JWT validation comes in a later sprint). */
-export function resolveOwner(req: FastifyRequest): RequestOwner | null {
+/** Derive stable owner scope from trusted headers (used when JWT mode is off or ALLOW_HEADER_IDENTITY=true). */
+export function resolveOwnerFromHeaders(req: FastifyRequest): RequestOwner | null {
   const emailRaw = req.headers["x-user-email"];
   const oidRaw = req.headers["x-user-oid"];
   const email = typeof emailRaw === "string" ? emailRaw.trim().toLowerCase() : "";
@@ -15,4 +16,26 @@ export function resolveOwner(req: FastifyRequest): RequestOwner | null {
   if (!email && !oid) return null;
   const ownerKey = oid ? `oid:${oid}` : `email:${email}`;
   return { ownerKey, email: email || "", oid };
+}
+
+function extractBearer(req: FastifyRequest): string | undefined {
+  const auth = req.headers.authorization;
+  if (typeof auth !== "string" || !auth.startsWith("Bearer ")) return undefined;
+  const t = auth.slice(7).trim();
+  return t || undefined;
+}
+
+/**
+ * Resolve tenant-scoped owner: prefer validated Bearer token when sent; otherwise identity headers
+ * when allowed (no Azure config, or ALLOW_HEADER_IDENTITY=true for migration / E2E).
+ */
+export async function resolveOwner(req: FastifyRequest): Promise<RequestOwner | null> {
+  const bearer = extractBearer(req);
+  if (bearer) {
+    return verifyAzureBearer(bearer);
+  }
+  if (allowHeaderFallback()) {
+    return resolveOwnerFromHeaders(req);
+  }
+  return null;
 }

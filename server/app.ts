@@ -30,7 +30,7 @@ export function buildServer(opts?: BuildServerOptions) {
   app.register(cors, {
     origin: true,
     methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-User-Oid", "X-User-Email"],
+    allowedHeaders: ["Content-Type", "X-User-Oid", "X-User-Email", "Authorization"],
   });
 
   app.get("/api/health", async () => ({
@@ -51,17 +51,21 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.get("/api/submissions", async (req, reply) => {
-    const owner = resolveOwner(req);
+    const owner = await resolveOwner(req);
     if (!owner) {
-      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+      return reply.code(401).send({
+        error: "Authentication required (Bearer token or permitted identity headers)",
+      });
     }
     return listByOwner(db, owner.ownerKey);
   });
 
   app.get<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
-    const owner = resolveOwner(req);
+    const owner = await resolveOwner(req);
     if (!owner) {
-      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+      return reply.code(401).send({
+        error: "Authentication required (Bearer token or permitted identity headers)",
+      });
     }
     const row = getById(db, owner.ownerKey, req.params.id);
     if (!row) return reply.code(404).send({ error: "Not found" });
@@ -69,9 +73,11 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.post("/api/submissions", async (req, reply) => {
-    const owner = resolveOwner(req);
+    const owner = await resolveOwner(req);
     if (!owner) {
-      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+      return reply.code(401).send({
+        error: "Authentication required (Bearer token or permitted identity headers)",
+      });
     }
     try {
       const { snapshot, status } = parseCreateBody(req.body);
@@ -83,9 +89,11 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.patch<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
-    const owner = resolveOwner(req);
+    const owner = await resolveOwner(req);
     if (!owner) {
-      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+      return reply.code(401).send({
+        error: "Authentication required (Bearer token or permitted identity headers)",
+      });
     }
     try {
       const patch = parsePatchBody(req.body);
@@ -99,9 +107,11 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.delete<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
-    const owner = resolveOwner(req);
+    const owner = await resolveOwner(req);
     if (!owner) {
-      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+      return reply.code(401).send({
+        error: "Authentication required (Bearer token or permitted identity headers)",
+      });
     }
     const result = deleteSubmission(db, owner.ownerKey, req.params.id);
     if (result === "not_found") return reply.code(404).send({ error: "Not found" });

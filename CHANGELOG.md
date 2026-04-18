@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.0] — 2026-04-17
+
+### Sprint 4 — API authentication (Entra JWT)
+
+- **Bearer tokens** — When **`AZURE_TENANT_ID`** and **`AZURE_AUDIENCE`** are set on the API, `/api/submissions*` resolves identity from a validated **`Authorization: Bearer`** JWT (JWKS from Entra). **`jose`** verifies issuer and audience.
+- **Headers fallback** — If Azure env is **unset**, behavior matches earlier sprints (identity headers only). If Azure env **is** set, **`ALLOW_HEADER_IDENTITY=true`** restores header trust for migration, Playwright/e2e, or sandbox until scopes are wired.
+- **SPA** — `acquireTokenSilent` adds the API scope (default **`api://{VITE_AZURE_CLIENT_ID}/access_as_user`**, override with **`VITE_API_SCOPE`**). Requests still send **`X-User-*`** when present.
+- **CORS** — Allows **`Authorization`** on API requests.
+
 ## [3.2.0] — 2026-04-17
 
 ### Sprint 3 — Submission lifecycle

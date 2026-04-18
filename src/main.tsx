@@ -8,10 +8,12 @@ import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { EntraAuthSync } from "./components/EntraAuthSync";
 import { getMsalConfiguration } from "./msal/msalConfig";
+import { registerMsalInstance } from "./msal/msalInstance";
 
 async function bootstrap() {
   const pca = new PublicClientApplication(getMsalConfiguration());
   await pca.initialize();
+  registerMsalInstance(pca);
   await pca.handleRedirectPromise();
 
   createRoot(document.getElementById("root")!).render(

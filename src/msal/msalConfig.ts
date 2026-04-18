@@ -1,4 +1,5 @@
 import type { Configuration } from "@azure/msal-browser";
+import { isMockAuthMode } from "../auth/entraEligibility";
 
 /**
  * MSAL configuration for Azure Entra ID (single-tenant SPA).
@@ -31,3 +32,16 @@ export function getMsalConfiguration(): Configuration {
 export const loginRequest = {
   scopes: ["openid", "profile", "email"],
 };
+
+/**
+ * Delegated scope for this app's API (Entra: Expose an API → `access_as_user`).
+ * Override with **`VITE_API_SCOPE`** if your Application ID URI differs.
+ */
+export function apiAccessScopes(): string[] {
+  if (isMockAuthMode()) return [];
+  const custom = import.meta.env.VITE_API_SCOPE;
+  if (typeof custom === "string" && custom.trim()) return [custom.trim()];
+  const clientId = import.meta.env.VITE_AZURE_CLIENT_ID;
+  if (!clientId || clientId === "00000000-0000-0000-0000-000000000000") return [];
+  return [`api://${clientId}/access_as_user`];
+}

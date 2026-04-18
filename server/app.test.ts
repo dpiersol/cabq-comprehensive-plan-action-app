@@ -205,4 +205,35 @@ describe("API", () => {
     },
     15_000,
   );
+
+  it(
+    "GET /api/submissions rejects header-only auth when Azure JWT is required (no header fallback)",
+    async () => {
+      const prevTenant = process.env.AZURE_TENANT_ID;
+      const prevAudience = process.env.AZURE_AUDIENCE;
+      const prevAllow = process.env.ALLOW_HEADER_IDENTITY;
+      try {
+        process.env.AZURE_TENANT_ID = "11111111-1111-1111-1111-111111111111";
+        process.env.AZURE_AUDIENCE = "api://cabq-plan-test";
+        delete process.env.ALLOW_HEADER_IDENTITY;
+        const db = createMemoryDatabase();
+        const app = buildServer({ db });
+        const res = await app.inject({
+          method: "GET",
+          url: "/api/submissions",
+          headers: ownerIdentityHeaders,
+        });
+        expect(res.statusCode).toBe(401);
+        await app.close();
+      } finally {
+        if (prevTenant === undefined) delete process.env.AZURE_TENANT_ID;
+        else process.env.AZURE_TENANT_ID = prevTenant;
+        if (prevAudience === undefined) delete process.env.AZURE_AUDIENCE;
+        else process.env.AZURE_AUDIENCE = prevAudience;
+        if (prevAllow === undefined) delete process.env.ALLOW_HEADER_IDENTITY;
+        else process.env.ALLOW_HEADER_IDENTITY = prevAllow;
+      }
+    },
+    15_000,
+  );
 });
