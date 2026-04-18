@@ -44,7 +44,9 @@ test.describe("Comprehensive Plan form", () => {
 
     await page.getByRole("button", { name: "Submit" }).last().click();
     await page.getByRole("button", { name: /^Library/ }).click();
-    await expect(page.getByRole("table").getByText(/^CP-\d{6}$/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("table").getByText(/^CP-\d{6}$/).first()).toBeVisible({
+      timeout: 20_000,
+    });
   });
 
   test("department combobox opens and filters", async ({ page }) => {

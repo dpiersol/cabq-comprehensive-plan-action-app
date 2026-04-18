@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.0] — 2026-04-18
+
+### Sprint 2 — Server-backed submissions (SQLite)
+
+- **SQLite** — API stores submissions under `owner_key` (from `X-User-Oid` + `X-User-Email` headers). Default path `./data/submissions.sqlite`; override with **`SQLITE_PATH`** (see [`.env.example`](.env.example)).
+- **REST** — `GET/POST /api/submissions`, `GET/PATCH/DELETE /api/submissions/:id` (body `{ snapshot }` for mutating calls). Register **`POST /api/submissions/pdf`** before dynamic `/api/submissions/:id` routes so `pdf` is not captured as an id.
+- **SPA routes** — **`/app`** = signed-in home (list + **New action**); **`/app/compose`** = composer. Client [`submissionsApi.ts`](src/submissionsApi.ts) sends identity headers from [`auth.ts`](src/auth.ts) (JWT validation on the server is a later sprint).
+- **Admin** — `admin.html` still reads **localStorage** via [`savedActionsStore.ts`](src/savedActionsStore.ts); it does not see server rows until a follow-up wires an admin API.
+- **Tests** — CRUD coverage in [`server/app.test.ts`](server/app.test.ts) (in-memory DB per test). **Do not** send `Content-Type: application/json` on **DELETE** with an empty body (Fastify JSON parser returns 400).
+
 ## [3.0.0] — 2026-04-18
 
 ### Sprint 1 — Azure Entra ID sign-in and routing

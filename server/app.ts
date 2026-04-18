@@ -1,26 +1,43 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type Database from "better-sqlite3";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+import { resolveOwner } from "./authContext.js";
 import { renderSubmissionPdfBuffer } from "./buildSubmissionPdf.js";
+import { openDatabase } from "./db/database.js";
+import { snapshotFromRequestBody } from "./snapshotValidate.js";
+import {
+  deleteSubmission,
+  getById,
+  insertSubmission,
+  listByOwner,
+  updateSubmission,
+} from "./submissionsRepo.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(__dirname, "../package.json"), "utf8")) as { version: string };
 
-/** API for the CABQ Comprehensive Plan Action app (user form + PDF generation). */
-export function buildServer() {
+export interface BuildServerOptions {
+  db?: Database.Database;
+}
+
+/** API for the CABQ Comprehensive Plan Action app (user form + PDF + persisted submissions). */
+export function buildServer(opts?: BuildServerOptions) {
+  const db = opts?.db ?? openDatabase();
   const app = Fastify({ logger: process.env.VITEST ? false : true });
   app.register(cors, {
     origin: true,
-    methods: ["GET", "HEAD", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "X-User-Oid", "X-User-Email"],
   });
 
   app.get("/api/health", async () => ({
     ok: true,
     version: pkg.version,
     workflow: "shelved",
+    submissions: "sqlite",
   }));
 
   app.post("/api/submissions/pdf", async (req, reply) => {
@@ -31,6 +48,64 @@ export function buildServer() {
       const msg = e instanceof Error ? e.message : "Bad request";
       return reply.code(400).send({ error: msg });
     }
+  });
+
+  app.get("/api/submissions", async (req, reply) => {
+    const owner = resolveOwner(req);
+    if (!owner) {
+      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+    }
+    return listByOwner(db, owner.ownerKey);
+  });
+
+  app.get<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
+    const owner = resolveOwner(req);
+    if (!owner) {
+      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+    }
+    const row = getById(db, owner.ownerKey, req.params.id);
+    if (!row) return reply.code(404).send({ error: "Not found" });
+    return row;
+  });
+
+  app.post("/api/submissions", async (req, reply) => {
+    const owner = resolveOwner(req);
+    if (!owner) {
+      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+    }
+    try {
+      const snap = snapshotFromRequestBody(req.body);
+      return insertSubmission(db, owner.ownerKey, snap);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Bad request";
+      return reply.code(400).send({ error: msg });
+    }
+  });
+
+  app.patch<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
+    const owner = resolveOwner(req);
+    if (!owner) {
+      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+    }
+    try {
+      const snap = snapshotFromRequestBody(req.body);
+      const row = updateSubmission(db, owner.ownerKey, req.params.id, snap);
+      if (!row) return reply.code(404).send({ error: "Not found" });
+      return row;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Bad request";
+      return reply.code(400).send({ error: msg });
+    }
+  });
+
+  app.delete<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
+    const owner = resolveOwner(req);
+    if (!owner) {
+      return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
+    }
+    const ok = deleteSubmission(db, owner.ownerKey, req.params.id);
+    if (!ok) return reply.code(404).send({ error: "Not found" });
+    return { ok: true };
   });
 
   return app;

@@ -5,4 +5,7 @@ export async function loginAsMockCityUser(page: Page): Promise<void> {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /Mock city user/i }).click();
   await page.waitForURL(/\/app/, { timeout: 30_000 });
+  /** Client-side navigation only — a full reload would drop in-memory mock auth. */
+  await page.getByRole("link", { name: /^New action$/i }).click();
+  await page.waitForURL(/\/app\/compose/, { timeout: 30_000 });
 }

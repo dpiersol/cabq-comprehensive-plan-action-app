@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { APP_VERSION } from "./appVersion";
 import {
   emptyDraft,
@@ -12,15 +13,8 @@ import {
 import type { PlanData } from "./types";
 import { validateDraftForSave } from "./validation";
 import { emptyContact, type ContactBlock } from "./contacts";
-import {
-  deleteAction,
-  duplicateSnapshot,
-  getAction,
-  loadSavedActions,
-  saveNewAction,
-  updateAction,
-  type SavedAction,
-} from "./savedActionsStore";
+import { duplicateSnapshot, type SavedAction } from "./savedActionsStore";
+import * as submissionsApi from "./submissionsApi";
 import { ComprehensivePlanForm } from "./components/ComprehensivePlanForm";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
 import { PrintPreview } from "./components/PrintPreview";
@@ -53,9 +47,13 @@ function buildSnapshot(state: {
   };
 }
 
-/** Main composer + library experience (requires authentication via route guard). */
+/** Composer + in-flow library (authenticated). Submissions persist via ` /api/submissions`. */
 export function ComposerApp() {
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [data, setData] = useState<PlanData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -72,15 +70,30 @@ export function ComposerApp() {
   const [tab, setTab] = useState<Tab>("compose");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [libraryVersion, setLibraryVersion] = useState(0);
+  const [savedList, setSavedList] = useState<SavedAction[]>([]);
+  const [libraryLoadError, setLibraryLoadError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [printFields, setPrintFields] = useState<PrintFields | null>(null);
   const pendingActiveAfterAdd = useRef(false);
 
-  const savedCount = useMemo(() => {
-    void libraryVersion;
-    return loadSavedActions().length;
-  }, [libraryVersion]);
+  const refreshSavedList = useCallback(async () => {
+    try {
+      const list = await submissionsApi.listSubmissions();
+      setSavedList(list);
+      setLibraryLoadError(null);
+    } catch (e) {
+      setLibraryLoadError(e instanceof Error ? e.message : "Could not load your library.");
+      setSavedList([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrationDone) return;
+    void refreshSavedList();
+  }, [hydrationDone, libraryVersion, refreshSavedList]);
+
+  const savedCount = savedList.length;
 
   const draftSnapshot = useMemo(
     () =>
@@ -105,16 +118,15 @@ export function ComposerApp() {
   );
 
   const editingLabel = useMemo(() => {
-    void libraryVersion;
     if (!editingId) return null;
-    const rec = getAction(editingId);
+    const rec = savedList.find((a) => a.id === editingId);
     const t = actionTitle.trim() || "Untitled record";
     return rec ? `${rec.cpRecordId} — ${t}` : t;
-  }, [editingId, actionTitle, libraryVersion]);
+  }, [editingId, actionTitle, savedList]);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const res = await fetch(DATA_URL);
         if (!res.ok) throw new Error(`Failed to load plan data (${res.status})`);
@@ -158,6 +170,64 @@ export function ComposerApp() {
     setPrimaryContact(snap.primaryContact);
     setAlternateContact(snap.alternateContact);
   }
+
+  useEffect(() => {
+    const st = location.state as { clearComposer?: boolean } | undefined;
+    if (!st?.clearComposer || !data || !hydrationDone) return;
+    applySnapshot(normalizeDraft(data, emptyDraft()));
+    setEditingId(null);
+    navigate("/app/compose", { replace: true, state: {} });
+  }, [location.state, data, hydrationDone, navigate]);
+
+  useEffect(() => {
+    if (!data || !hydrationDone) return;
+    const edit = searchParams.get("edit");
+    const dup = searchParams.get("duplicate");
+    if (!edit && !dup) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const list = await submissionsApi.listSubmissions();
+        if (cancelled) return;
+        setSavedList(list);
+
+        if (edit) {
+          const rec =
+            list.find((a) => a.id === edit) ?? (await submissionsApi.getSubmission(edit));
+          if (!cancelled && rec) {
+            applySnapshot(rec.snapshot);
+            setEditingId(rec.id);
+          }
+        } else if (dup) {
+          const rec =
+            list.find((a) => a.id === dup) ?? (await submissionsApi.getSubmission(dup));
+          if (!cancelled && rec) {
+            applySnapshot(duplicateSnapshot(rec.snapshot));
+            setEditingId(null);
+          }
+        }
+
+        setSearchParams(
+          (p) => {
+            const n = new URLSearchParams(p);
+            n.delete("edit");
+            n.delete("duplicate");
+            return n;
+          },
+          { replace: true },
+        );
+      } catch (e) {
+        if (!cancelled) {
+          setLibraryLoadError(e instanceof Error ? e.message : "Could not open record.");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, hydrationDone, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!data || !hydrationDone) return;
@@ -276,22 +346,27 @@ export function ComposerApp() {
     setActivePlanItemIndex(nextActive);
   };
 
-  const saveForLater = () => {
+  const saveForLater = async () => {
     saveDraftToStorage(draftSnapshot);
-    if (editingId) {
-      updateAction(editingId, draftSnapshot);
-      setLibraryVersion((n) => n + 1);
-    }
     setValidationErrors([]);
-    setExportStatus(
-      editingId
-        ? "Progress saved to this browser and to your library record."
-        : "Progress saved in this browser. Submit when ready to add to your library.",
-    );
+    try {
+      if (editingId) {
+        await submissionsApi.updateSubmission(editingId, draftSnapshot);
+        setLibraryVersion((n) => n + 1);
+        setExportStatus("Progress saved to your library record.");
+      } else {
+        const saved = await submissionsApi.createSubmission(draftSnapshot);
+        setEditingId(saved.id);
+        setLibraryVersion((n) => n + 1);
+        setExportStatus(`Draft saved as ${saved.cpRecordId}.`);
+      }
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not save.");
+    }
     window.setTimeout(() => setExportStatus(null), 5000);
   };
 
-  const submitForm = () => {
+  const submitForm = async () => {
     if (!data) return;
     setValidationErrors([]);
     const v = validateDraftForSave(data, draftSnapshot);
@@ -301,22 +376,29 @@ export function ComposerApp() {
       return;
     }
     setExportStatus(null);
-    let saved: SavedAction;
-    if (editingId) {
-      const u = updateAction(editingId, draftSnapshot);
-      if (!u) {
-        setExportStatus("Could not update the library record.");
-        window.setTimeout(() => setExportStatus(null), 6000);
-        return;
+    try {
+      let saved: SavedAction;
+      if (editingId) {
+        const u = await submissionsApi.updateSubmission(editingId, draftSnapshot);
+        if (!u) {
+          setExportStatus("Could not update the library record.");
+          window.setTimeout(() => setExportStatus(null), 6000);
+          return;
+        }
+        saved = u;
+      } else {
+        saved = await submissionsApi.createSubmission(draftSnapshot);
+        setEditingId(saved.id);
       }
-      saved = u;
-    } else {
-      saved = saveNewAction(draftSnapshot);
-      setEditingId(saved.id);
+      setLibraryVersion((n) => n + 1);
+      setExportStatus(
+        `Submitted. Record ${saved.cpRecordId} saved to your library. Use Print document for a paper copy.`,
+      );
+      window.setTimeout(() => setExportStatus(null), 8000);
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not submit.");
+      window.setTimeout(() => setExportStatus(null), 8000);
     }
-    setLibraryVersion((n) => n + 1);
-    setExportStatus(`Submitted. Record ${saved.cpRecordId} saved to your library. Use Print document for a paper copy.`);
-    window.setTimeout(() => setExportStatus(null), 8000);
   };
 
   const printDocument = () => {
@@ -342,12 +424,17 @@ export function ComposerApp() {
     window.setTimeout(() => setExportStatus(null), 5000);
   };
 
-  const removeFromLibrary = (id: string) => {
-    deleteAction(id);
-    if (editingId === id) {
-      setEditingId(null);
+  const removeFromLibrary = async (id: string) => {
+    try {
+      await submissionsApi.deleteSubmission(id);
+      if (editingId === id) {
+        setEditingId(null);
+      }
+      setLibraryVersion((n) => n + 1);
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not delete.");
+      window.setTimeout(() => setExportStatus(null), 6000);
     }
-    setLibraryVersion((n) => n + 1);
   };
 
   const applyHierarchyJump = (t: HierarchyJumpTarget) => {
@@ -411,6 +498,8 @@ export function ComposerApp() {
         <header className="site-header no-print">
           <h1>CABQ Comprehensive Plan — Action documentation</h1>
           <p className="site-header-lede">
+            <Link to="/app">Your submissions</Link>
+            {" · "}
             Document departmental actions against the ABC Comprehensive Plan hierarchy (
             <a href="https://www.cabq.gov/planning/plans-publications/abc-comprehensive-plan">
               City planning
@@ -421,6 +510,14 @@ export function ComposerApp() {
             to your library. Use <strong>Print document</strong> for your browser&apos;s print dialog.
           </p>
         </header>
+
+        {libraryLoadError ? (
+          <div className="site-main no-print">
+            <div className="error-banner" role="alert">
+              {libraryLoadError}
+            </div>
+          </div>
+        ) : null}
 
         <nav className="tab-nav no-print" aria-label="Main">
           <button
@@ -469,8 +566,8 @@ export function ComposerApp() {
               onPrimaryContactChange={setPrimaryContact}
               onAlternateContactChange={setAlternateContact}
               onActionDetailsChange={setActionDetails}
-              onSaveForLater={saveForLater}
-              onSubmit={submitForm}
+              onSaveForLater={() => void saveForLater()}
+              onSubmit={() => void submitForm()}
               onPrintDocument={printDocument}
               onHierarchyJump={applyHierarchyJump}
             />
@@ -478,6 +575,7 @@ export function ComposerApp() {
           {tab === "library" && (
             <SavedActionsPanel
               plan={data}
+              actions={savedList}
               version={libraryVersion}
               onEdit={openEdit}
               onDuplicate={duplicateFromLibrary}

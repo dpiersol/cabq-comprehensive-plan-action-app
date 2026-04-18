@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import type { PlanData } from "../types";
-import { loadSavedActions, type SavedAction } from "../savedActionsStore";
+import type { SavedAction } from "../savedActionsStore";
 import { resolvePlanItem } from "../planSelection";
 import { policyLabel, chapterLabel } from "../labels";
 
 export interface SavedActionsPanelProps {
   plan: PlanData;
+  /** Rows to display (from server or local store). */
+  actions: SavedAction[];
   version: number;
   onEdit: (action: SavedAction) => void;
   onDuplicate: (action: SavedAction) => void;
@@ -24,6 +26,7 @@ function policyLabelsForSnapshot(plan: PlanData, snapshot: SavedAction["snapshot
 
 export function SavedActionsPanel({
   plan,
+  actions: sourceActions,
   version,
   onEdit,
   onDuplicate,
@@ -32,7 +35,7 @@ export function SavedActionsPanel({
   const [query, setQuery] = useState("");
   const actions = useMemo(() => {
     void version;
-    const list = loadSavedActions();
+    const list = sourceActions;
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter((a) => {
@@ -56,7 +59,7 @@ export function SavedActionsPanel({
         policiesBlob.includes(q)
       );
     });
-  }, [plan, version, query]);
+  }, [plan, version, query, sourceActions]);
 
   if (actions.length === 0 && !query) {
     return (

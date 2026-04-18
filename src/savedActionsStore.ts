@@ -1,3 +1,7 @@
+/**
+ * Browser localStorage persistence for **admin.html** and legacy/dev use.
+ * The main SPA (`/app`, `/app/compose`) persists submissions via `/api/submissions` instead.
+ */
 import type { DraftSnapshot } from "./draftStorage";
 import { cloneDraftSnapshot, emptyDraft, parseDraftJson } from "./draftStorage";
 

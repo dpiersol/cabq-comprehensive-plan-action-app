@@ -4,7 +4,7 @@
 
 ## Active branch
 
-`feature/sprint1-entra-routing` (merge to `develop` when ready)
+`feature/sprint2-submissions-api` — merge when ready (after Sprint 1 PR or rebased on `develop`)
 
 ## Owner
 
@@ -12,13 +12,11 @@ Unassigned
 
 ## Goal
 
-Execute the product plan: Entra ID, user submission flows, admin, templates, reports (see `future_work.md` and product plan in chat / internal docs).
+Execute the product plan: Entra ID, user submission flows, admin, templates, reports (see `future_work.md`).
 
 ## In scope
 
 - App source (`src/`), admin console (`src/admin/`), `public/data/`, API `server/`, tests.
-- **Sprint 1 (v3.0.0) done:** MSAL + React Router + landing + `/app` guard + `cabq.gov` domain check + role-based admin link.
-- **Next (Sprint 2):** server-backed submissions, user home list, per-user data (see plan).
 
 ## Out of scope / do not touch
 
@@ -26,15 +24,14 @@ Execute the product plan: Entra ID, user submission flows, admin, templates, rep
 
 ## Status
 
-- **v3.0.0** — Entra sign-in (or dev mock), `docs/VERSIONING.md`, `future_work.md`, E2E uses `build:e2e` + mock sign-in.
-- Admin link in composer footer only if `isAdmin()`; still use `admin.html` (separate bundle) for now.
-- 57 unit tests, 6 Playwright tests, lint clean.
+- **v3.1.0** — SQLite-backed `/api/submissions`; `/app` home + `/app/compose`; identity headers from MSAL/mock user.
+- Admin Console (`admin.html`) still **localStorage** — not synced with server rows yet.
 
 ## Next steps
 
-- Merge `feature/sprint1-entra-routing` → `develop` (PR), then **Sprint 2** (persistence + user landing list).
-- **Entra app registration** — set `VITE_AZURE_CLIENT_ID`, `VITE_AZURE_TENANT_ID`, redirect URI `https://<host>/auth/callback`, optional app roles for admin.
-- **Remove or guard** `seedTestData` before production.
+- Merge feature branches → `develop`; optional tag **`v3.1.0`**.
+- **Sprint 3** — lifecycle (draft/review/complete), richer email/print UX per plan.
+- **API auth** — validate Entra JWT on mutating routes; remove trust in headers alone for production.
 
 ## Links
 

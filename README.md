@@ -2,10 +2,10 @@
 
 Internal application for documenting departmental actions against the Albuquerque / Bernalillo County (ABC) Comprehensive Plan hierarchy (chapter → goal → goal detail → policy → sub-policy → optional sub-level), with **cascading dropdowns** and structured exports.
 
-- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health` and `POST /api/submissions/pdf`. Vite **dev** and **preview** proxy `/api` when the server runs.
+- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health`, persisted submissions (`GET/PATCH/DELETE /api/submissions`, etc.), and `POST /api/submissions/pdf`. Vite **dev** and **preview** proxy `/api` when the server runs.
 - **Multi-page build:** `index.html` (user app) + `admin.html` (admin console). Both share `src/` utilities and localStorage.
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
-- **Storage:** Browser `localStorage` for drafts and **Library**. Draft restores contact fields, action title, attachments, and action description on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search).
+- **Storage:** Signed-in **Library** rows persist in **SQLite** via the API (`./data/submissions.sqlite` by default; see `SQLITE_PATH` in [`.env.example`](.env.example)). Browser `localStorage` still holds **in-progress composer drafts** for crash recovery. **`admin.html`** continues to use localStorage for its seeded list until wired to the API.
 
 **Workflow shelved:** The previous Fastify + SQLite workflow (submit, staff inboxes, FI links, Word export) is **preserved under `archive/workflow-shelved/`** and restorable from Git tag **`v0.9.0`**. See `archive/workflow-shelved/README.md`.
 
@@ -29,7 +29,7 @@ Open the URL Vite prints (typically `http://localhost:5173`). You will see a **S
 | `npm run dev` | Vite dev server only (default port **5173**) |
 | `npm run dev:uiux` | Vite on port **5175** — use while on branch `ui-ux-improvements` so it never clashes with default dev |
 | `npm run dev:develop` | Vite on port **5176** — use while on branch `develop` |
-| `npm run dev:server` | Minimal API — health only (port 8787) |
+| `npm run dev:server` | API — health, SQLite submissions, PDF (port 8787) |
 | `npm run dev:all` | API + Vite (concurrently) on 5173 |
 | `npm run dev:all:uiux` | API + Vite on **5175** |
 | `npm run dev:all:develop` | API + Vite on **5176** |
