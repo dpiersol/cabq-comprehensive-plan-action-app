@@ -39,33 +39,33 @@ export function LandingPage() {
       <header className="site-header no-print">
         <h1>CABQ Comprehensive Plan — Action documentation</h1>
         <p className="site-header-lede">
-          Sign in with your City of Albuquerque network account (@cabq.gov). Access is restricted to authorized
-          users only.
+          <strong>Testing build.</strong> Entra sign-in is bypassed for stakeholder review. Pick a role below
+          to enter the application.
         </p>
       </header>
 
       <main className="site-main landing-main">
         <section className="card landing-card">
-          <h2>Sign in</h2>
+          <h2>Sign in (Testing)</h2>
           {isMockAuthMode() ? (
             <>
               <p className="hint">
-                <strong>Development mode:</strong> Azure client ID is not configured (or{" "}
-                <code>VITE_AUTH_MODE=mock</code>). Use a mock account below. Configure{" "}
-                <code>VITE_AZURE_CLIENT_ID</code> and <code>VITE_AZURE_TENANT_ID</code> for Entra ID.
+                No Microsoft password needed on this branch. <strong>Dev User</strong> loads the app as a
+                standard City user; <strong>Dev Admin</strong> loads it with admin role so the Admin Console
+                link appears.
               </p>
               <div className="btn-row">
                 <button type="button" className="btn btn-primary" onClick={() => {
                   loginMockCityUser();
                   navigate("/app");
                 }}>
-                  Mock city user
+                  Dev User Login
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={() => {
                   loginMockAdmin();
                   navigate("/app");
                 }}>
-                  Mock admin
+                  Dev Admin Login
                 </button>
               </div>
             </>
@@ -83,7 +83,7 @@ export function LandingPage() {
       </main>
 
       <footer className="site-footer no-print">
-        CABQ Comprehensive Plan Action Application · v{APP_VERSION}
+        CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Testing
       </footer>
     </div>
   );
