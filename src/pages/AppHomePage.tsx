@@ -7,15 +7,13 @@ import type { SavedAction } from "../savedActionsStore";
 import { downloadSubmissionPdf } from "../downloadSubmissionPdf";
 import { openLegislationMailto } from "../legislationMailto";
 import { SavedActionsPanel } from "../components/SavedActionsPanel";
-import { SignOutButton } from "../components/SignOutButton";
-import { useAuth } from "../useAuth";
+import { SiteHeaderUserBar } from "../components/SiteHeaderUserBar";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 
 /** Signed-in landing: server-backed list of submissions + entry to composer. */
 export function AppHomePage() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
   const [plan, setPlan] = useState<PlanData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actions, setActions] = useState<SavedAction[]>([]);
@@ -118,10 +116,11 @@ export function AppHomePage() {
   return (
     <div className="app-shell">
       <header className="site-header no-print">
+        <SiteHeaderUserBar />
         <h1>CABQ Comprehensive Plan — Action documentation</h1>
         <p className="site-header-lede">
-          Start a new legislation record or open an existing one from your library. Records are stored on the
-          server for your account.
+          Start a new legislation record or open an existing one from your submissions. Records are stored on
+          the server for your account.
         </p>
       </header>
 
@@ -155,16 +154,6 @@ export function AppHomePage() {
 
       <footer className="site-footer no-print">
         CABQ Comprehensive Plan Action Application · v{APP_VERSION}
-        {" · "}
-        <SignOutButton />
-        {isAdmin ? (
-          <>
-            {" · "}
-            <a href="/admin.html" className="admin-link">
-              Admin Console
-            </a>
-          </>
-        ) : null}
       </footer>
     </div>
   );

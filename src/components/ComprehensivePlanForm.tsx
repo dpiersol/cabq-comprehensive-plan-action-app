@@ -65,6 +65,7 @@ function FormComposerActions({
   onReopenForEditing,
   onDownloadPdf,
   onEmailShare,
+  position,
 }: {
   readOnly: boolean;
   onSaveForLater: () => void;
@@ -73,12 +74,14 @@ function FormComposerActions({
   onReopenForEditing?: () => void;
   onDownloadPdf?: () => void;
   onEmailShare?: () => void;
+  position?: "top" | "bottom";
 }) {
+  const posClass = position === "top" ? " form-primary-actions-top" : "";
   if (readOnly) {
     return (
-      <div className="form-primary-actions btn-row no-print">
-        <button type="button" className="btn btn-secondary" onClick={() => void onReopenForEditing?.()}>
-          Reopen for editing
+      <div className={`form-primary-actions btn-row no-print${posClass}`}>
+        <button type="button" className="btn btn-primary" onClick={() => void onReopenForEditing?.()}>
+          Edit
         </button>
         <button type="button" className="btn btn-secondary" onClick={onPrintDocument}>
           Print document
@@ -97,7 +100,7 @@ function FormComposerActions({
     );
   }
   return (
-    <div className="form-primary-actions btn-row no-print">
+    <div className={`form-primary-actions btn-row no-print${posClass}`}>
       <button type="button" className="btn btn-secondary" onClick={onSaveForLater}>
         Save draft
       </button>
@@ -483,10 +486,21 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
       )}
       {isSubmitted(recordStatus) && (
         <p className="editing-banner" role="status">
-          This record is <strong>submitted</strong>. Reopen for editing to change fields, or use print / PDF /
-          email from the actions below.
+          This record is <strong>submitted</strong>. Choose <strong>Edit</strong> to change fields, or use
+          print / PDF / email from the actions below.
         </p>
       )}
+
+      <FormComposerActions
+        readOnly={ro}
+        onSaveForLater={onSaveForLater}
+        onSubmit={onSubmit}
+        onPrintDocument={onPrintDocument}
+        onReopenForEditing={onReopenForEditing}
+        onDownloadPdf={onDownloadPdf}
+        onEmailShare={onEmailShare}
+        position="top"
+      />
 
       <fieldset className="composer-fieldset" disabled={ro}>
         <section className="card print-section" aria-labelledby="hierarchy-heading">
@@ -553,6 +567,7 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
           onChange={onDepartmentChange}
           placeholder="Required — type to search or pick from list"
           required
+          readOnly={ro}
         />
         <ContactGroup
           legend="Primary contact information"
@@ -594,6 +609,7 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
             labelledBy="legislation-description-label"
             value={actionDetails}
             onChange={onActionDetailsChange}
+            readOnly={ro}
           />
         </div>
         <div className="field">
@@ -644,6 +660,7 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
           onReopenForEditing={onReopenForEditing}
           onDownloadPdf={onDownloadPdf}
           onEmailShare={onEmailShare}
+          position="bottom"
         />
         {exportStatus && (
           <p className="export-status" role="status" aria-live="polite">

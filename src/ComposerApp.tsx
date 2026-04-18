@@ -24,8 +24,7 @@ import { SavedActionsPanel } from "./components/SavedActionsPanel";
 import { PrintPreview } from "./components/PrintPreview";
 import { buildPrintFields, type PrintFields } from "./printFields";
 import type { HierarchyJumpTarget } from "./planSearch/types";
-import { SignOutButton } from "./components/SignOutButton";
-import { useAuth } from "./useAuth";
+import { SiteHeaderUserBar } from "./components/SiteHeaderUserBar";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 
@@ -53,7 +52,6 @@ function buildSnapshot(state: {
 
 /** Composer + in-flow library (authenticated). Submissions persist via ` /api/submissions`. */
 export function ComposerApp() {
-  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -361,7 +359,7 @@ export function ComposerApp() {
     saveDraftToStorage(draftSnapshot);
     setValidationErrors([]);
     if (editingRecord && isSubmitted(editingRecord.status)) {
-      setExportStatus("This record is submitted — use Reopen for editing before saving changes.");
+      setExportStatus("This record is submitted — choose Edit before saving changes.");
       window.setTimeout(() => setExportStatus(null), 6000);
       return;
     }
@@ -376,6 +374,7 @@ export function ComposerApp() {
         setLibraryVersion((n) => n + 1);
         setExportStatus(`Draft saved as ${saved.cpRecordId}.`);
       }
+      setTab("library");
     } catch (e) {
       setExportStatus(e instanceof Error ? e.message : "Could not save.");
     }
@@ -418,8 +417,9 @@ export function ComposerApp() {
         setEditingId(saved.id);
       }
       setLibraryVersion((n) => n + 1);
+      setTab("library");
       setExportStatus(
-        `Submitted. Record ${saved.cpRecordId} is locked as submitted. Use Reopen for editing if you need changes.`,
+        `Submitted. Record ${saved.cpRecordId} is locked as submitted. Use Edit if you need changes.`,
       );
       window.setTimeout(() => setExportStatus(null), 9000);
     } catch (e) {
@@ -552,6 +552,7 @@ export function ComposerApp() {
     <>
       <div className="app-shell">
         <header className="site-header no-print">
+          <SiteHeaderUserBar />
           <h1>CABQ Comprehensive Plan — Action documentation</h1>
           <p className="site-header-lede">
             <Link to="/app">Your submissions</Link>
@@ -563,7 +564,7 @@ export function ComposerApp() {
             {" · "}
             <a href="https://compplan.abq-zone.com/">Interactive plan</a>
             ). Use <strong>Comprehensive Plan</strong> for cascading selections; <strong>Submit</strong> saves
-            to your library. Use <strong>Print document</strong> for your browser&apos;s print dialog.
+            to your Submissions. Use <strong>Print document</strong> for your browser&apos;s print dialog.
           </p>
         </header>
 
@@ -588,7 +589,7 @@ export function ComposerApp() {
             className={`tab-btn ${tab === "library" ? "active" : ""}`}
             onClick={() => setTab("library")}
           >
-            Library ({savedCount})
+            Submissions ({savedCount})
           </button>
         </nav>
 
@@ -659,16 +660,6 @@ export function ComposerApp() {
 
         <footer className="site-footer no-print">
           CABQ Comprehensive Plan Action Application · v{APP_VERSION}
-          {" · "}
-          <SignOutButton />
-          {isAdmin ? (
-            <>
-              {" · "}
-              <a href="/admin.html" className="admin-link">
-                Admin Console
-              </a>
-            </>
-          ) : null}
         </footer>
       </div>
 

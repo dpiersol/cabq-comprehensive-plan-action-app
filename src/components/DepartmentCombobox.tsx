@@ -9,6 +9,8 @@ export interface DepartmentComboboxProps {
   placeholder?: string;
   /** When true, label shows required copy and the input is `aria-required`. */
   required?: boolean;
+  /** When true the input is read-only and the dropdown cannot be opened. */
+  readOnly?: boolean;
 }
 
 function filterDepartments(query: string): string[] {
@@ -24,6 +26,7 @@ export function DepartmentCombobox({
   onChange,
   placeholder = "Type to search or open list…",
   required = false,
+  readOnly = false,
 }: DepartmentComboboxProps) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -96,14 +99,19 @@ export function DepartmentCombobox({
           aria-controls={listId}
           aria-autocomplete="list"
           aria-required={required ? true : undefined}
+          aria-readonly={readOnly ? true : undefined}
+          readOnly={readOnly}
+          disabled={readOnly}
           placeholder={placeholder}
           value={value}
           onChange={(e) => {
+            if (readOnly) return;
             onChange(e.target.value);
             setHighlight(0);
             setOpen(true);
           }}
           onFocus={() => {
+            if (readOnly) return;
             setHighlight(0);
             setOpen(true);
           }}
@@ -114,7 +122,9 @@ export function DepartmentCombobox({
           className="department-combobox-toggle"
           aria-label="Show department list"
           tabIndex={-1}
+          disabled={readOnly}
           onClick={() => {
+            if (readOnly) return;
             if (open) {
               setOpen(false);
             } else {
@@ -127,7 +137,7 @@ export function DepartmentCombobox({
           ▾
         </button>
       </div>
-      {open && filtered.length > 0 && (
+      {!readOnly && open && filtered.length > 0 && (
         <ul id={listId} className="department-combobox-list no-print" role="listbox">
           {filtered.map((d, i) => (
             <li
@@ -144,7 +154,7 @@ export function DepartmentCombobox({
           ))}
         </ul>
       )}
-      {open && filtered.length === 0 && value.trim() && (
+      {!readOnly && open && filtered.length === 0 && value.trim() && (
         <p className="hint department-combobox-empty">No matches — your text will still be saved.</p>
       )}
     </div>
