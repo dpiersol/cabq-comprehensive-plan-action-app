@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type Database from "better-sqlite3";
-import { isAdmin } from "./adminAuth.js";
+import { isAdminFor } from "./adminAuth.js";
 import { resolveOwner } from "./authContext.js";
 import { listAudit, recordAudit } from "./auditRepo.js";
 import {
@@ -143,7 +143,7 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
 
   /** POST /api/auth/local/change-password — caller changes own password */
   app.post("/api/auth/local/change-password", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner || owner.source !== "local" || !owner.ownerKey.startsWith("local:")) {
       return reply.code(401).send({ error: "Local authentication required." });
     }
@@ -186,16 +186,16 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
 
   /** --- Admin: users --- */
   app.get("/api/admin/users", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     return listUsers(db);
   });
 
   app.post("/api/admin/users", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const username = (bodyString(req.body, "username") ?? "").trim();
     const email = (bodyString(req.body, "email") ?? "").trim().toLowerCase();
     const displayName = (bodyString(req.body, "displayName") ?? "").trim();
@@ -233,18 +233,18 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
   });
 
   app.get<{ Params: { id: string } }>("/api/admin/users/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const dto = getUser(db, req.params.id);
     if (!dto) return reply.code(404).send({ error: "Not found" });
     return dto;
   });
 
   app.patch<{ Params: { id: string } }>("/api/admin/users/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const existing = getUser(db, req.params.id);
     if (!existing) return reply.code(404).send({ error: "Not found" });
 
@@ -288,9 +288,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/users/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const existing = getUser(db, req.params.id);
     if (!existing) return reply.code(404).send({ error: "Not found" });
     if (existing.roles.includes(ADMIN_ROLE) && isLastAdmin(db, existing.id, ADMIN_ROLE)) {
@@ -312,9 +312,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
   app.post<{ Params: { id: string } }>(
     "/api/admin/users/:id/reset-password",
     async (req, reply) => {
-      const owner = await resolveOwner(req);
+      const owner = await resolveOwner(req, db);
       if (!owner) return reply.code(401).send({ error: "Authentication required" });
-      if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+      if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
       const existing = getUser(db, req.params.id);
       if (!existing) return reply.code(404).send({ error: "Not found" });
       const password = bodyString(req.body, "password") ?? "";
@@ -338,9 +338,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
 
   /** --- Admin: roles --- */
   app.get("/api/admin/roles", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     return {
       roles: listRoles(db),
       adminCount: countAdmins(db, ADMIN_ROLE),
@@ -348,9 +348,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
   });
 
   app.post("/api/admin/roles", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const name = (bodyString(req.body, "name") ?? "").trim();
     const description = bodyString(req.body, "description")?.trim() ?? null;
     if (!/^[A-Za-z0-9_.\-]{2,64}$/.test(name)) {
@@ -369,9 +369,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
   });
 
   app.delete<{ Params: { name: string } }>("/api/admin/roles/:name", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const result = deleteRole(db, req.params.name);
     if (result === "not_found") return reply.code(404).send({ error: "Not found" });
     if (result === "builtin") {
@@ -388,9 +388,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
   app.post<{ Params: { id: string } }>(
     "/api/admin/users/:id/roles",
     async (req, reply) => {
-      const owner = await resolveOwner(req);
+      const owner = await resolveOwner(req, db);
       if (!owner) return reply.code(401).send({ error: "Authentication required" });
-      if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+      if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
       const name = (bodyString(req.body, "name") ?? "").trim();
       if (!name) return reply.code(400).send({ error: "Role name required" });
       const user = getUser(db, req.params.id);
@@ -409,9 +409,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
   app.delete<{ Params: { id: string; name: string } }>(
     "/api/admin/users/:id/roles/:name",
     async (req, reply) => {
-      const owner = await resolveOwner(req);
+      const owner = await resolveOwner(req, db);
       if (!owner) return reply.code(401).send({ error: "Authentication required" });
-      if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+      if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
       const user = getUser(db, req.params.id);
       if (!user) return reply.code(404).send({ error: "Not found" });
       if (
@@ -436,9 +436,9 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
 
   /** --- Admin: audit log --- */
   app.get("/api/admin/auth/audit", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const q = req.query as Record<string, string | undefined> | undefined;
     const limit = q?.limit ? Number.parseInt(q.limit, 10) : undefined;
     const beforeId = q?.beforeId ? Number.parseInt(q.beforeId, 10) : undefined;

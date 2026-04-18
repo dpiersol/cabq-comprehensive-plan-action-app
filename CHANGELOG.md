@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.7.0] — 2026-04-18
+
+### Sprint 7 — SSO configuration managed in the database
+
+- **Dynamic auth config** — New **`auth_config`** key/value table holds SSO & local-auth settings. The new **`getEffectiveAuthConfig(db)`** helper merges DB values over env defaults (`AZURE_TENANT_ID`, `AZURE_AUDIENCE`, `AZURE_CLIENT_ID`, `AZURE_ISSUER`, `ADMIN_ROLE_NAMES`, `ADMIN_EMAILS`, `ALLOWED_EMAIL_DOMAINS`) so the sandbox can tweak SSO without a restart and existing deployments keep working unchanged.
+- **Public config endpoint** — **`GET /api/auth/config`** (unauthenticated) returns `{ sso: { enabled, tenantId, clientId, authority, allowedEmailDomains }, local: { enabled } }`. The upcoming admin login UI uses this to decide which tabs to show.
+- **Admin config endpoints** —
+  - **`GET /api/admin/auth/config`** — view the full effective SSO + local config (admin-only).
+  - **`PATCH /api/admin/auth/config`** — update any subset of `{ ssoEnabled, localEnabled, tenantId, clientId, audience, issuer, allowedEmailDomains[], adminRoleNames[], adminEmails[] }`. Passing `null` / `""` for a string clears the DB override so env takes over again.
+  - **`POST /api/admin/auth/test-sso`** — admin-only dry-run: verifies a sample access token against the current (or supplied) tenant/audience/issuer and reports the resolved claims. Writes a success/failure audit entry.
+- **DB-aware token verification** — **`resolveOwner()`** now accepts a DB handle and validates Entra tokens with `verifyAzureBearerWithConfig(db, token)` — meaning tenant/audience/issuer changes made in the admin UI take effect on the next request, no restart required.
+- **DB-aware admin check** — **`isAdminFor(db, owner)`** replaces the env-only `isAdmin(owner)` on every protected route, so DB-managed admin role names and allowlisted emails are honoured immediately.
+- **Audit coverage** — Every config change (`admin_auth_config_update`) and test-sso attempt (`admin_auth_config_test_sso_success` / `…_failed`) is recorded in `auth_audit`.
+
 ## [3.6.0] — 2026-04-18
 
 ### Sprint 6 — Local admin accounts (back-end)

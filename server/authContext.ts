@@ -1,5 +1,10 @@
+import type Database from "better-sqlite3";
 import type { FastifyRequest } from "fastify";
-import { allowHeaderFallback, verifyAzureBearer } from "./azureJwt.js";
+import {
+  allowHeaderFallback,
+  verifyAzureBearer,
+  verifyAzureBearerWithConfig,
+} from "./azureJwt.js";
 import { verifyLocalBearer } from "./localSessionJwt.js";
 
 export interface RequestOwner {
@@ -51,16 +56,21 @@ function extractBearer(req: FastifyRequest): string | undefined {
  * Resolve tenant-scoped owner: prefer validated Bearer token when sent; otherwise identity headers
  * when allowed (no Azure config, or ALLOW_HEADER_IDENTITY=true for migration / E2E).
  */
-export async function resolveOwner(req: FastifyRequest): Promise<RequestOwner | null> {
+export async function resolveOwner(
+  req: FastifyRequest,
+  db?: Database.Database,
+): Promise<RequestOwner | null> {
   const bearer = extractBearer(req);
   if (bearer) {
     const local = await verifyLocalBearer(bearer);
     if (local) {
       return { ...local, source: "local" };
     }
-    const entra = await verifyAzureBearer(bearer);
+    const entra = db
+      ? await verifyAzureBearerWithConfig(db, bearer)
+      : await verifyAzureBearer(bearer);
     if (entra) {
-      return { ...entra, source: "entra" };
+      return { ...entra, roles: entra.roles ?? [], source: "entra" };
     }
     return null;
   }
