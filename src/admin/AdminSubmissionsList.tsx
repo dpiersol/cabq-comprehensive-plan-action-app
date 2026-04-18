@@ -1,12 +1,17 @@
 import { useMemo, useState } from "react";
 import type { PlanData } from "../types";
-import { loadSavedActions, type SavedAction } from "../savedActionsStore";
+import type { SavedAction } from "../savedActionsStore";
 import { resolvePlanItem } from "../planSelection";
 import { chapterLabel, policyLabel } from "../labels";
 import { plainTextFromHtml } from "../htmlUtils";
+import { submissionStatusLabel } from "../submissionStatus";
+import { isAdminSavedAction } from "./AdminApp";
 
 interface Props {
   plan: PlanData;
+  actions: SavedAction[];
+  /** When true, show the submission owner column (server-backed view). */
+  showOwner?: boolean;
   onOpenSubmission: (id: string) => void;
 }
 
@@ -25,6 +30,7 @@ function matchesQuery(plan: PlanData, a: SavedAction, q: string): boolean {
     s.alternateContact.role,
     s.alternateContact.email,
   ];
+  if (isAdminSavedAction(a) && a.ownerEmail) fields.push(a.ownerEmail);
 
   const items = s.planItems?.length ? s.planItems : [];
   for (const row of items) {
@@ -37,20 +43,19 @@ function matchesQuery(plan: PlanData, a: SavedAction, q: string): boolean {
   return q.split(/\s+/).every((token) => blob.includes(token));
 }
 
-export function AdminSubmissionsList({ plan, onOpenSubmission }: Props) {
+export function AdminSubmissionsList({ plan, actions, showOwner, onOpenSubmission }: Props) {
   const [query, setQuery] = useState("");
 
-  const actions = useMemo(() => {
-    const all = loadSavedActions();
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return all;
-    return all.filter((a) => matchesQuery(plan, a, q));
-  }, [plan, query]);
+    if (!q) return actions;
+    return actions.filter((a) => matchesQuery(plan, a, q));
+  }, [plan, actions, query]);
 
   return (
     <section className="admin-card">
       <div className="admin-list-toolbar">
-        <h2>All Submissions ({actions.length})</h2>
+        <h2>All Submissions ({filtered.length})</h2>
         <input
           type="search"
           className="admin-search"
@@ -61,7 +66,7 @@ export function AdminSubmissionsList({ plan, onOpenSubmission }: Props) {
         />
       </div>
 
-      {actions.length === 0 ? (
+      {filtered.length === 0 ? (
         <p className="admin-empty">
           {query ? "No submissions match your search." : "No submissions have been created yet."}
         </p>
@@ -74,12 +79,14 @@ export function AdminSubmissionsList({ plan, onOpenSubmission }: Props) {
                 <th>Legislation Title</th>
                 <th>Department</th>
                 <th>Primary Contact</th>
+                {showOwner && <th>Submitted by</th>}
                 <th>Policy</th>
-                <th>Submitted</th>
+                <th>Status</th>
+                <th>Updated</th>
               </tr>
             </thead>
             <tbody>
-              {actions.map((a) => {
+              {filtered.map((a) => {
                 const items = a.snapshot.planItems?.length ? a.snapshot.planItems : [];
                 const policies = items
                   .map((row) => {
@@ -92,6 +99,8 @@ export function AdminSubmissionsList({ plan, onOpenSubmission }: Props) {
                     ? `${policies[0]} (+${policies.length - 1})`
                     : policies[0]
                   : "—";
+                const status = a.status ?? "submitted";
+                const ownerEmail = isAdminSavedAction(a) ? a.ownerEmail : "";
 
                 return (
                   <tr
@@ -111,8 +120,14 @@ export function AdminSubmissionsList({ plan, onOpenSubmission }: Props) {
                     <td>{a.snapshot.actionTitle.trim() || "(Untitled)"}</td>
                     <td>{a.snapshot.department.trim() || "—"}</td>
                     <td>{a.snapshot.primaryContact.name.trim() || "—"}</td>
+                    {showOwner && <td className="muted">{ownerEmail || "—"}</td>}
                     <td className="cell-clip" title={policies.join("\n")}>
                       {polDisplay}
+                    </td>
+                    <td>
+                      <span className={`status-pill status-${status}`}>
+                        {submissionStatusLabel(status)}
+                      </span>
                     </td>
                     <td className="muted">
                       {new Date(a.updatedAt).toLocaleDateString()}

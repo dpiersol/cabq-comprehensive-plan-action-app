@@ -9,9 +9,12 @@ export function registerMsalInstance(pca: PublicClientApplication): void {
 }
 
 /**
- * Access token for `/api/submissions` when Entra exposes an API scope.
- * Returns `undefined` if MSAL is not ready, scopes are not configured, or silent acquisition fails.
- */
+ * Access token for `/api/submissions` when Entra exposes an API scope.
+
+ * Returns `undefined` if MSAL is not ready, scopes are not configured, or silent acquisition fails.
+
+ */
+
 export async function acquireApiAccessToken(): Promise<string | undefined> {
   const pca = instance;
   if (!pca) return undefined;
@@ -28,4 +31,11 @@ export async function acquireApiAccessToken(): Promise<string | undefined> {
   } catch {
     return undefined;
   }
+}
+
+/** Trigger Entra sign-in redirect. Safe to call outside React (no `useMsal` required). */
+export async function msalLoginRedirect(): Promise<void> {
+  const pca = instance;
+  if (!pca) throw new Error("MSAL not initialized");
+  await pca.loginRedirect({ scopes: ["openid", "profile", "User.Read"] });
 }

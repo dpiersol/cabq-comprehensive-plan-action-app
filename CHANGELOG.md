@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.4.0] — 2026-04-18
+
+### Sprint 5 — Admin Console on the server
+
+- **API** — `GET/PATCH /api/admin/submissions[/:id]` expose every submission across all owners. Guarded by **`isAdmin()`**: requires an Entra app role (default **`comp-plan-admin`**, override with **`ADMIN_ROLE_NAMES`**) **or** an email in **`ADMIN_EMAILS`** (comma-separated). List response includes **`ownerEmail`** for the admin UI.
+- **Auth context** — `resolveOwner()` also returns **`roles`**. JWT mode reads from the `roles` claim; header mode accepts a new **`X-User-Roles`** header (CORS allowlisted) for mock/E2E callers.
+- **Admin UI** — `admin.html` now boots MSAL (same config as the main SPA) and renders an **AdminAuthGate**: unauthenticated visitors see a sign-in screen, non-admins see a "not authorized" screen. Signed-in admins see live server data (per-submission `ownerEmail`, status pill); if the admin API is unavailable, the console falls back to seeded localStorage with a visible notice.
+- **Env** — New server env: **`ADMIN_ROLE_NAMES`**, **`ADMIN_EMAILS`** (see [`.env.example`](.env.example)).
+
 ## [3.3.0] — 2026-04-17
 
 ### Sprint 4 — API authentication (Entra JWT)
