@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.0] — 2026-04-17
+
+### Sprint 3 — Submission lifecycle
+
+- **Status** — Each submission is **`draft`** or **`submitted`** with optional **`submittedAt`** (ISO timestamp). SQLite migration adds **`submitted_at`**.
+- **API** — Create accepts optional **`status`**; **`PATCH`** can update **`snapshot`** and/or **`status`**. **`DELETE`** removes **draft** rows only (**409** if submitted).
+- **Composer** — Save draft vs submit with preview modal; reopen submitted records; library shows status; PDF download and legislation mailto summary from saved rows.
+
 ## [3.1.0] — 2026-04-18
 
 ### Sprint 2 — Server-backed submissions (SQLite)

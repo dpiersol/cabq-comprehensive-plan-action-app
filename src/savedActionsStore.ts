@@ -4,6 +4,7 @@
  */
 import type { DraftSnapshot } from "./draftStorage";
 import { cloneDraftSnapshot, emptyDraft, parseDraftJson } from "./draftStorage";
+import type { SubmissionStatus } from "./submissionStatus";
 
 export const SAVED_ACTIONS_KEY = "cabq-comp-plan-saved-actions-v1";
 
@@ -14,6 +15,14 @@ export interface SavedAction {
   createdAt: string;
   updatedAt: string;
   snapshot: DraftSnapshot;
+  /** Server-backed rows use draft/submitted; localStorage-only rows default to submitted. */
+  status?: SubmissionStatus;
+  submittedAt?: string | null;
+}
+
+function parseStatus(raw: unknown): SubmissionStatus | undefined {
+  if (raw === "draft" || raw === "submitted") return raw;
+  return undefined;
 }
 
 function newId(): string {
@@ -44,7 +53,17 @@ function parseSavedList(raw: unknown): SavedAction[] {
       continue;
     const snap = parseDraftJson(o.snapshot);
     const cpRecordId = typeof o.cpRecordId === "string" ? o.cpRecordId : "";
-    out.push({ id: o.id, cpRecordId, createdAt: o.createdAt, updatedAt: o.updatedAt, snapshot: snap });
+    const status = parseStatus(o.status) ?? "submitted";
+    const submittedAt = typeof o.submittedAt === "string" ? o.submittedAt : null;
+    out.push({
+      id: o.id,
+      cpRecordId,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+      snapshot: snap,
+      status,
+      submittedAt,
+    });
   }
   return out;
 }
@@ -101,6 +120,8 @@ export function saveNewAction(snapshot: DraftSnapshot): SavedAction {
     createdAt: now,
     updatedAt: now,
     snapshot: { ...snapshot },
+    status: "submitted",
+    submittedAt: now,
   };
   list.unshift(action);
   persist(list);

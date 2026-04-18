@@ -4,6 +4,8 @@ import { APP_VERSION } from "../appVersion";
 import type { PlanData } from "../types";
 import * as submissionsApi from "../submissionsApi";
 import type { SavedAction } from "../savedActionsStore";
+import { downloadSubmissionPdf } from "../downloadSubmissionPdf";
+import { openLegislationMailto } from "../legislationMailto";
 import { SavedActionsPanel } from "../components/SavedActionsPanel";
 import { SignOutButton } from "../components/SignOutButton";
 import { useAuth } from "../useAuth";
@@ -71,6 +73,20 @@ export function AppHomePage() {
     }
   };
 
+  const onDownloadPdf = (a: SavedAction) => {
+    if (!plan) return;
+    void downloadSubmissionPdf(plan, a.snapshot, `${a.cpRecordId}.pdf`).catch((e: unknown) => {
+      setListError(e instanceof Error ? e.message : "PDF download failed.");
+    });
+  };
+
+  const onEmailShare = (a: SavedAction) => {
+    openLegislationMailto({
+      cpRecordId: a.cpRecordId,
+      title: a.snapshot.actionTitle,
+    });
+  };
+
   if (loadError) {
     return (
       <div className="app-shell">
@@ -132,6 +148,8 @@ export function AppHomePage() {
           onEdit={onEdit}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
+          onDownloadPdf={onDownloadPdf}
+          onEmailShare={onEmailShare}
         />
       </main>
 

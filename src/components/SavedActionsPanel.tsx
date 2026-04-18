@@ -3,6 +3,7 @@ import type { PlanData } from "../types";
 import type { SavedAction } from "../savedActionsStore";
 import { resolvePlanItem } from "../planSelection";
 import { policyLabel, chapterLabel } from "../labels";
+import { isSubmitted, submissionStatusLabel } from "../submissionStatus";
 
 export interface SavedActionsPanelProps {
   plan: PlanData;
@@ -12,6 +13,8 @@ export interface SavedActionsPanelProps {
   onEdit: (action: SavedAction) => void;
   onDuplicate: (action: SavedAction) => void;
   onDelete: (id: string) => void;
+  onDownloadPdf?: (action: SavedAction) => void;
+  onEmailShare?: (action: SavedAction) => void;
 }
 
 function policyLabelsForSnapshot(plan: PlanData, snapshot: SavedAction["snapshot"]): string[] {
@@ -31,6 +34,8 @@ export function SavedActionsPanel({
   onEdit,
   onDuplicate,
   onDelete,
+  onDownloadPdf,
+  onEmailShare,
 }: SavedActionsPanelProps) {
   const [query, setQuery] = useState("");
   const actions = useMemo(() => {
@@ -42,6 +47,7 @@ export function SavedActionsPanel({
       const s = a.snapshot;
       const t = s.actionTitle.toLowerCase();
       const cp = (a.cpRecordId ?? "").toLowerCase();
+      const st = submissionStatusLabel(a.status).toLowerCase();
       const furthers = (s.howFurthersPolicies ?? "").toLowerCase();
       const d = s.department.toLowerCase();
       const pc = s.primaryContact;
@@ -53,6 +59,7 @@ export function SavedActionsPanel({
       return (
         t.includes(q) ||
         cp.includes(q) ||
+        st.includes(q) ||
         furthers.includes(q) ||
         d.includes(q) ||
         contactBlob.includes(q) ||
@@ -66,8 +73,8 @@ export function SavedActionsPanel({
       <section className="card">
         <h2>Your submissions</h2>
         <p className="empty-hint">
-          No submissions yet. Use the <strong>Comprehensive Plan</strong> tab and <strong>Submit</strong>{" "}
-          when your legislation record is complete.
+          No submissions yet. Use <strong>New action</strong>, then <strong>Submit record</strong> when your
+          legislation is complete.
         </p>
       </section>
     );
@@ -81,7 +88,7 @@ export function SavedActionsPanel({
           <input
             type="search"
             className="search-input"
-            placeholder="Filter by record ID, legislation title, furtherance text, department, contacts, or policies…"
+            placeholder="Filter by record ID, status, title, department, contacts, or policies…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Filter submissions"
@@ -97,6 +104,7 @@ export function SavedActionsPanel({
             <thead>
               <tr>
                 <th>Record</th>
+                <th>Status</th>
                 <th>Legislation title</th>
                 <th>Department</th>
                 <th>Policy</th>
@@ -115,9 +123,11 @@ export function SavedActionsPanel({
                 const firstRow = a.snapshot.planItems?.[0];
                 const sel0 = firstRow ? resolvePlanItem(plan, firstRow) : undefined;
                 const ch = sel0?.chapter ? chapterLabel(sel0.chapter) : "—";
+                const canDelete = !isSubmitted(a.status);
                 return (
                   <tr key={a.id}>
                     <td className="muted small">{a.cpRecordId || "—"}</td>
+                    <td className="muted small">{submissionStatusLabel(a.status)}</td>
                     <td>
                       <button
                         type="button"
@@ -138,24 +148,40 @@ export function SavedActionsPanel({
                     </td>
                     <td className="no-print table-actions">
                       <button type="button" className="btn btn-small" onClick={() => onEdit(a)}>
-                        Edit
+                        Open
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-small"
-                        onClick={() => onDuplicate(a)}
-                      >
+                      <button type="button" className="btn btn-small" onClick={() => onDuplicate(a)}>
                         Duplicate
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-small btn-danger"
-                        onClick={() => {
-                          if (globalThis.confirm?.("Delete this saved action?")) onDelete(a.id);
-                        }}
-                      >
-                        Delete
-                      </button>
+                      {onDownloadPdf ? (
+                        <button
+                          type="button"
+                          className="btn btn-small"
+                          onClick={() => onDownloadPdf(a)}
+                        >
+                          PDF
+                        </button>
+                      ) : null}
+                      {onEmailShare ? (
+                        <button
+                          type="button"
+                          className="btn btn-small"
+                          onClick={() => onEmailShare(a)}
+                        >
+                          Email
+                        </button>
+                      ) : null}
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          className="btn btn-small btn-danger"
+                          onClick={() => {
+                            if (globalThis.confirm?.("Delete this draft record?")) onDelete(a.id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 );

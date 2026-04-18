@@ -841,6 +841,45 @@ textarea {
   white-space: pre-wrap;
 }
 
+/* Submit preview modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgb(15 23 42 / 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+.modal-card {
+  max-width: 42rem;
+  width: 100%;
+  margin-top: 2vh;
+}
+
+.submit-preview-dl dd {
+  white-space: pre-wrap;
+}
+
+.submit-preview-plain {
+  white-space: pre-wrap;
+  margin: 0;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.composer-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 @media print {
   @page {
     margin: 0;

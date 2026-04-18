@@ -24,6 +24,11 @@ const ownerHeaders = {
   "x-user-oid": "test-oid-1",
 };
 
+const ownerIdentityHeaders = {
+  "x-user-email": "tester@cabq.gov",
+  "x-user-oid": "test-oid-1",
+};
+
 const sampleSnapshot = {
   planItems: [
     {
@@ -101,9 +106,13 @@ describe("API", () => {
       const created = JSON.parse(create.body) as {
         id: string;
         cpRecordId: string;
+        status: string;
+        submittedAt: string | null;
         snapshot: unknown;
       };
       expect(created.cpRecordId).toMatch(/^CP-/);
+      expect(created.status).toBe("draft");
+      expect(created.submittedAt).toBeNull();
       expect((created.snapshot as { actionTitle: string }).actionTitle).toBe("Hello");
 
       const list = await app.inject({
@@ -112,8 +121,13 @@ describe("API", () => {
         headers: ownerHeaders,
       });
       expect(list.statusCode).toBe(200);
-      const rows = JSON.parse(list.body) as unknown[];
+      const rows = JSON.parse(list.body) as {
+        status: string;
+        submittedAt: string | null;
+      }[];
       expect(rows).toHaveLength(1);
+      expect(rows[0].status).toBe("draft");
+      expect(rows[0].submittedAt).toBeNull();
 
       const patch = await app.inject({
         method: "PATCH",
@@ -144,6 +158,36 @@ describe("API", () => {
         headers: ownerHeaders,
       });
       expect(JSON.parse(list2.body) as unknown[]).toHaveLength(0);
+
+      await app.close();
+    },
+    15_000,
+  );
+
+  it(
+    "DELETE submitted submission returns 409",
+    async () => {
+      const db = createMemoryDatabase();
+      const app = buildServer({ db });
+
+      const create = await app.inject({
+        method: "POST",
+        url: "/api/submissions",
+        headers: ownerHeaders,
+        payload: { snapshot: sampleSnapshot, status: "submitted" },
+      });
+      expect(create.statusCode).toBe(200);
+      const created = JSON.parse(create.body) as { id: string; status: string };
+      expect(created.status).toBe("submitted");
+
+      const del = await app.inject({
+        method: "DELETE",
+        url: `/api/submissions/${created.id}`,
+        headers: ownerIdentityHeaders,
+      });
+      expect(del.statusCode).toBe(409);
+      const err = JSON.parse(del.body) as { error: string };
+      expect(err.error).toContain("draft");
 
       await app.close();
     },

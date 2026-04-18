@@ -1,4 +1,6 @@
 import type { Chapter, Goal, GoalDetail, PlanData, Policy, SubPolicy } from "../types";
+import type { SubmissionStatus } from "../submissionStatus";
+import { isSubmitted } from "../submissionStatus";
 import type { HierarchyJumpTarget } from "../planSearch/types";
 import type { ContactBlock } from "../contacts";
 import type { PlanItemSelection } from "../draftStorage";
@@ -43,31 +45,78 @@ export interface ComprehensivePlanFormProps {
   onAlternateContactChange: (c: ContactBlock) => void;
   onActionDetailsChange: (v: string) => void;
   onSaveForLater: () => void;
+  /** Primary action — validates in parent; opens preview before final submit when configured. */
   onSubmit: () => void | Promise<void>;
   onPrintDocument: () => void;
   onHierarchyJump: (target: HierarchyJumpTarget) => void;
+  /** When true, plan items + legislation fields are disabled (submitted record). */
+  readOnly?: boolean;
+  recordStatus?: SubmissionStatus;
+  onReopenForEditing?: () => void;
+  onDownloadPdf?: () => void;
+  onEmailShare?: () => void;
 }
 
-function FormPrimaryActions({
+function FormComposerActions({
+  readOnly,
   onSaveForLater,
   onSubmit,
   onPrintDocument,
+  onReopenForEditing,
+  onDownloadPdf,
+  onEmailShare,
 }: {
+  readOnly: boolean;
   onSaveForLater: () => void;
   onSubmit: () => void | Promise<void>;
   onPrintDocument: () => void;
+  onReopenForEditing?: () => void;
+  onDownloadPdf?: () => void;
+  onEmailShare?: () => void;
 }) {
+  if (readOnly) {
+    return (
+      <div className="form-primary-actions btn-row no-print">
+        <button type="button" className="btn btn-secondary" onClick={() => void onReopenForEditing?.()}>
+          Reopen for editing
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={onPrintDocument}>
+          Print document
+        </button>
+        {onDownloadPdf ? (
+          <button type="button" className="btn btn-secondary" onClick={onDownloadPdf}>
+            Download PDF
+          </button>
+        ) : null}
+        {onEmailShare ? (
+          <button type="button" className="btn btn-secondary" onClick={onEmailShare}>
+            Email summary
+          </button>
+        ) : null}
+      </div>
+    );
+  }
   return (
     <div className="form-primary-actions btn-row no-print">
       <button type="button" className="btn btn-secondary" onClick={onSaveForLater}>
-        Save for later
+        Save draft
       </button>
       <button type="button" className="btn btn-primary" onClick={() => void onSubmit()}>
-        Submit
+        Submit record…
       </button>
       <button type="button" className="btn btn-secondary" onClick={onPrintDocument}>
         Print document
       </button>
+      {onDownloadPdf ? (
+        <button type="button" className="btn btn-secondary" onClick={onDownloadPdf}>
+          Download PDF
+        </button>
+      ) : null}
+      {onEmailShare ? (
+        <button type="button" className="btn btn-secondary" onClick={onEmailShare}>
+          Email summary
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -372,6 +421,11 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
     onSubmit,
     onPrintDocument,
     onHierarchyJump,
+    readOnly = false,
+    recordStatus,
+    onReopenForEditing,
+    onDownloadPdf,
+    onEmailShare,
   } = props;
 
   const chapters = data.chapters;
@@ -418,6 +472,8 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
     })
     .filter((b): b is { idx: number; lines: { label: string; value: string }[] } => b !== null);
 
+  const ro = readOnly || isSubmitted(recordStatus);
+
   return (
     <div className="comprehensive-plan-form">
       {editingLabel && (
@@ -425,14 +481,15 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
           Editing: <strong>{editingLabel}</strong>
         </p>
       )}
+      {isSubmitted(recordStatus) && (
+        <p className="editing-banner" role="status">
+          This record is <strong>submitted</strong>. Reopen for editing to change fields, or use print / PDF /
+          email from the actions below.
+        </p>
+      )}
 
-      <FormPrimaryActions
-        onSaveForLater={onSaveForLater}
-        onSubmit={onSubmit}
-        onPrintDocument={onPrintDocument}
-      />
-
-      <section className="card print-section" aria-labelledby="hierarchy-heading">
+      <fieldset className="composer-fieldset" disabled={ro}>
+        <section className="card print-section" aria-labelledby="hierarchy-heading">
         <h2 id="hierarchy-heading">Comprehensive Plan Items</h2>
 
         <p className="hint plan-search-hint">
@@ -556,10 +613,20 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
         </div>
 
         <p className="hint">
-          Draft auto-saves in this browser. Use <strong>Save for later</strong> to persist immediately;{" "}
-          <strong>Submit</strong> adds this record to your library. <strong>Print document</strong> opens your
-          browser&apos;s print dialog (no server required).
+          {ro ? (
+            <>
+              Fields are read-only for submitted records. Choose <strong>Reopen for editing</strong> below to
+              make changes.
+            </>
+          ) : (
+            <>
+              Draft auto-saves in this browser. Use <strong>Save draft</strong> to persist on the server;{" "}
+              <strong>Submit record</strong> opens a final review, then marks the record submitted.
+            </>
+          )}
         </p>
+      </section>
+      </fieldset>
 
         {validationErrors.length > 0 && (
           <ul className="validation-errors" role="alert">
@@ -569,17 +636,20 @@ export function ComprehensivePlanForm(props: ComprehensivePlanFormProps) {
           </ul>
         )}
 
-        <FormPrimaryActions
-        onSaveForLater={onSaveForLater}
-        onSubmit={onSubmit}
-        onPrintDocument={onPrintDocument}
-      />
+        <FormComposerActions
+          readOnly={ro}
+          onSaveForLater={onSaveForLater}
+          onSubmit={onSubmit}
+          onPrintDocument={onPrintDocument}
+          onReopenForEditing={onReopenForEditing}
+          onDownloadPdf={onDownloadPdf}
+          onEmailShare={onEmailShare}
+        />
         {exportStatus && (
           <p className="export-status" role="status" aria-live="polite">
             {exportStatus}
           </p>
         )}
-      </section>
     </div>
   );
 }

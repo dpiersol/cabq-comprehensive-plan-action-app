@@ -2,10 +2,13 @@ import { getAuthUser } from "./auth";
 import { parseDraftJson } from "./draftStorage";
 import type { DraftSnapshot } from "./draftStorage";
 import type { SavedAction } from "./savedActionsStore";
+import type { SubmissionStatus } from "./submissionStatus";
 
 interface SavedActionDto {
   id: string;
   cpRecordId: string;
+  status: string;
+  submittedAt: string | null;
   createdAt: string;
   updatedAt: string;
   snapshot: unknown;
@@ -27,6 +30,10 @@ function jsonHeaders(): HeadersInit {
   return h;
 }
 
+function mapStatus(raw: string): SubmissionStatus {
+  return raw === "submitted" ? "submitted" : "draft";
+}
+
 function mapDto(row: SavedActionDto): SavedAction {
   return {
     id: row.id,
@@ -34,6 +41,8 @@ function mapDto(row: SavedActionDto): SavedAction {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     snapshot: parseDraftJson(row.snapshot),
+    status: mapStatus(row.status),
+    submittedAt: row.submittedAt,
   };
 }
 
@@ -70,27 +79,45 @@ export async function getSubmission(id: string): Promise<SavedAction | null> {
   return mapDto(body);
 }
 
-export async function createSubmission(snapshot: DraftSnapshot): Promise<SavedAction> {
+export async function createSubmission(
+  snapshot: DraftSnapshot,
+  opts?: { status?: SubmissionStatus },
+): Promise<SavedAction> {
+  const status = opts?.status ?? "draft";
   const res = await fetch("/api/submissions", {
     method: "POST",
     headers: jsonHeaders(),
-    body: JSON.stringify({ snapshot }),
+    body: JSON.stringify({ snapshot, status }),
   });
   if (!res.ok) throw new Error(await readError(res));
   const body = (await res.json()) as SavedActionDto;
   return mapDto(body);
 }
 
-export async function updateSubmission(id: string, snapshot: DraftSnapshot): Promise<SavedAction | null> {
+export async function patchSubmission(
+  id: string,
+  patch: { snapshot?: DraftSnapshot; status?: SubmissionStatus },
+): Promise<SavedAction | null> {
+  const body: Record<string, unknown> = {};
+  if (patch.snapshot !== undefined) body.snapshot = patch.snapshot;
+  if (patch.status !== undefined) body.status = patch.status;
   const res = await fetch(`/api/submissions/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: jsonHeaders(),
-    body: JSON.stringify({ snapshot }),
+    body: JSON.stringify(body),
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(await readError(res));
-  const body = (await res.json()) as SavedActionDto;
-  return mapDto(body);
+  const row = (await res.json()) as SavedActionDto;
+  return mapDto(row);
+}
+
+/** @deprecated Use patchSubmission — kept for gradual migration */
+export async function updateSubmission(
+  id: string,
+  snapshot: DraftSnapshot,
+): Promise<SavedAction | null> {
+  return patchSubmission(id, { snapshot });
 }
 
 export async function deleteSubmission(id: string): Promise<boolean> {
@@ -99,6 +126,7 @@ export async function deleteSubmission(id: string): Promise<boolean> {
     headers: identityHeaders(),
   });
   if (res.status === 404) return false;
+  if (res.status === 409) throw new Error(await readError(res));
   if (!res.ok) throw new Error(await readError(res));
   return true;
 }

@@ -1,10 +1,5 @@
-/** Minimal structural check before persisting (full UI validation stays client-side). */
-export function snapshotFromRequestBody(body: unknown): unknown {
-  if (!body || typeof body !== "object") {
-    throw new Error("Request body must be a JSON object");
-  }
-  const b = body as Record<string, unknown>;
-  const snap = b.snapshot;
+/** Minimal structural check on a snapshot object (full UI validation stays client-side). */
+export function validateSnapshotObject(snap: unknown): unknown {
   if (!snap || typeof snap !== "object") {
     throw new Error('Body must include a "snapshot" object');
   }
@@ -13,4 +8,14 @@ export function snapshotFromRequestBody(body: unknown): unknown {
     throw new Error("snapshot.planItems must be an array");
   }
   return snap;
+}
+
+/** Minimal structural check before persisting (full UI validation stays client-side). */
+export function snapshotFromRequestBody(body: unknown): unknown {
+  if (!body || typeof body !== "object") {
+    throw new Error("Request body must be a JSON object");
+  }
+  const b = body as Record<string, unknown>;
+  const snap = b.snapshot;
+  return validateSnapshotObject(snap);
 }

@@ -15,6 +15,10 @@ import { validateDraftForSave } from "./validation";
 import { emptyContact, type ContactBlock } from "./contacts";
 import { duplicateSnapshot, type SavedAction } from "./savedActionsStore";
 import * as submissionsApi from "./submissionsApi";
+import { isSubmitted } from "./submissionStatus";
+import { downloadSubmissionPdf } from "./downloadSubmissionPdf";
+import { openLegislationMailto } from "./legislationMailto";
+import { SubmitPreviewModal } from "./components/SubmitPreviewModal";
 import { ComprehensivePlanForm } from "./components/ComprehensivePlanForm";
 import { SavedActionsPanel } from "./components/SavedActionsPanel";
 import { PrintPreview } from "./components/PrintPreview";
@@ -75,7 +79,14 @@ export function ComposerApp() {
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [printFields, setPrintFields] = useState<PrintFields | null>(null);
+  const [submitPreviewOpen, setSubmitPreviewOpen] = useState(false);
+  const [modalPreviewFields, setModalPreviewFields] = useState<PrintFields | null>(null);
   const pendingActiveAfterAdd = useRef(false);
+
+  const editingRecord = useMemo(
+    () => (editingId ? savedList.find((r) => r.id === editingId) : undefined),
+    [savedList, editingId],
+  );
 
   const refreshSavedList = useCallback(async () => {
     try {
@@ -349,11 +360,16 @@ export function ComposerApp() {
   const saveForLater = async () => {
     saveDraftToStorage(draftSnapshot);
     setValidationErrors([]);
+    if (editingRecord && isSubmitted(editingRecord.status)) {
+      setExportStatus("This record is submitted — use Reopen for editing before saving changes.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+      return;
+    }
     try {
       if (editingId) {
-        await submissionsApi.updateSubmission(editingId, draftSnapshot);
+        await submissionsApi.patchSubmission(editingId, { snapshot: draftSnapshot });
         setLibraryVersion((n) => n + 1);
-        setExportStatus("Progress saved to your library record.");
+        setExportStatus("Draft saved to your library record.");
       } else {
         const saved = await submissionsApi.createSubmission(draftSnapshot);
         setEditingId(saved.id);
@@ -366,7 +382,7 @@ export function ComposerApp() {
     window.setTimeout(() => setExportStatus(null), 5000);
   };
 
-  const submitForm = async () => {
+  const beginSubmitPreview = () => {
     if (!data) return;
     setValidationErrors([]);
     const v = validateDraftForSave(data, draftSnapshot);
@@ -375,11 +391,22 @@ export function ComposerApp() {
       setExportStatus(null);
       return;
     }
+    setModalPreviewFields(buildPrintFields(data, draftSnapshot));
+    setSubmitPreviewOpen(true);
+  };
+
+  const confirmFinalSubmit = async () => {
+    if (!data) return;
+    setSubmitPreviewOpen(false);
+    setValidationErrors([]);
     setExportStatus(null);
     try {
       let saved: SavedAction;
       if (editingId) {
-        const u = await submissionsApi.updateSubmission(editingId, draftSnapshot);
+        const u = await submissionsApi.patchSubmission(editingId, {
+          snapshot: draftSnapshot,
+          status: "submitted",
+        });
         if (!u) {
           setExportStatus("Could not update the library record.");
           window.setTimeout(() => setExportStatus(null), 6000);
@@ -387,18 +414,47 @@ export function ComposerApp() {
         }
         saved = u;
       } else {
-        saved = await submissionsApi.createSubmission(draftSnapshot);
+        saved = await submissionsApi.createSubmission(draftSnapshot, { status: "submitted" });
         setEditingId(saved.id);
       }
       setLibraryVersion((n) => n + 1);
       setExportStatus(
-        `Submitted. Record ${saved.cpRecordId} saved to your library. Use Print document for a paper copy.`,
+        `Submitted. Record ${saved.cpRecordId} is locked as submitted. Use Reopen for editing if you need changes.`,
       );
-      window.setTimeout(() => setExportStatus(null), 8000);
+      window.setTimeout(() => setExportStatus(null), 9000);
     } catch (e) {
       setExportStatus(e instanceof Error ? e.message : "Could not submit.");
       window.setTimeout(() => setExportStatus(null), 8000);
     }
+  };
+
+  const reopenForEditing = async () => {
+    if (!editingId) return;
+    try {
+      await submissionsApi.patchSubmission(editingId, { status: "draft" });
+      setLibraryVersion((n) => n + 1);
+      setExportStatus("Record reopened — you can edit and save again.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not reopen.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!data) return;
+    const name = `${editingRecord?.cpRecordId ?? "CP-draft"}.pdf`;
+    void downloadSubmissionPdf(data, draftSnapshot, name).catch((e: unknown) => {
+      setExportStatus(e instanceof Error ? e.message : "PDF download failed.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+    });
+  };
+
+  const handleEmailShare = () => {
+    openLegislationMailto({
+      cpRecordId: editingRecord?.cpRecordId ?? "—",
+      title: actionTitle,
+    });
   };
 
   const printDocument = () => {
@@ -567,9 +623,14 @@ export function ComposerApp() {
               onAlternateContactChange={setAlternateContact}
               onActionDetailsChange={setActionDetails}
               onSaveForLater={() => void saveForLater()}
-              onSubmit={() => void submitForm()}
+              onSubmit={() => void beginSubmitPreview()}
               onPrintDocument={printDocument}
               onHierarchyJump={applyHierarchyJump}
+              readOnly={editingRecord ? isSubmitted(editingRecord.status) : false}
+              recordStatus={editingRecord?.status}
+              onReopenForEditing={() => void reopenForEditing()}
+              onDownloadPdf={handleDownloadPdf}
+              onEmailShare={handleEmailShare}
             />
           )}
           {tab === "library" && (
@@ -580,6 +641,18 @@ export function ComposerApp() {
               onEdit={openEdit}
               onDuplicate={duplicateFromLibrary}
               onDelete={removeFromLibrary}
+              onDownloadPdf={(a) => {
+                void downloadSubmissionPdf(data, a.snapshot, `${a.cpRecordId}.pdf`).catch((e: unknown) => {
+                  setExportStatus(e instanceof Error ? e.message : "PDF download failed.");
+                  window.setTimeout(() => setExportStatus(null), 6000);
+                });
+              }}
+              onEmailShare={(a) =>
+                openLegislationMailto({
+                  cpRecordId: a.cpRecordId,
+                  title: a.snapshot.actionTitle,
+                })
+              }
             />
           )}
         </main>
@@ -598,6 +671,14 @@ export function ComposerApp() {
           ) : null}
         </footer>
       </div>
+
+      <SubmitPreviewModal
+        open={submitPreviewOpen}
+        fields={modalPreviewFields}
+        cpRecordLabel={editingRecord?.cpRecordId ?? "(new record)"}
+        onCancel={() => setSubmitPreviewOpen(false)}
+        onConfirm={() => void confirmFinalSubmit()}
+      />
 
       <PrintPreview fields={printFields} />
     </>

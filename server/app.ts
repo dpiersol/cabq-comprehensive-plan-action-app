@@ -7,13 +7,13 @@ import Fastify from "fastify";
 import { resolveOwner } from "./authContext.js";
 import { renderSubmissionPdfBuffer } from "./buildSubmissionPdf.js";
 import { openDatabase } from "./db/database.js";
-import { snapshotFromRequestBody } from "./snapshotValidate.js";
+import { parseCreateBody, parsePatchBody } from "./submissionPatchBody.js";
 import {
   deleteSubmission,
   getById,
   insertSubmission,
   listByOwner,
-  updateSubmission,
+  patchSubmission,
 } from "./submissionsRepo.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -74,8 +74,8 @@ export function buildServer(opts?: BuildServerOptions) {
       return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
     }
     try {
-      const snap = snapshotFromRequestBody(req.body);
-      return insertSubmission(db, owner.ownerKey, snap);
+      const { snapshot, status } = parseCreateBody(req.body);
+      return insertSubmission(db, owner.ownerKey, snapshot, status);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Bad request";
       return reply.code(400).send({ error: msg });
@@ -88,8 +88,8 @@ export function buildServer(opts?: BuildServerOptions) {
       return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
     }
     try {
-      const snap = snapshotFromRequestBody(req.body);
-      const row = updateSubmission(db, owner.ownerKey, req.params.id, snap);
+      const patch = parsePatchBody(req.body);
+      const row = patchSubmission(db, owner.ownerKey, req.params.id, patch);
       if (!row) return reply.code(404).send({ error: "Not found" });
       return row;
     } catch (e) {
@@ -103,8 +103,11 @@ export function buildServer(opts?: BuildServerOptions) {
     if (!owner) {
       return reply.code(401).send({ error: "Missing X-User-Email (and optionally X-User-Oid)" });
     }
-    const ok = deleteSubmission(db, owner.ownerKey, req.params.id);
-    if (!ok) return reply.code(404).send({ error: "Not found" });
+    const result = deleteSubmission(db, owner.ownerKey, req.params.id);
+    if (result === "not_found") return reply.code(404).send({ error: "Not found" });
+    if (result === "not_draft") {
+      return reply.code(409).send({ error: "Only draft records can be deleted. Reopen for editing first." });
+    }
     return { ok: true };
   });
 
