@@ -106,6 +106,7 @@ export function insertSubmission(
   ownerKey: string,
   snapshot: unknown,
   initialStatus: SubmissionStatus = "draft",
+  ownerEmail: string | null = null,
 ): SavedActionDto {
   const id = randomUUID();
   const now = new Date().toISOString();
@@ -113,9 +114,19 @@ export function insertSubmission(
   const snapshotJson = JSON.stringify(snapshot);
   const submittedAt = initialStatus === "submitted" ? now : null;
   db.prepare(
-    `INSERT INTO submissions (id, owner_key, cp_record_id, status, snapshot_json, submitted_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, ownerKey, cpRecordId, initialStatus, snapshotJson, submittedAt, now, now);
+    `INSERT INTO submissions (id, owner_key, cp_record_id, status, snapshot_json, submitted_at, created_at, updated_at, owner_email)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    ownerKey,
+    cpRecordId,
+    initialStatus,
+    snapshotJson,
+    submittedAt,
+    now,
+    now,
+    ownerEmail || null,
+  );
   return getById(db, ownerKey, id)!;
 }
 
@@ -172,4 +183,92 @@ export function deleteSubmission(
   if (existing.status !== "draft") return "not_draft";
   const res = db.prepare(`DELETE FROM submissions WHERE owner_key = ? AND id = ?`).run(ownerKey, id);
   return res.changes > 0 ? "deleted" : "not_found";
+}
+
+export interface AdminSavedActionDto extends SavedActionDto {
+  ownerEmail: string;
+}
+
+interface AdminRow {
+  id: string;
+  cp_record_id: string;
+  status: string;
+  snapshot_json: string;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  owner_key: string;
+  owner_email: string | null;
+}
+
+function rowToAdminDto(r: AdminRow): AdminSavedActionDto {
+  const dto = rowToDto(r);
+  const explicit = typeof r.owner_email === "string" ? r.owner_email.trim() : "";
+  const email = explicit || (r.owner_key.startsWith("email:") ? r.owner_key.slice(6) : "");
+  return { ...dto, ownerEmail: email };
+}
+
+/** Admin scope: list every submission across all owners (most-recent first). */
+export function listAll(db: Database.Database): AdminSavedActionDto[] {
+  const rows = db
+    .prepare(
+      `SELECT id, cp_record_id, status, snapshot_json, submitted_at, created_at, updated_at, owner_key, owner_email
+       FROM submissions
+       ORDER BY updated_at DESC`,
+    )
+    .all() as AdminRow[];
+  return rows.map(rowToAdminDto);
+}
+
+/** Admin scope: fetch any submission by id regardless of owner. */
+export function getAny(db: Database.Database, id: string): AdminSavedActionDto | null {
+  const row = db
+    .prepare(
+      `SELECT id, cp_record_id, status, snapshot_json, submitted_at, created_at, updated_at, owner_key, owner_email
+       FROM submissions WHERE id = ?`,
+    )
+    .get(id) as AdminRow | undefined;
+  if (!row) return null;
+  return rowToAdminDto(row);
+}
+
+/** Admin scope: patch any submission (snapshot and/or status) regardless of owner. */
+export function patchAny(
+  db: Database.Database,
+  id: string,
+  patch: PatchSubmissionBody,
+): AdminSavedActionDto | null {
+  const existing = getAny(db, id);
+  if (!existing) return null;
+
+  let snapshot = existing.snapshot;
+  if (patch.snapshot !== undefined) {
+    snapshot = patch.snapshot;
+  }
+
+  let status = existing.status;
+  let submittedAt = existing.submittedAt;
+
+  if (patch.status !== undefined) {
+    if (patch.status === "submitted") {
+      status = "submitted";
+      if (!submittedAt) {
+        submittedAt = new Date().toISOString();
+      }
+    } else {
+      status = "draft";
+    }
+  }
+
+  const now = new Date().toISOString();
+  const snapshotJson = JSON.stringify(snapshot);
+  const res = db
+    .prepare(
+      `UPDATE submissions
+       SET snapshot_json = ?, status = ?, submitted_at = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(snapshotJson, status, submittedAt, now, id);
+  if (res.changes === 0) return null;
+  return getAny(db, id);
 }

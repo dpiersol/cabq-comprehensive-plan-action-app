@@ -5,6 +5,17 @@ export interface JwtOwnerClaims {
   ownerKey: string;
   email: string;
   oid?: string;
+  /** Entra app roles / group role claims (for admin gate). */
+  roles: string[];
+}
+
+function rolesFromPayload(payload: JWTPayload): string[] {
+  const raw = payload["roles"];
+  if (Array.isArray(raw)) {
+    return raw.filter((r): r is string => typeof r === "string");
+  }
+  if (typeof raw === "string" && raw) return [raw];
+  return [];
 }
 
 function jwtModeConfigured(): boolean {
@@ -53,7 +64,7 @@ export async function verifyAzureBearer(token: string): Promise<JwtOwnerClaims |
     const oid = typeof payload.oid === "string" ? payload.oid : undefined;
     if (!email && !oid) return null;
     const ownerKey = oid ? `oid:${oid}` : `email:${email}`;
-    return { ownerKey, email: email || "", oid };
+    return { ownerKey, email: email || "", oid, roles: rolesFromPayload(payload) };
   } catch {
     return null;
   }

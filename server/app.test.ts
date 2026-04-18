@@ -207,6 +207,93 @@ describe("API", () => {
   );
 
   it(
+    "admin endpoints list across owners and require admin role",
+    async () => {
+      const prev = process.env.ADMIN_EMAILS;
+      try {
+        process.env.ADMIN_EMAILS = "admin@cabq.gov";
+        const db = createMemoryDatabase();
+        const app = buildServer({ db });
+
+        const userA = await app.inject({
+          method: "POST",
+          url: "/api/submissions",
+          headers: ownerHeaders,
+          payload: { snapshot: sampleSnapshot, status: "submitted" },
+        });
+        expect(userA.statusCode).toBe(200);
+
+        const userB = await app.inject({
+          method: "POST",
+          url: "/api/submissions",
+          headers: {
+            "content-type": "application/json",
+            "x-user-email": "second@cabq.gov",
+            "x-user-oid": "oid-second",
+          },
+          payload: { snapshot: { ...sampleSnapshot, actionTitle: "Second" } },
+        });
+        expect(userB.statusCode).toBe(200);
+
+        const forbid = await app.inject({
+          method: "GET",
+          url: "/api/admin/submissions",
+          headers: ownerIdentityHeaders,
+        });
+        expect(forbid.statusCode).toBe(403);
+
+        const adminHeaders = {
+          "x-user-email": "admin@cabq.gov",
+          "x-user-oid": "admin-oid",
+        };
+        const listAll = await app.inject({
+          method: "GET",
+          url: "/api/admin/submissions",
+          headers: adminHeaders,
+        });
+        expect(listAll.statusCode).toBe(200);
+        const rows = JSON.parse(listAll.body) as { id: string; ownerEmail: string }[];
+        expect(rows).toHaveLength(2);
+        expect(rows.map((r) => r.ownerEmail).sort()).toEqual(["second@cabq.gov", "tester@cabq.gov"]);
+
+        const adminRoleHeaders = {
+          "x-user-email": "roleuser@cabq.gov",
+          "x-user-oid": "role-oid",
+          "x-user-roles": "comp-plan-admin",
+        };
+        const byRole = await app.inject({
+          method: "GET",
+          url: "/api/admin/submissions",
+          headers: adminRoleHeaders,
+        });
+        expect(byRole.statusCode).toBe(200);
+
+        const otherId = (JSON.parse(userB.body) as { id: string }).id;
+        const patchAny = await app.inject({
+          method: "PATCH",
+          url: `/api/admin/submissions/${otherId}`,
+          headers: {
+            "content-type": "application/json",
+            ...adminHeaders,
+          },
+          payload: {
+            snapshot: { ...sampleSnapshot, actionTitle: "Admin edit" },
+          },
+        });
+        expect(patchAny.statusCode).toBe(200);
+        const patched = JSON.parse(patchAny.body) as { snapshot: { actionTitle: string } };
+        expect(patched.snapshot.actionTitle).toBe("Admin edit");
+
+        await app.close();
+      } finally {
+        if (prev === undefined) delete process.env.ADMIN_EMAILS;
+        else process.env.ADMIN_EMAILS = prev;
+      }
+    },
+    15_000,
+  );
+
+  it(
     "GET /api/submissions rejects header-only auth when Azure JWT is required (no header fallback)",
     async () => {
       const prevTenant = process.env.AZURE_TENANT_ID;
