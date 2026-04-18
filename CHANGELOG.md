@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.6.0] — 2026-04-18
+
+### Sprint 6 — Local admin accounts (back-end)
+
+- **New auth source — local accounts** — Admins, operators, and vendors can now sign in with credentials managed inside the app (no Entra required). Passwords are hashed with **bcrypt** (cost 12) and stored in a new **`local_users`** table; tokens are short-lived HS256 JWTs signed with **`LOCAL_JWT_SECRET`** (default TTL **8 h**, tunable via **`LOCAL_JWT_TTL_SECONDS`**).
+- **Unified request identity** — `resolveOwner()` now tries a local-session token first, then falls back to the existing Azure / header paths. Downstream code (submissions, admin endpoints, `isAdmin()`) treats both sources identically.
+- **Account lockout & auditing** — Five bad password attempts (tunable via **`LOCAL_LOGIN_MAX_FAILS`** / **`LOCAL_LOGIN_LOCK_MINUTES`**) lock the account for **15 min**. Every login, admin-user change, role change, and password reset writes an **`auth_audit`** row.
+- **Admin CRUD APIs** —
+  - **`GET /api/auth/local/login`** → issues local-session JWT.
+  - **`POST /api/auth/local/change-password`** → caller rotates own password.
+  - **`GET/POST/PATCH/DELETE /api/admin/users[/:id]`** → list / create / edit / deactivate local users.
+  - **`POST /api/admin/users/:id/reset-password`** → admin-initiated reset that forces change-on-next-login (the approved safeguard so a departed admin's password can always be rotated).
+  - **`GET/POST/DELETE /api/admin/roles`** and **`POST/DELETE /api/admin/users/:id/roles`** → manage roles and assignments.
+  - **`GET /api/admin/auth/audit`** → recent auth events, paginated.
+- **Last-admin safeguard** — The last active user holding **`comp-plan-admin`** cannot be deleted, deactivated, or demoted; another admin must be promoted first.
+- **Bootstrap admin** — On first start with an empty `local_users` table, a single admin is created from **`BOOTSTRAP_ADMIN_USERNAME`** / **`BOOTSTRAP_ADMIN_EMAIL`** / **`BOOTSTRAP_ADMIN_PASSWORD`** (/ **`…_DISPLAY`**) — flagged **must change password on first login**. In sandbox, env-based bootstrap; in production, an admin-created account is preferred.
+- **Password policy** — Minimum 12 chars, at least 3 of {lower, upper, digit, symbol}, must not contain the username / email / display name.
+- **Rate limit** — `/api/auth/local/login` is rate-limited (10 req / min / IP) via **`@fastify/rate-limit`**.
+- **Schema — migration 4** — adds `local_users`, `roles`, `user_roles`, `auth_config`, `auth_audit` with indexes; seeds built-in `comp-plan-admin` / `comp-plan-user` roles.
+
 ## [3.5.0] — 2026-04-18
 
 ### UX polish — user & admin pages

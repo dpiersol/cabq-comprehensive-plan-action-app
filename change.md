@@ -1,10 +1,11 @@
 # Current release summary
 
-**Version:** 3.5.0  
+**Version:** 3.6.0  
 **Date:** 2026-04-18
 
 ## What changed
 
+- **v3.6.0 — Local admin accounts (back-end).** New local-accounts table (`local_users`) with bcrypt-hashed passwords; short-lived HS256 JWTs (`LOCAL_JWT_SECRET`, 8 h default) feed straight into `resolveOwner()`, so every downstream endpoint accepts local sessions alongside Entra tokens. Admin CRUD for users and roles at `/api/admin/users` + `/api/admin/roles`; admin-initiated password reset (`/api/admin/users/:id/reset-password`) forces change on next login. Lockout after 5 bad attempts for 15 min; every auth/user/role change writes to `auth_audit` (visible at `/api/admin/auth/audit`). The last active `comp-plan-admin` cannot be deleted, deactivated, or demoted. First-run bootstrap admin is env-driven (`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`).
 - **v3.5.0 — UX polish.** Header shows **"Logged in as: {name}"** + **Sign out** + **Admin Console** (moved from footer). Save / Submit redirect to the **Submissions** tab (renamed from *Library*). Submitted records are now genuinely read-only (Tiptap + department combobox). *Reopen for editing* renamed to **Edit**. Composer action buttons are replicated at the **top** of the form. Server PDFKit fallback now mirrors the Print document layout so **Download PDF** and **Print document** produce the same output. Admin console **Print document** fixed (the hidden print layer is portalled outside `.admin-shell`).
 - **Sprint 5 (v3.4.0) — Admin on the server.** New `/api/admin/submissions` endpoints list/patch all users' rows, guarded by **`ADMIN_ROLE_NAMES`** (default **`comp-plan-admin`**) **or** **`ADMIN_EMAILS`**. `admin.html` now requires MSAL sign-in + admin role, shows per-submission **`ownerEmail`** and status pills, and falls back to seeded localStorage with a notice when the API is unavailable. Auth context also carries **`roles`** (JWT claim or **`X-User-Roles`** header).
 - **Sprint 4 (v3.3.0) — API JWT.** Server can validate **Entra access tokens** (`Authorization: Bearer`) using **`AZURE_TENANT_ID`** / **`AZURE_AUDIENCE`**; optional **`ALLOW_HEADER_IDENTITY=true`** keeps **`X-User-*`** trusted when migrating or before API scope consent. Client acquires **`VITE_API_SCOPE`** (default **`access_as_user`**) via MSAL silent token when configured.

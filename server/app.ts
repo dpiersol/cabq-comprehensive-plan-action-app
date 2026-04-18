@@ -3,11 +3,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type Database from "better-sqlite3";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import Fastify from "fastify";
 import { isAdmin } from "./adminAuth.js";
 import { resolveOwner } from "./authContext.js";
+import { bootstrapAdminIfNeeded } from "./bootstrapAdmin.js";
 import { renderSubmissionPdfBuffer } from "./buildSubmissionPdf.js";
 import { openDatabase } from "./db/database.js";
+import { registerLocalAuthRoutes } from "./localAuthRoutes.js";
+import { localSessionConfigured } from "./localSessionJwt.js";
 import { parseCreateBody, parsePatchBody } from "./submissionPatchBody.js";
 import {
   deleteSubmission,
@@ -42,12 +46,18 @@ export function buildServer(opts?: BuildServerOptions) {
       "Authorization",
     ],
   });
+  app.register(rateLimit, {
+    global: false,
+    max: 10,
+    timeWindow: "1 minute",
+  });
 
   app.get("/api/health", async () => ({
     ok: true,
     version: pkg.version,
     workflow: "shelved",
     submissions: "sqlite",
+    localAuth: localSessionConfigured(),
   }));
 
   app.post("/api/submissions/pdf", async (req, reply) => {
@@ -162,6 +172,15 @@ export function buildServer(opts?: BuildServerOptions) {
       return reply.code(400).send({ error: msg });
     }
   });
+
+  registerLocalAuthRoutes(app, db);
+
+  // Bootstrap initial admin (no-op in tests or when env vars not set).
+  if (!process.env.VITEST) {
+    void bootstrapAdminIfNeeded(db).catch((err) => {
+      app.log.warn({ err }, "bootstrap admin failed");
+    });
+  }
 
   return app;
 }

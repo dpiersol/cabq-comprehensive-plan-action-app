@@ -1,5 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import { allowHeaderFallback, verifyAzureBearer } from "./azureJwt.js";
+import { verifyLocalBearer } from "./localSessionJwt.js";
 
 export interface RequestOwner {
   ownerKey: string;
@@ -7,6 +8,10 @@ export interface RequestOwner {
   oid?: string;
   /** Roles claimed by the caller. Populated from JWT (`roles`) or `X-User-Roles` header (mock/e2e). */
   roles: string[];
+  /** Present when the caller authenticated via a local (non-SSO) session. */
+  source?: "entra" | "local" | "header";
+  /** Local users can be flagged to change their password at next login. */
+  mustChangePassword?: boolean;
 }
 
 function rolesFromHeader(req: FastifyRequest): string[] {
@@ -26,7 +31,13 @@ export function resolveOwnerFromHeaders(req: FastifyRequest): RequestOwner | nul
   const oid = typeof oidRaw === "string" && oidRaw.trim() ? oidRaw.trim() : undefined;
   if (!email && !oid) return null;
   const ownerKey = oid ? `oid:${oid}` : `email:${email}`;
-  return { ownerKey, email: email || "", oid, roles: rolesFromHeader(req) };
+  return {
+    ownerKey,
+    email: email || "",
+    oid,
+    roles: rolesFromHeader(req),
+    source: "header",
+  };
 }
 
 function extractBearer(req: FastifyRequest): string | undefined {
@@ -43,7 +54,15 @@ function extractBearer(req: FastifyRequest): string | undefined {
 export async function resolveOwner(req: FastifyRequest): Promise<RequestOwner | null> {
   const bearer = extractBearer(req);
   if (bearer) {
-    return verifyAzureBearer(bearer);
+    const local = await verifyLocalBearer(bearer);
+    if (local) {
+      return { ...local, source: "local" };
+    }
+    const entra = await verifyAzureBearer(bearer);
+    if (entra) {
+      return { ...entra, source: "entra" };
+    }
+    return null;
   }
   if (allowHeaderFallback()) {
     return resolveOwnerFromHeaders(req);
