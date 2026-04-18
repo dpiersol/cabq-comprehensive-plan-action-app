@@ -3,11 +3,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type Database from "better-sqlite3";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import Fastify from "fastify";
-import { isAdmin } from "./adminAuth.js";
+import { isAdminFor } from "./adminAuth.js";
 import { resolveOwner } from "./authContext.js";
+import { bootstrapAdminIfNeeded } from "./bootstrapAdmin.js";
 import { renderSubmissionPdfBuffer } from "./buildSubmissionPdf.js";
+import { registerAuthConfigRoutes } from "./authConfigRoutes.js";
 import { openDatabase } from "./db/database.js";
+import { registerLocalAuthRoutes } from "./localAuthRoutes.js";
+import { localSessionConfigured } from "./localSessionJwt.js";
 import { parseCreateBody, parsePatchBody } from "./submissionPatchBody.js";
 import {
   deleteSubmission,
@@ -42,12 +47,18 @@ export function buildServer(opts?: BuildServerOptions) {
       "Authorization",
     ],
   });
+  app.register(rateLimit, {
+    global: false,
+    max: 10,
+    timeWindow: "1 minute",
+  });
 
   app.get("/api/health", async () => ({
     ok: true,
     version: pkg.version,
     workflow: "shelved",
     submissions: "sqlite",
+    localAuth: localSessionConfigured(),
   }));
 
   app.post("/api/submissions/pdf", async (req, reply) => {
@@ -61,7 +72,7 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.get("/api/submissions", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) {
       return reply.code(401).send({
         error: "Authentication required (Bearer token or permitted identity headers)",
@@ -71,7 +82,7 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.get<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) {
       return reply.code(401).send({
         error: "Authentication required (Bearer token or permitted identity headers)",
@@ -83,7 +94,7 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.post("/api/submissions", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) {
       return reply.code(401).send({
         error: "Authentication required (Bearer token or permitted identity headers)",
@@ -99,7 +110,7 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.patch<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) {
       return reply.code(401).send({
         error: "Authentication required (Bearer token or permitted identity headers)",
@@ -117,7 +128,7 @@ export function buildServer(opts?: BuildServerOptions) {
   });
 
   app.delete<{ Params: { id: string } }>("/api/submissions/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) {
       return reply.code(401).send({
         error: "Authentication required (Bearer token or permitted identity headers)",
@@ -133,25 +144,25 @@ export function buildServer(opts?: BuildServerOptions) {
 
   /** Admin endpoints — same auth as user routes plus an admin role / email check. */
   app.get("/api/admin/submissions", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     return listAll(db);
   });
 
   app.get<{ Params: { id: string } }>("/api/admin/submissions/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const row = getAny(db, req.params.id);
     if (!row) return reply.code(404).send({ error: "Not found" });
     return row;
   });
 
   app.patch<{ Params: { id: string } }>("/api/admin/submissions/:id", async (req, reply) => {
-    const owner = await resolveOwner(req);
+    const owner = await resolveOwner(req, db);
     if (!owner) return reply.code(401).send({ error: "Authentication required" });
-    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     try {
       const patch = parsePatchBody(req.body);
       const row = patchAny(db, req.params.id, patch);
@@ -162,6 +173,16 @@ export function buildServer(opts?: BuildServerOptions) {
       return reply.code(400).send({ error: msg });
     }
   });
+
+  registerLocalAuthRoutes(app, db);
+  registerAuthConfigRoutes(app, db);
+
+  // Bootstrap initial admin (no-op in tests or when env vars not set).
+  if (!process.env.VITEST) {
+    void bootstrapAdminIfNeeded(db).catch((err) => {
+      app.log.warn({ err }, "bootstrap admin failed");
+    });
+  }
 
   return app;
 }

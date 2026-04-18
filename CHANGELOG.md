@@ -1,5 +1,52 @@
 # Changelog
 
+## [3.8.0] — 2026-04-18
+
+### Sprint 8 — Admin UI: tabbed sign-in + user / role / SSO management
+
+- **Tabbed admin login** — `admin.html` now shows **Local account** and **Microsoft (SSO)** tabs, driven by the public **`/api/auth/config`** endpoint so the visible options match server capability (and the local tab hides if `LOCAL_JWT_SECRET` isn't configured). Local sign-in posts to `/api/auth/local/login` and stores the bearer in `localStorage` for refreshes.
+- **Forced password change** — Accounts flagged `mustChangePassword` (bootstrap admin, admin reset) see a dedicated *Choose a new password* page before the rest of the admin UI unlocks.
+- **Admin navigation** — New header tab bar: **Submissions · Users · Roles · Sign-in settings · Audit log** (hash-routed). Sign-out clears the local session or Entra session as appropriate.
+- **Users page** (`#users`) — Create, edit, deactivate, and delete local users; assign roles; admin-initiated password reset (forces change on next login). Last-admin safeguard surfaces as an inline error.
+- **Roles page** (`#roles`) — Add / delete custom roles (built-ins protected), with live member counts and active-admin badge.
+- **Sign-in settings page** (`#settings`) — Toggle SSO / local on or off; edit tenant id / client id / audience / issuer / allowed domains / admin role names / admin emails; paste a real Entra token into *Test SSO* for a server-side dry-run verification.
+- **Audit log page** (`#audit`) — Tail the last 200 auth events from `auth_audit`, with optional action-name filter (`local_login_success`, `admin_user_update`, `admin_auth_config_update`, etc.). Refresh on demand.
+- **Unified bearer plumbing** — `adminApi.ts` and the new `authAdminApi.ts` prefer the local-session token over MSAL's silent token when present, so admins don't need an Entra tenant to use the console.
+
+## [3.7.0] — 2026-04-18
+
+### Sprint 7 — SSO configuration managed in the database
+
+- **Dynamic auth config** — New **`auth_config`** key/value table holds SSO & local-auth settings. The new **`getEffectiveAuthConfig(db)`** helper merges DB values over env defaults (`AZURE_TENANT_ID`, `AZURE_AUDIENCE`, `AZURE_CLIENT_ID`, `AZURE_ISSUER`, `ADMIN_ROLE_NAMES`, `ADMIN_EMAILS`, `ALLOWED_EMAIL_DOMAINS`) so the sandbox can tweak SSO without a restart and existing deployments keep working unchanged.
+- **Public config endpoint** — **`GET /api/auth/config`** (unauthenticated) returns `{ sso: { enabled, tenantId, clientId, authority, allowedEmailDomains }, local: { enabled } }`. The upcoming admin login UI uses this to decide which tabs to show.
+- **Admin config endpoints** —
+  - **`GET /api/admin/auth/config`** — view the full effective SSO + local config (admin-only).
+  - **`PATCH /api/admin/auth/config`** — update any subset of `{ ssoEnabled, localEnabled, tenantId, clientId, audience, issuer, allowedEmailDomains[], adminRoleNames[], adminEmails[] }`. Passing `null` / `""` for a string clears the DB override so env takes over again.
+  - **`POST /api/admin/auth/test-sso`** — admin-only dry-run: verifies a sample access token against the current (or supplied) tenant/audience/issuer and reports the resolved claims. Writes a success/failure audit entry.
+- **DB-aware token verification** — **`resolveOwner()`** now accepts a DB handle and validates Entra tokens with `verifyAzureBearerWithConfig(db, token)` — meaning tenant/audience/issuer changes made in the admin UI take effect on the next request, no restart required.
+- **DB-aware admin check** — **`isAdminFor(db, owner)`** replaces the env-only `isAdmin(owner)` on every protected route, so DB-managed admin role names and allowlisted emails are honoured immediately.
+- **Audit coverage** — Every config change (`admin_auth_config_update`) and test-sso attempt (`admin_auth_config_test_sso_success` / `…_failed`) is recorded in `auth_audit`.
+
+## [3.6.0] — 2026-04-18
+
+### Sprint 6 — Local admin accounts (back-end)
+
+- **New auth source — local accounts** — Admins, operators, and vendors can now sign in with credentials managed inside the app (no Entra required). Passwords are hashed with **bcrypt** (cost 12) and stored in a new **`local_users`** table; tokens are short-lived HS256 JWTs signed with **`LOCAL_JWT_SECRET`** (default TTL **8 h**, tunable via **`LOCAL_JWT_TTL_SECONDS`**).
+- **Unified request identity** — `resolveOwner()` now tries a local-session token first, then falls back to the existing Azure / header paths. Downstream code (submissions, admin endpoints, `isAdmin()`) treats both sources identically.
+- **Account lockout & auditing** — Five bad password attempts (tunable via **`LOCAL_LOGIN_MAX_FAILS`** / **`LOCAL_LOGIN_LOCK_MINUTES`**) lock the account for **15 min**. Every login, admin-user change, role change, and password reset writes an **`auth_audit`** row.
+- **Admin CRUD APIs** —
+  - **`GET /api/auth/local/login`** → issues local-session JWT.
+  - **`POST /api/auth/local/change-password`** → caller rotates own password.
+  - **`GET/POST/PATCH/DELETE /api/admin/users[/:id]`** → list / create / edit / deactivate local users.
+  - **`POST /api/admin/users/:id/reset-password`** → admin-initiated reset that forces change-on-next-login (the approved safeguard so a departed admin's password can always be rotated).
+  - **`GET/POST/DELETE /api/admin/roles`** and **`POST/DELETE /api/admin/users/:id/roles`** → manage roles and assignments.
+  - **`GET /api/admin/auth/audit`** → recent auth events, paginated.
+- **Last-admin safeguard** — The last active user holding **`comp-plan-admin`** cannot be deleted, deactivated, or demoted; another admin must be promoted first.
+- **Bootstrap admin** — On first start with an empty `local_users` table, a single admin is created from **`BOOTSTRAP_ADMIN_USERNAME`** / **`BOOTSTRAP_ADMIN_EMAIL`** / **`BOOTSTRAP_ADMIN_PASSWORD`** (/ **`…_DISPLAY`**) — flagged **must change password on first login**. In sandbox, env-based bootstrap; in production, an admin-created account is preferred.
+- **Password policy** — Minimum 12 chars, at least 3 of {lower, upper, digit, symbol}, must not contain the username / email / display name.
+- **Rate limit** — `/api/auth/local/login` is rate-limited (10 req / min / IP) via **`@fastify/rate-limit`**.
+- **Schema — migration 4** — adds `local_users`, `roles`, `user_roles`, `auth_config`, `auth_audit` with indexes; seeds built-in `comp-plan-admin` / `comp-plan-user` roles.
+
 ## [3.5.0] — 2026-04-18
 
 ### UX polish — user & admin pages

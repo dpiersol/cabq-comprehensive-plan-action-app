@@ -1,4 +1,6 @@
+import type Database from "better-sqlite3";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
+import { getEffectiveAuthConfig } from "./authConfigRepo.js";
 
 /** Stable owner identity extracted from a validated Entra access token. */
 export interface JwtOwnerClaims {
@@ -36,25 +38,31 @@ function emailFromPayload(payload: JWTPayload): string {
   return "";
 }
 
-/** Validate an Azure AD access token (v2.0 issuer) and map claims to owner scope. */
-export async function verifyAzureBearer(token: string): Promise<JwtOwnerClaims | null> {
-  const tenant = process.env.AZURE_TENANT_ID?.trim();
+interface EntraSettings {
+  tenantId: string | null;
+  audience: string | null;
+  issuer: string | null;
+}
+
+function envSettings(): EntraSettings {
+  const tenant = process.env.AZURE_TENANT_ID?.trim() ?? null;
   const audienceRaw =
-    process.env.AZURE_AUDIENCE?.trim() ?? process.env.AZURE_CLIENT_ID?.trim();
-  if (!tenant || !audienceRaw) return null;
+    process.env.AZURE_AUDIENCE?.trim() ?? process.env.AZURE_CLIENT_ID?.trim() ?? null;
+  return {
+    tenantId: tenant || null,
+    audience: audienceRaw || null,
+    issuer: process.env.AZURE_ISSUER?.trim() || null,
+  };
+}
 
-  const issuer =
-    process.env.AZURE_ISSUER?.trim() ?? `https://login.microsoftonline.com/${tenant}/v2.0`;
-  const audiences = audienceRaw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+async function verifyWith(token: string, s: EntraSettings): Promise<JwtOwnerClaims | null> {
+  if (!s.tenantId || !s.audience) return null;
+  const issuer = s.issuer || `https://login.microsoftonline.com/${s.tenantId}/v2.0`;
+  const audiences = s.audience.split(",").map((x) => x.trim()).filter(Boolean);
   if (audiences.length === 0) return null;
-
   const JWKS = createRemoteJWKSet(
-    new URL(`https://login.microsoftonline.com/${tenant}/discovery/v2.0/keys`),
+    new URL(`https://login.microsoftonline.com/${s.tenantId}/discovery/v2.0/keys`),
   );
-
   try {
     const { payload } = await jwtVerify(token, JWKS, {
       issuer,
@@ -68,4 +76,27 @@ export async function verifyAzureBearer(token: string): Promise<JwtOwnerClaims |
   } catch {
     return null;
   }
+}
+
+/** Validate an Azure AD access token (v2.0 issuer) and map claims to owner scope. */
+export async function verifyAzureBearer(token: string): Promise<JwtOwnerClaims | null> {
+  return verifyWith(token, envSettings());
+}
+
+/**
+ * DB-aware variant: uses the effective auth config so admin-UI overrides for
+ * tenant / client / audience / issuer take effect without a server restart.
+ * Falls back to env settings when the DB has no override.
+ */
+export async function verifyAzureBearerWithConfig(
+  db: Database.Database,
+  token: string,
+): Promise<JwtOwnerClaims | null> {
+  const cfg = getEffectiveAuthConfig(db);
+  if (!cfg.ssoEnabled) return null;
+  return verifyWith(token, {
+    tenantId: cfg.tenantId,
+    audience: cfg.audience,
+    issuer: cfg.issuer,
+  });
 }

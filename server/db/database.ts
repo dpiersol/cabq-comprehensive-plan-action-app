@@ -58,6 +58,72 @@ export function applyMigrations(db: Database.Database) {
     }
     db.prepare("INSERT INTO schema_migrations (version) VALUES (3)").run();
   }
+
+  if (!applied.has(4)) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS local_users (
+        id TEXT PRIMARY KEY NOT NULL,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        must_change_password INTEGER NOT NULL DEFAULT 0,
+        last_login_at TEXT,
+        failed_attempts INTEGER NOT NULL DEFAULT 0,
+        locked_until TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_local_users_username_lower
+        ON local_users (lower(username));
+      CREATE INDEX IF NOT EXISTS idx_local_users_email_lower
+        ON local_users (lower(email));
+
+      CREATE TABLE IF NOT EXISTS roles (
+        name TEXT PRIMARY KEY NOT NULL,
+        description TEXT,
+        is_builtin INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS user_roles (
+        user_id TEXT NOT NULL,
+        role_name TEXT NOT NULL,
+        assigned_by TEXT,
+        assigned_at TEXT NOT NULL,
+        PRIMARY KEY (user_id, role_name),
+        FOREIGN KEY (user_id) REFERENCES local_users(id) ON DELETE CASCADE,
+        FOREIGN KEY (role_name) REFERENCES roles(name) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS auth_config (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT,
+        updated_by TEXT,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS auth_audit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor TEXT,
+        action TEXT NOT NULL,
+        target TEXT,
+        detail TEXT,
+        at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_auth_audit_at ON auth_audit (at DESC);
+    `);
+
+    const now = new Date().toISOString();
+    const insertRole = db.prepare(
+      "INSERT OR IGNORE INTO roles (name, description, is_builtin) VALUES (?, ?, 1)",
+    );
+    insertRole.run("comp-plan-admin", "Administers the Comprehensive Plan Action app.");
+    insertRole.run("comp-plan-user", "Standard authenticated user.");
+
+    db.prepare("INSERT INTO schema_migrations (version) VALUES (4)").run();
+    void now;
+  }
 }
 
 /** Single connection; call once at process start (and in tests per buildServer). */

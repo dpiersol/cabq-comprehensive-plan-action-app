@@ -1,4 +1,5 @@
 import { getAuthUser } from "../auth";
+import { getLocalAccessToken } from "../auth/localSession";
 import { parseDraftJson, type DraftSnapshot } from "../draftStorage";
 import { acquireApiAccessToken } from "../msal/msalInstance";
 import type { SavedAction } from "../savedActionsStore";
@@ -27,8 +28,14 @@ async function identityHeaders(): Promise<HeadersInit> {
   };
   if (u.oid) h["X-User-Oid"] = u.oid;
   if (u.roles?.length) h["X-User-Roles"] = u.roles.join(",");
-  const token = await acquireApiAccessToken();
-  if (token) h.Authorization = `Bearer ${token}`;
+  // Prefer local-session JWT when present, otherwise fall back to Entra silent token.
+  const local = getLocalAccessToken();
+  if (local) {
+    h.Authorization = `Bearer ${local}`;
+  } else {
+    const token = await acquireApiAccessToken();
+    if (token) h.Authorization = `Bearer ${token}`;
+  }
   return h;
 }
 
