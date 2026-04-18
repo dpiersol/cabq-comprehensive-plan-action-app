@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.8.0] — 2026-04-18
+
+### Sprint 8 — Admin UI: tabbed sign-in + user / role / SSO management
+
+- **Tabbed admin login** — `admin.html` now shows **Local account** and **Microsoft (SSO)** tabs, driven by the public **`/api/auth/config`** endpoint so the visible options match server capability (and the local tab hides if `LOCAL_JWT_SECRET` isn't configured). Local sign-in posts to `/api/auth/local/login` and stores the bearer in `localStorage` for refreshes.
+- **Forced password change** — Accounts flagged `mustChangePassword` (bootstrap admin, admin reset) see a dedicated *Choose a new password* page before the rest of the admin UI unlocks.
+- **Admin navigation** — New header tab bar: **Submissions · Users · Roles · Sign-in settings · Audit log** (hash-routed). Sign-out clears the local session or Entra session as appropriate.
+- **Users page** (`#users`) — Create, edit, deactivate, and delete local users; assign roles; admin-initiated password reset (forces change on next login). Last-admin safeguard surfaces as an inline error.
+- **Roles page** (`#roles`) — Add / delete custom roles (built-ins protected), with live member counts and active-admin badge.
+- **Sign-in settings page** (`#settings`) — Toggle SSO / local on or off; edit tenant id / client id / audience / issuer / allowed domains / admin role names / admin emails; paste a real Entra token into *Test SSO* for a server-side dry-run verification.
+- **Audit log page** (`#audit`) — Tail the last 200 auth events from `auth_audit`, with optional action-name filter (`local_login_success`, `admin_user_update`, `admin_auth_config_update`, etc.). Refresh on demand.
+- **Unified bearer plumbing** — `adminApi.ts` and the new `authAdminApi.ts` prefer the local-session token over MSAL's silent token when present, so admins don't need an Entra tenant to use the console.
+
 ## [3.7.0] — 2026-04-18
 
 ### Sprint 7 — SSO configuration managed in the database

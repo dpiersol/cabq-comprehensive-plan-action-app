@@ -353,7 +353,7 @@ export function registerLocalAuthRoutes(app: FastifyInstance, db: Database.Datab
     if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "Admin role required" });
     const name = (bodyString(req.body, "name") ?? "").trim();
     const description = bodyString(req.body, "description")?.trim() ?? null;
-    if (!/^[A-Za-z0-9_.\-]{2,64}$/.test(name)) {
+    if (!/^[A-Za-z0-9_.-]{2,64}$/.test(name)) {
       return reply
         .code(400)
         .send({ error: "Role name must be 2–64 chars: letters, digits, _, ., -." });

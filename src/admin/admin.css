@@ -286,6 +286,125 @@
   font-weight: 600;
 }
 
+/* ── Admin nav (tabbed sections) ── */
+
+.admin-nav {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-nav-link {
+  color: #e2e8f0;
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px 6px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.admin-nav-link:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.admin-nav-link.is-active {
+  background: var(--cabq-card, #fff);
+  color: var(--cabq-navy, #1e3a5f);
+  border-color: var(--cabq-border, #e2e8f0);
+}
+
+/* ── Admin tabs (login) ── */
+
+.admin-login-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.75rem 0 0;
+  border-bottom: 1px solid var(--cabq-border);
+}
+
+.admin-login-tabs .tab-btn {
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--cabq-border);
+  border-bottom: none;
+  background: #f7f7f7;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-login-tabs .tab-btn.is-active {
+  background: #fff;
+  color: var(--cabq-navy, #1e3a5f);
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.admin-login-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.admin-login-form .field input {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--cabq-border, #cbd5e1);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.admin-inline-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.admin-inline-form .field input,
+.admin-inline-form .field textarea {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--cabq-border, #cbd5e1);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.admin-inline-form fieldset {
+  border: 1px solid var(--cabq-border, #cbd5e1);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+/* ── Admin users / roles / audit tables ── */
+
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--cabq-border, #e2e8f0);
+  vertical-align: top;
+}
+
+.admin-users-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   .admin-contact-edit {
     grid-template-columns: 1fr;
@@ -293,5 +412,8 @@
   .admin-plan-item-edit {
     flex-direction: column;
     align-items: stretch;
+  }
+  .admin-users-table {
+    font-size: 0.85rem;
   }
 }

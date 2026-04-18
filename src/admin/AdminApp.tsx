@@ -4,8 +4,13 @@ import type { DraftSnapshot } from "../draftStorage";
 import type { SavedAction } from "../savedActionsStore";
 import { loadSavedActions, updateAction as updateLocalAction } from "../savedActionsStore";
 import { APP_VERSION } from "../appVersion";
+import { logoutLocal } from "../auth/localSession";
 import { AdminSubmissionsList } from "./AdminSubmissionsList";
 import { AdminSubmissionDetail } from "./AdminSubmissionDetail";
+import { UsersPage } from "./UsersPage";
+import { RolesPage } from "./RolesPage";
+import { AuthSettingsPage } from "./AuthSettingsPage";
+import { AuditPage } from "./AuditPage";
 import {
   AdminApiUnavailable,
   getAdminSubmission,
@@ -17,11 +22,23 @@ import { seedTestData } from "./seedTestData";
 
 const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
 
-function parseHash(): { page: string; id: string | null } {
+type Page =
+  | "list"
+  | "detail"
+  | "users"
+  | "roles"
+  | "settings"
+  | "audit";
+
+function parseHash(): { page: Page; id: string | null } {
   const h = window.location.hash.replace(/^#\/?/, "");
   if (h.startsWith("submission/")) {
     return { page: "detail", id: h.slice("submission/".length) };
   }
+  if (h === "users") return { page: "users", id: null };
+  if (h === "roles") return { page: "roles", id: null };
+  if (h === "settings") return { page: "settings", id: null };
+  if (h === "audit") return { page: "audit", id: null };
   return { page: "list", id: null };
 }
 
@@ -141,25 +158,58 @@ export function AdminApp() {
     );
   }
 
+  const navItems: { id: Page; hash: string; label: string }[] = [
+    { id: "list", hash: "#", label: "Submissions" },
+    { id: "users", hash: "#users", label: "Users" },
+    { id: "roles", hash: "#roles", label: "Roles" },
+    { id: "settings", hash: "#settings", label: "Sign-in settings" },
+    { id: "audit", hash: "#audit", label: "Audit log" },
+  ];
+
   return (
     <div className="admin-shell">
       <header className="admin-header">
         <div className="admin-header-row">
           <h1>Admin Console</h1>
-          <a href="/" className="admin-back-link">← Back to app</a>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                logoutLocal();
+                window.location.reload();
+              }}
+            >
+              Sign out
+            </button>
+            <a href="/" className="admin-back-link">← Back to app</a>
+          </div>
         </div>
-        <p className="admin-header-sub">
-          Review, search, edit, and print all submitted Comprehensive Plan documents.{" "}
-          {source === "api" && (
-            <span className="muted">· live from server API</span>
-          )}
-          {source === "local" && (
-            <span className="muted">· local (server API not available — seed data)</span>
-          )}
-        </p>
-        {fetchError && (
-          <div className="error-banner" role="alert">{fetchError}</div>
-        )}
+        <nav className="admin-nav">
+          {navItems.map((n) => (
+            <a
+              key={n.id}
+              href={n.hash}
+              className={`admin-nav-link ${
+                route.page === n.id || (n.id === "list" && route.page === "detail")
+                  ? "is-active"
+                  : ""
+              }`}
+            >
+              {n.label}
+            </a>
+          ))}
+        </nav>
+        {route.page === "list" || route.page === "detail" ? (
+          <p className="admin-header-sub">
+            Review, search, edit, and print all submitted Comprehensive Plan documents.{" "}
+            {source === "api" && <span className="muted">· live from server API</span>}
+            {source === "local" && (
+              <span className="muted">· local (server API not available — seed data)</span>
+            )}
+          </p>
+        ) : null}
+        {fetchError && <div className="error-banner" role="alert">{fetchError}</div>}
       </header>
 
       <main className="admin-main">
@@ -180,6 +230,10 @@ export function AdminApp() {
             onBack={() => navigateTo("#")}
           />
         )}
+        {route.page === "users" && <UsersPage />}
+        {route.page === "roles" && <RolesPage />}
+        {route.page === "settings" && <AuthSettingsPage />}
+        {route.page === "audit" && <AuditPage />}
       </main>
 
       <footer className="admin-footer">
