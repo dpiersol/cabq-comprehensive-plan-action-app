@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.5.0] — 2026-04-18
+
+### UX polish — user & admin pages
+
+- **Header identity** — Signed-in pages show **"Logged in as: {displayName}"** (from Entra ID via MSAL / mock session), with the **Sign out** control and (for admins) the **Admin Console** link moved from the footer into the header for quick access.
+- **Save → Submissions** — After **Save draft** or **Submit record**, the composer now auto-switches to the **Submissions** list so users see the saved row in context.
+- **Library → Submissions** — Tab renamed from *Library* to **Submissions** to match the record vocabulary used elsewhere.
+- **True read-only for submitted records** — The rich-text legislation description (Tiptap) and department combobox now honour the read-only flag so submitted records cannot be silently edited; the helper copy now reads "Choose **Edit** below to make changes."
+- **Edit button** — *Reopen for editing* renamed to **Edit** (matches admin detail page).
+- **Top + bottom action bar** — Save / Submit / Print / Download PDF / Email buttons are duplicated at the **top** of the composer for long forms.
+- **Unified PDF layout** — The server PDFKit fallback now mirrors the **Print document** layout (title, date, Legislation / Chapter / Goal / Policy labels, Description heading, How-furthers heading) so **Download PDF** and **Print document** produce the same document.
+- **Admin — Print document fixed** — The Admin detail *Print document* button now actually prints (the hidden `.print-doc` is portalled to `document.body` so the print media query can show it).
+- **Admin link placement** — Moved from the footer to the header (below the username) on the main app pages, matching the new identity bar.
+
 ## [3.4.0] — 2026-04-18
 
 ### Sprint 5 — Admin Console on the server

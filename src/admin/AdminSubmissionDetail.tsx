@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PlanData } from "../types";
 import type { DraftSnapshot, PlanItemSelection } from "../draftStorage";
 import { emptyPlanItem } from "../draftStorage";
@@ -464,7 +465,9 @@ export function AdminSubmissionDetail({ plan, submissionId, loadAction, saveActi
       </div>
     </section>
 
-    <PrintPreview fields={printFields} />
+    {/* Portal the print layer to document.body so the @media print rule that
+        hides `.admin-shell` doesn't also hide the print document. */}
+    {printFields ? createPortal(<PrintPreview fields={printFields} />, document.body) : null}
     </>
   );
 }

@@ -51,6 +51,67 @@ a:hover {
   z-index: 2;
 }
 
+.site-header-userbar {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  line-height: 1.35;
+}
+
+.site-header-userbar > * {
+  text-align: right;
+}
+
+.site-header-userlabel {
+  color: #e2e8f0;
+}
+
+.site-header-userlabel strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.site-header-adminlink {
+  margin-top: 0.1rem;
+}
+
+.site-header-userbar .link-button.sign-out-link {
+  color: #fef3c7;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-header-userbar .link-button.sign-out-link:hover {
+  color: #fffbeb;
+}
+
+@media (max-width: 640px) {
+  .site-header-userbar {
+    position: static;
+    align-items: flex-start;
+    margin-top: 0.75rem;
+    font-size: 0.82rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+  }
+  .site-header-userbar > * {
+    text-align: left;
+  }
+}
+
 .site-header h1 {
   margin: 0;
   font-size: 1.35rem;
@@ -87,6 +148,17 @@ a:hover {
 
 .form-primary-actions {
   margin-bottom: 1rem;
+}
+
+.form-primary-actions.form-primary-actions-top {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--cabq-border);
+  background: #f7fafc;
+  border-radius: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 .site-main {
