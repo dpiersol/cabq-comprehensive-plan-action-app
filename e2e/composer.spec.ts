@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { loginAsMockCityUser } from "./helpers/auth";
 
 test.describe.configure({ timeout: 90_000 });
 
 test.describe("Comprehensive Plan form", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await loginAsMockCityUser(page);
     await expect(page.locator(".site-header h1")).toContainText(/CABQ Comprehensive Plan/i, {
       timeout: 60_000,
     });

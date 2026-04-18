@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0] — 2026-04-18
+
+### Sprint 1 — Azure Entra ID sign-in and routing
+
+- **React Router** — Public `/` landing, `/auth/callback` OAuth redirect, `/access-denied` for non–City accounts, protected `/app` for the composer + library ([`ComposerApp`](src/ComposerApp.tsx)).
+- **MSAL** — `@azure/msal-browser` + `@azure/msal-react`: PKCE redirect flow; configure with `VITE_AZURE_CLIENT_ID`, `VITE_AZURE_TENANT_ID`, optional `VITE_AZURE_REDIRECT_URI` (see [`.env.example`](.env.example)).
+- **Eligibility** — After sign-in, only emails whose domain is in `VITE_ALLOWED_EMAIL_DOMAINS` (default **`cabq.gov`**) may use `/app`; others are redirected to `/access-denied`.
+- **Roles** — ID token `roles` claim mapped into [`auth.ts`](src/auth.ts); admin role names configurable via `VITE_ENTRA_ROLE_ADMIN`. **Admin Console** link in the composer footer only when [`isAdmin()`](src/auth.ts) is true (mock admin or matching Entra app role).
+- **Development / E2E** — Without `VITE_AZURE_CLIENT_ID`, dev server shows **Mock city user** / **Mock admin** on the landing page. Production E2E uses [`vite build --mode e2e`](package.json) with [`.env.e2e`](.env.e2e) (`VITE_E2E_MOCK_AUTH=true`) so Playwright can click mock sign-in.
+- **Docs** — [`docs/VERSIONING.md`](docs/VERSIONING.md), [`future_work.md`](future_work.md).
+- **Tests** — [`src/auth/entraEligibility.test.ts`](src/auth/entraEligibility.test.ts).
+
 ## [2.0.0] — 2026-04-02
 
 ### Admin Console
