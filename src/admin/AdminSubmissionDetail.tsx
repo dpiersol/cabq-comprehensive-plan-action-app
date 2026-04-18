@@ -1,13 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { PlanData } from "../types";
 import type { DraftSnapshot, PlanItemSelection } from "../draftStorage";
 import { emptyPlanItem } from "../draftStorage";
 import type { ContactBlock } from "../contacts";
 import { emptyContact } from "../contacts";
-import {
-  getAction,
-  updateAction,
-} from "../savedActionsStore";
+import type { SavedAction } from "../savedActionsStore";
 import { resolvePlanItem } from "../planSelection";
 import {
   chapterLabel,
@@ -23,6 +20,8 @@ import { PrintPreview } from "../components/PrintPreview";
 interface Props {
   plan: PlanData;
   submissionId: string;
+  loadAction: (id: string) => Promise<SavedAction | null>;
+  saveAction: (id: string, snapshot: DraftSnapshot) => Promise<void>;
   onBack: () => void;
 }
 
@@ -191,21 +190,49 @@ function PlanItemRow({
   );
 }
 
-export function AdminSubmissionDetail({ plan, submissionId, onBack }: Props) {
-  const original = useMemo(() => getAction(submissionId), [submissionId]);
+export function AdminSubmissionDetail({ plan, submissionId, loadAction, saveAction, onBack }: Props) {
+  const [original, setOriginal] = useState<SavedAction | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
   const [printFields, setPrintFields] = useState<ReturnType<typeof buildPrintFields> | null>(null);
 
-  const [actionTitle, setActionTitle] = useState(original?.snapshot.actionTitle ?? "");
-  const [actionDetails, setActionDetails] = useState(original?.snapshot.actionDetails ?? "");
-  const [howFurthers, setHowFurthers] = useState(original?.snapshot.howFurthersPolicies ?? "");
-  const [department, setDepartment] = useState(original?.snapshot.department ?? "");
-  const [primaryContact, setPrimaryContact] = useState(original?.snapshot.primaryContact ?? emptyContact());
-  const [alternateContact, setAlternateContact] = useState(original?.snapshot.alternateContact ?? emptyContact());
-  const [planItems, setPlanItems] = useState<PlanItemSelection[]>(
-    original?.snapshot.planItems?.map((p) => ({ ...p })) ?? [emptyPlanItem()],
-  );
+  const [actionTitle, setActionTitle] = useState("");
+  const [actionDetails, setActionDetails] = useState("");
+  const [howFurthers, setHowFurthers] = useState("");
+  const [department, setDepartment] = useState("");
+  const [primaryContact, setPrimaryContact] = useState<ContactBlock>(emptyContact());
+  const [alternateContact, setAlternateContact] = useState<ContactBlock>(emptyContact());
+  const [planItems, setPlanItems] = useState<PlanItemSelection[]>([emptyPlanItem()]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadErr(null);
+    (async () => {
+      try {
+        const a = await loadAction(submissionId);
+        if (cancelled) return;
+        setOriginal(a);
+        if (a) {
+          setActionTitle(a.snapshot.actionTitle ?? "");
+          setActionDetails(a.snapshot.actionDetails ?? "");
+          setHowFurthers(a.snapshot.howFurthersPolicies ?? "");
+          setDepartment(a.snapshot.department ?? "");
+          setPrimaryContact(a.snapshot.primaryContact ?? emptyContact());
+          setAlternateContact(a.snapshot.alternateContact ?? emptyContact());
+          setPlanItems(a.snapshot.planItems?.map((p) => ({ ...p })) ?? [emptyPlanItem()]);
+        }
+      } catch (e) {
+        if (!cancelled) setLoadErr(e instanceof Error ? e.message : "Failed to load submission.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [submissionId, loadAction]);
 
   const currentSnapshot = useCallback((): DraftSnapshot => ({
     planItems: planItems.map((p) => ({ ...p })),
@@ -216,6 +243,24 @@ export function AdminSubmissionDetail({ plan, submissionId, onBack }: Props) {
     primaryContact,
     alternateContact,
   }), [planItems, actionTitle, actionDetails, howFurthers, department, primaryContact, alternateContact]);
+
+  if (loading) {
+    return (
+      <section className="admin-card">
+        <button type="button" className="btn btn-secondary" onClick={onBack}>← Back to list</button>
+        <p className="admin-empty" style={{ marginTop: "1rem" }}>Loading submission…</p>
+      </section>
+    );
+  }
+
+  if (loadErr) {
+    return (
+      <section className="admin-card">
+        <button type="button" className="btn btn-secondary" onClick={onBack}>← Back to list</button>
+        <p className="error-banner" role="alert" style={{ marginTop: "1rem" }}>{loadErr}</p>
+      </section>
+    );
+  }
 
   if (!original) {
     return (
@@ -228,10 +273,15 @@ export function AdminSubmissionDetail({ plan, submissionId, onBack }: Props) {
     );
   }
 
-  const handleSave = () => {
-    updateAction(submissionId, currentSnapshot());
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 4000);
+  const handleSave = async () => {
+    setSaveErr(null);
+    try {
+      await saveAction(submissionId, currentSnapshot());
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 4000);
+    } catch (e) {
+      setSaveErr(e instanceof Error ? e.message : "Failed to save changes.");
+    }
   };
 
   const handlePrint = () => {
@@ -287,7 +337,12 @@ export function AdminSubmissionDetail({ plan, submissionId, onBack }: Props) {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => { handleSave(); setEditing(false); }}
+                onClick={() => {
+                  void (async () => {
+                    await handleSave();
+                    setEditing(false);
+                  })();
+                }}
               >
                 Save changes
               </button>
@@ -301,6 +356,9 @@ export function AdminSubmissionDetail({ plan, submissionId, onBack }: Props) {
 
       {saved && (
         <p className="admin-save-status" role="status">Changes saved.</p>
+      )}
+      {saveErr && (
+        <p className="error-banner" role="alert">{saveErr}</p>
       )}
 
       <div className="admin-detail-header">

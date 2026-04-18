@@ -4,15 +4,19 @@ import { fileURLToPath } from "node:url";
 import type Database from "better-sqlite3";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+import { isAdmin } from "./adminAuth.js";
 import { resolveOwner } from "./authContext.js";
 import { renderSubmissionPdfBuffer } from "./buildSubmissionPdf.js";
 import { openDatabase } from "./db/database.js";
 import { parseCreateBody, parsePatchBody } from "./submissionPatchBody.js";
 import {
   deleteSubmission,
+  getAny,
   getById,
   insertSubmission,
+  listAll,
   listByOwner,
+  patchAny,
   patchSubmission,
 } from "./submissionsRepo.js";
 
@@ -30,7 +34,13 @@ export function buildServer(opts?: BuildServerOptions) {
   app.register(cors, {
     origin: true,
     methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-User-Oid", "X-User-Email", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "X-User-Oid",
+      "X-User-Email",
+      "X-User-Roles",
+      "Authorization",
+    ],
   });
 
   app.get("/api/health", async () => ({
@@ -81,7 +91,7 @@ export function buildServer(opts?: BuildServerOptions) {
     }
     try {
       const { snapshot, status } = parseCreateBody(req.body);
-      return insertSubmission(db, owner.ownerKey, snapshot, status);
+      return insertSubmission(db, owner.ownerKey, snapshot, status, owner.email);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Bad request";
       return reply.code(400).send({ error: msg });
@@ -119,6 +129,38 @@ export function buildServer(opts?: BuildServerOptions) {
       return reply.code(409).send({ error: "Only draft records can be deleted. Reopen for editing first." });
     }
     return { ok: true };
+  });
+
+  /** Admin endpoints — same auth as user routes plus an admin role / email check. */
+  app.get("/api/admin/submissions", async (req, reply) => {
+    const owner = await resolveOwner(req);
+    if (!owner) return reply.code(401).send({ error: "Authentication required" });
+    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    return listAll(db);
+  });
+
+  app.get<{ Params: { id: string } }>("/api/admin/submissions/:id", async (req, reply) => {
+    const owner = await resolveOwner(req);
+    if (!owner) return reply.code(401).send({ error: "Authentication required" });
+    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    const row = getAny(db, req.params.id);
+    if (!row) return reply.code(404).send({ error: "Not found" });
+    return row;
+  });
+
+  app.patch<{ Params: { id: string } }>("/api/admin/submissions/:id", async (req, reply) => {
+    const owner = await resolveOwner(req);
+    if (!owner) return reply.code(401).send({ error: "Authentication required" });
+    if (!isAdmin(owner)) return reply.code(403).send({ error: "Admin role required" });
+    try {
+      const patch = parsePatchBody(req.body);
+      const row = patchAny(db, req.params.id, patch);
+      if (!row) return reply.code(404).send({ error: "Not found" });
+      return row;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Bad request";
+      return reply.code(400).send({ error: msg });
+    }
   });
 
   return app;

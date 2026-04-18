@@ -49,6 +49,15 @@ export function applyMigrations(db: Database.Database) {
     }
     db.prepare("INSERT INTO schema_migrations (version) VALUES (2)").run();
   }
+
+  if (!applied.has(3)) {
+    try {
+      db.exec(`ALTER TABLE submissions ADD COLUMN owner_email TEXT;`);
+    } catch {
+      /* column may exist */
+    }
+    db.prepare("INSERT INTO schema_migrations (version) VALUES (3)").run();
+  }
 }
 
 /** Single connection; call once at process start (and in tests per buildServer). */
