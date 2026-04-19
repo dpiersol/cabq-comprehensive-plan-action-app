@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.8.3] — 2026-04-18
+
+### Deployment scripts
+
+- **`scripts/deploy.ps1`** — one-command post-deploy runner for the sandbox /
+  prod server. Runs `npm install --omit=dev` (which also rebuilds native
+  modules like `better-sqlite3` against the server's Node), verifies `tsx`
+  is present, issues `pm2 reload ecosystem.config.cjs --update-env
+  --env production`, then HTTP-probes `/api/health` and `/api/auth/config`
+  to confirm the new build is actually live. Supports `-SkipInstall`,
+  `-RebuildNativeOnly`, and `-NoHealthCheck`.
+- **`scripts/push-to-sandbox.ps1`** — dev-box companion. Builds the SPA,
+  robocopies `dist\`, `server\`, `package.json`, `package-lock.json`,
+  `ecosystem.config.cjs`, and `scripts/deploy.ps1` onto the mapped drive
+  (default `Z:\cabq-plan`). Deliberately does **not** run `npm install`
+  on the target — native modules must be compiled on the server itself.
+- **`npm run deploy:sandbox`** — convenience shortcut for the push script.
+
+Together the two scripts remove the manual robocopy / `npm rebuild` dance
+and prevent the `NODE_MODULE_VERSION` mismatch that happened when the dev
+box's Node version differed from the server's.
+
 ## [3.8.2] — 2026-04-18
 
 ### Runtime / PM2 — server actually starts on the sandbox

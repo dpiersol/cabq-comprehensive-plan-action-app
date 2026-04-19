@@ -1,10 +1,11 @@
 # Current release summary
 
-**Version:** 3.8.2  
+**Version:** 3.8.3  
 **Date:** 2026-04-18
 
 ## What changed
 
+- **v3.8.3 — Deploy scripts.** New `scripts/deploy.ps1` (server-side) and `scripts/push-to-sandbox.ps1` (dev-box side). The server script does `npm install --omit=dev` (rebuilds `better-sqlite3` against the server's Node), verifies `tsx` is present, `pm2 reload`s with `--update-env --env production`, and probes `/api/health` + `/api/auth/config`. The dev-box script builds the SPA and robocopies `dist\`, `server\`, `package.json`, `package-lock.json`, `ecosystem.config.cjs`, and `scripts/deploy.ps1` to the mapped drive (default `Z:\cabq-plan`). `npm run deploy:sandbox` is the convenience shortcut. Together they prevent the `NODE_MODULE_VERSION` mismatch seen in v3.8.2.
 - **v3.8.2 — Fix PM2 runtime on sandbox.** `tsx` moved from devDependencies → dependencies so `npm install --omit=dev` keeps it. `ecosystem.config.cjs` now launches `./node_modules/tsx/dist/cli.mjs` with `server/index.ts` (the previous `dist/index.js` entry never existed — `tsconfig.server.json` is `noEmit`). Resolves `ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'` after a production reload.
 - **v3.8.1 — Server `.env` auto-load.** `server/index.ts` now calls `dotenv/config` before any other import, so `LOCAL_JWT_SECRET`, `BOOTSTRAP_ADMIN_*`, `AZURE_*`, `ADMIN_*`, etc. can live in a single `.env` file next to the running Fastify process. Real environment variables (PM2 `env_production`, shell exports, etc.) still override the file. `.gitignore` now ignores `.env` / `.env.*` by default, with explicit allow-list entries for tracked templates.
 - **v3.8.0 — Admin UI: tabbed sign-in + user / role / SSO management.** Admin console now offers a tabbed **Local / Microsoft (SSO)** login (driven by `GET /api/auth/config`), forces a password change on flagged accounts, and adds a header nav with **Submissions · Users · Roles · Sign-in settings · Audit log**. Users page lists local users with role checkboxes, admin-initiated password reset (forces change next login), deactivate, delete. Roles page creates/deletes custom roles (built-ins protected). Sign-in settings page edits tenant / client / audience / issuer / allowed domains / admin role names / admin emails, plus a live *Test SSO* dry-run against the server's JWKS. Audit log streams recent auth events with an action filter. Admin API client prefers the local-session JWT over MSAL silent token when both are present.
