@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.8.1] — 2026-04-18
+
+### Server env loading — `dotenv`
+
+- **`.env` auto-loads on server start** — `server/index.ts` now calls `dotenv/config` before any other import, so runtime variables (`LOCAL_JWT_SECRET`, `BOOTSTRAP_ADMIN_*`, `AZURE_*`, `ADMIN_*`, etc.) can live in a single **`.env`** file next to the running process. Real environment variables (e.g. those set by PM2 in `ecosystem.config.cjs`) still win — `dotenv` only fills in what's not already defined.
+- **`.gitignore`** — Now ignores `.env` and `.env.*` by default, with explicit allow-list entries for the tracked templates (`.env.example`, `.env.production`, `.env.e2e`) so secrets cannot be committed by accident.
+
 ## [3.8.0] — 2026-04-18
 
 ### Sprint 8 — Admin UI: tabbed sign-in + user / role / SSO management
