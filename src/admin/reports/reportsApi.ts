@@ -84,3 +84,102 @@ export function fetchSubmissionsOverview(weeks = 13): Promise<SubmissionsOvervie
 export function fetchUserActivity(): Promise<UserActivityReport> {
   return fetchJson(`/api/admin/reports/user-activity`);
 }
+
+export interface AuthSecurityReport {
+  generatedAt: string;
+  windowDays: number;
+  totals: {
+    loginSuccess: number;
+    loginFailed: number;
+    passwordChange: number;
+    userChange: number;
+    roleChange: number;
+    ssoConfig: number;
+    lockouts: number;
+  };
+  daily: { date: string; counts: Record<string, number> }[];
+  failureWatchlist: {
+    actor: string;
+    failures: number;
+    lastAt: string;
+    distinctIps: number;
+  }[];
+  recent: {
+    id: number;
+    at: string;
+    action: string;
+    category: string | null;
+    actor: string | null;
+    target: string | null;
+    detail: unknown;
+  }[];
+}
+
+export function fetchAuthSecurity(days = 30): Promise<AuthSecurityReport> {
+  return fetchJson(`/api/admin/reports/auth-security?days=${days}`);
+}
+
+/**
+ * Triggers a browser download of the audit CSV for the given window.
+ * Uses the authenticated fetch + Blob approach because we need to send
+ * identity headers that a plain `<a download>` can't attach.
+ */
+export async function downloadAuthAuditCsv(days = 30): Promise<void> {
+  const res = await fetch(
+    `/api/admin/reports/auth-audit.csv?days=${days}`,
+    { headers: await authHeaders() },
+  );
+  if (!res.ok) {
+    throw new Error(`CSV download failed: ${res.status} ${res.statusText}`);
+  }
+  const blob = await res.blob();
+  const stamp = new Date().toISOString().slice(0, 10);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `auth-audit-${stamp}-${days}d.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export interface CoverageReport {
+  generatedAt: string;
+  planLoaded: boolean;
+  totals: {
+    chapters: number;
+    goals: number;
+    policies: number;
+    goalsCovered: number;
+    policiesCovered: number;
+    goalsUncovered: number;
+    policiesUncovered: number;
+    submissionsMapped: number;
+    submissionsUnmapped: number;
+  };
+  byChapter: {
+    chapterIdx: number;
+    chapterName: string;
+    goalsTotal: number;
+    goalsCovered: number;
+    submissions: number;
+  }[];
+  uncoveredGoals: {
+    chapterIdx: number;
+    goalIdx: number;
+    chapterName: string;
+    goalName: string;
+  }[];
+  topGoals: {
+    chapterIdx: number;
+    goalIdx: number;
+    chapterName: string;
+    goalName: string;
+    count: number;
+  }[];
+}
+
+export function fetchCoverage(): Promise<CoverageReport> {
+  return fetchJson(`/api/admin/reports/coverage`);
+}

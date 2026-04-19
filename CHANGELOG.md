@@ -1,5 +1,70 @@
 # Changelog
 
+## [4.1.0] — 2026-04-18
+
+### Reports — phase 2 of 3
+
+Adds two more reports under Admin → Security → Reports. Phase 3 (Submission
+Lifecycle / Turnaround, v4.2.0) remains the final piece and needs a new DB
+migration to capture status transitions.
+
+**Report #3 — Authentication & Security (`#reports/auth-security`)**
+
+- KPIs: successful logins, failed logins, lockouts, password changes, user
+  changes, role changes, SSO-config edits.
+- Daily stacked bar chart (7 / 30 / 60 / 90 / 180 days) grouping raw
+  `auth_audit.action` values into high-level categories: `login_success`,
+  `login_failed`, `password_change`, `user_change`, `role_change`,
+  `sso_config`.
+- Failed-login watchlist: top 15 identifiers by failure count over the
+  window, with a **distinct-IP** column to help spot brute-force or
+  credential-stuffing patterns.
+- Latest-activity tail (last 25 events) with category swatches.
+- **CSV export**: `GET /api/admin/reports/auth-audit.csv?days=1..365`
+  streams an RFC-4180-style CSV with `id,at,action,category,actor,target,
+  detail`. Client uses an authenticated `fetch` + `Blob` flow so identity
+  headers are attached (a plain `<a download>` can't do that).
+
+**Report #5 — Coverage / Gap Analysis (`#reports/coverage`)**
+
+- Loads `public/data/comprehensive-plan-hierarchy.json` (or the deployed
+  `dist/data/` equivalent) server-side and cross-references it against
+  every submission's `planItems[]`.
+- KPIs: chapters, goals, goals covered/uncovered, policies (in plan /
+  covered), submissions mapped.
+- **Coverage by chapter** table: goals total vs. covered, percent bar,
+  submissions touching the chapter. Filters: All · With uncovered goals ·
+  Zero submissions.
+- **Uncovered goals** table — the gaps list. Every chapter/goal pair the
+  plan contains that no submission has cited.
+- **Most-cited goals** table — saturation view, top 10.
+- Client-side CSV export of the gap list.
+- Graceful fallback: when the hierarchy JSON isn't found on the server the
+  endpoint returns `planLoaded: false` and the UI shows a clear error.
+
+**Backend additions**
+
+- New helpers in `server/reports/reportsRepo.ts`:
+  `getAuthSecurity()`, `getAuthAuditCsv()`, `getCoverageGaps()`, plus
+  `setPlanDataForTests()` / `resetPlanCacheForTests()` seams.
+- New routes in `server/reports/reportsRoutes.ts`:
+  `GET /api/admin/reports/auth-security?days=7..180`,
+  `GET /api/admin/reports/auth-audit.csv?days=1..365`,
+  `GET /api/admin/reports/coverage`.
+- 5 new vitest cases (auth category roll-up, `days` clamping, CSV
+  quoting/headers, coverage without a plan, coverage math with a synthetic
+  plan). Total backend suite: **35/35** passing.
+
+**Frontend additions**
+
+- `src/admin/reports/AuthSecurityPage.tsx`,
+  `src/admin/reports/CoveragePage.tsx`. Landing cards flip from "Coming in
+  v4.1.0" to ready.
+- CSS: stacked bar chart variant, legend swatches, coverage bar, warning
+  KPI tone.
+
+Breaking: none (additive only).
+
 ## [4.0.0] — 2026-04-18
 
 ### Reports — phase 1 of 3 (Admin → Security → Reports)

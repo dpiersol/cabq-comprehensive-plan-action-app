@@ -652,3 +652,85 @@
   transform-origin: top right;
   margin-top: 2px;
 }
+
+/* Stacked variant used by the Auth & Security daily chart. */
+
+.admin-bar-stack {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  background: #e2e8f0;
+}
+
+.admin-bar-seg {
+  width: 100%;
+  display: block;
+}
+
+.admin-stacked-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  color: #334155;
+}
+
+.admin-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* Coverage bar (Coverage / Gap Analysis report). */
+
+.admin-coverage-bar {
+  position: relative;
+  width: 100%;
+  min-width: 120px;
+  height: 18px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.admin-coverage-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.admin-coverage-bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0f172a;
+  mix-blend-mode: luminosity;
+}
+
+/* Warning-tone KPI tile (used when non-zero is bad, e.g. uncovered goals). */
+
+.admin-kpi-warn {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.admin-kpi-warn .admin-kpi-value {
+  color: #92400e;
+}

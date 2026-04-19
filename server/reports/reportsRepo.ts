@@ -8,11 +8,18 @@
  *   - getSubmissionsOverview() → Report 1 (Submissions Overview)
  *   - getUserActivity()        → Report 2 (User Activity)
  *
- * Phase 2 (v4.1.0) will add getAuthSecurity() + getCoverageGaps().
+ * Phase 2 (v4.1.0):
+ *   - getAuthSecurity()        → Report 3 (Authentication & Security)
+ *   - getAuthAuditCsv()        → CSV export for Report 3
+ *   - getCoverageGaps()        → Report 5 (Coverage / Gap Analysis)
+ *
  * Phase 3 (v4.2.0) will add getSubmissionLifecycle() (needs migration 5).
  */
 
 import type Database from "better-sqlite3";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -357,5 +364,550 @@ export function getUserActivity(
     localUsers,
     nonLocalSubmitters,
     totals,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Report 3 — Authentication & Security
+// ---------------------------------------------------------------------------
+
+/**
+ * Grouping of the raw `auth_audit.action` strings into high-level categories
+ * the UI displays as a stacked daily chart. Keep these in sync with the
+ * actual `action` values written by `localAuthRoutes` / `authConfigRoutes`
+ * / `bootstrapAdmin`.
+ */
+const AUDIT_CATEGORIES: Record<string, string[]> = {
+  login_success: ["local_login_success"],
+  login_failed: ["local_login_failed"],
+  password_change: [
+    "local_change_password_success",
+    "local_change_password_failed",
+    "admin_user_reset_password",
+  ],
+  user_change: [
+    "admin_user_create",
+    "admin_user_update",
+    "admin_user_delete",
+    "bootstrap_admin_created",
+  ],
+  role_change: [
+    "admin_role_create",
+    "admin_role_delete",
+    "admin_user_role_add",
+    "admin_user_role_remove",
+  ],
+  sso_config: [
+    "admin_auth_config_update",
+    "admin_auth_config_test_sso_success",
+    "admin_auth_config_test_sso_failed",
+  ],
+};
+const AUDIT_ACTION_TO_CAT = new Map<string, string>();
+for (const [cat, actions] of Object.entries(AUDIT_CATEGORIES)) {
+  for (const a of actions) AUDIT_ACTION_TO_CAT.set(a, cat);
+}
+export const AUTH_REPORT_CATEGORIES = Object.keys(AUDIT_CATEGORIES);
+
+export interface AuthSecuritySummary {
+  generatedAt: string;
+  /** How many days of data are in `daily` (inclusive, ending today UTC). */
+  windowDays: number;
+  totals: {
+    loginSuccess: number;
+    loginFailed: number;
+    passwordChange: number;
+    userChange: number;
+    roleChange: number;
+    ssoConfig: number;
+    lockouts: number;
+  };
+  /** One entry per day (YYYY-MM-DD), with a count per category. */
+  daily: { date: string; counts: Record<string, number> }[];
+  /** Identifiers with the most failed logins over the window. */
+  failureWatchlist: {
+    actor: string;
+    failures: number;
+    lastAt: string;
+    distinctIps: number;
+  }[];
+  /** Most recent audit rows (for a "latest activity" tail). */
+  recent: {
+    id: number;
+    at: string;
+    action: string;
+    category: string | null;
+    actor: string | null;
+    target: string | null;
+    detail: unknown;
+  }[];
+}
+
+interface AuthAuditRow {
+  id: number;
+  at: string;
+  action: string;
+  actor: string | null;
+  target: string | null;
+  detail: string | null;
+}
+
+function parseDetail(raw: string | null): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+export function getAuthSecurity(
+  db: Database.Database,
+  opts: { days?: number } = {},
+): AuthSecuritySummary {
+  const windowDays = Math.min(Math.max(opts.days ?? 30, 7), 180);
+  const cutoff = daysAgo(windowDays - 1); // include today
+  const cutoffIso = iso(cutoff);
+
+  const rows = db
+    .prepare(
+      `SELECT id, at, action, actor, target, detail
+         FROM auth_audit
+        WHERE at >= ?
+        ORDER BY id DESC`,
+    )
+    .all(cutoffIso) as AuthAuditRow[];
+
+  const totals = {
+    loginSuccess: 0,
+    loginFailed: 0,
+    passwordChange: 0,
+    userChange: 0,
+    roleChange: 0,
+    ssoConfig: 0,
+    lockouts: 0,
+  };
+
+  // Pre-build YYYY-MM-DD keys for each day in the window so chart always
+  // shows zero-filled days.
+  const dayKeys: string[] = [];
+  for (let i = windowDays - 1; i >= 0; i--) {
+    const d = daysAgo(i);
+    dayKeys.push(ymd(d));
+  }
+  const emptyCounts = () => {
+    const o: Record<string, number> = {};
+    for (const c of AUTH_REPORT_CATEGORIES) o[c] = 0;
+    return o;
+  };
+  const dayMap = new Map<string, Record<string, number>>();
+  for (const k of dayKeys) dayMap.set(k, emptyCounts());
+
+  const failMap = new Map<
+    string,
+    { actor: string; failures: number; lastAt: string; ips: Set<string> }
+  >();
+
+  for (const r of rows) {
+    const cat = AUDIT_ACTION_TO_CAT.get(r.action) ?? null;
+
+    if (cat === "login_success") totals.loginSuccess++;
+    else if (cat === "login_failed") totals.loginFailed++;
+    else if (cat === "password_change") totals.passwordChange++;
+    else if (cat === "user_change") totals.userChange++;
+    else if (cat === "role_change") totals.roleChange++;
+    else if (cat === "sso_config") totals.ssoConfig++;
+
+    // "Lockout" is a login_failed with reason === 'locked'.
+    if (r.action === "local_login_failed") {
+      const d = parseDetail(r.detail);
+      if (d && typeof d === "object" && (d as { reason?: unknown }).reason === "locked") {
+        totals.lockouts++;
+      }
+      const actorKey = (r.actor ?? "(unknown)").toLowerCase();
+      const fm = failMap.get(actorKey) ?? {
+        actor: r.actor ?? "(unknown)",
+        failures: 0,
+        lastAt: r.at,
+        ips: new Set<string>(),
+      };
+      fm.failures += 1;
+      if (r.at > fm.lastAt) fm.lastAt = r.at;
+      if (d && typeof d === "object") {
+        const ip = (d as { ip?: unknown }).ip;
+        if (typeof ip === "string" && ip) fm.ips.add(ip);
+      }
+      failMap.set(actorKey, fm);
+    }
+
+    if (cat) {
+      const key = ymd(new Date(r.at));
+      const bucket = dayMap.get(key);
+      if (bucket) bucket[cat] = (bucket[cat] ?? 0) + 1;
+    }
+  }
+
+  const failureWatchlist = [...failMap.values()]
+    .sort((a, b) => b.failures - a.failures)
+    .slice(0, 15)
+    .map((f) => ({
+      actor: f.actor,
+      failures: f.failures,
+      lastAt: f.lastAt,
+      distinctIps: f.ips.size,
+    }));
+
+  const recent = rows.slice(0, 25).map((r) => ({
+    id: r.id,
+    at: r.at,
+    action: r.action,
+    category: AUDIT_ACTION_TO_CAT.get(r.action) ?? null,
+    actor: r.actor,
+    target: r.target,
+    detail: parseDetail(r.detail),
+  }));
+
+  return {
+    generatedAt: iso(new Date()),
+    windowDays,
+    totals,
+    daily: dayKeys.map((date) => ({
+      date,
+      counts: dayMap.get(date) ?? emptyCounts(),
+    })),
+    failureWatchlist,
+    recent,
+  };
+}
+
+/** Escape a value for RFC 4180-ish CSV (quoted when needed, quotes doubled). */
+function csvCell(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = typeof v === "string" ? v : JSON.stringify(v);
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/**
+ * Returns a full CSV string of the auth audit log for a rolling window.
+ * Intended for `Content-Type: text/csv` HTTP responses.
+ */
+export function getAuthAuditCsv(
+  db: Database.Database,
+  opts: { days?: number } = {},
+): string {
+  const windowDays = Math.min(Math.max(opts.days ?? 30, 1), 365);
+  const cutoffIso = iso(daysAgo(windowDays - 1));
+  const rows = db
+    .prepare(
+      `SELECT id, at, action, actor, target, detail
+         FROM auth_audit
+        WHERE at >= ?
+        ORDER BY id DESC`,
+    )
+    .all(cutoffIso) as AuthAuditRow[];
+
+  const header = ["id", "at", "action", "category", "actor", "target", "detail"];
+  const lines: string[] = [header.map(csvCell).join(",")];
+  for (const r of rows) {
+    lines.push(
+      [
+        r.id,
+        r.at,
+        r.action,
+        AUDIT_ACTION_TO_CAT.get(r.action) ?? "",
+        r.actor,
+        r.target,
+        r.detail,
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+  }
+  return lines.join("\r\n") + "\r\n";
+}
+
+// ---------------------------------------------------------------------------
+// Report 5 — Coverage / Gap Analysis
+// ---------------------------------------------------------------------------
+
+// Shape subset used by coverage analysis. Matches src/types.ts PlanData.
+interface CovPolicy {
+  policyNumber?: string;
+  policyDescription?: string;
+}
+interface CovGoalDetail {
+  detail?: string;
+  policies?: CovPolicy[];
+}
+interface CovGoal {
+  goalNumber?: string;
+  goalDescription?: string;
+  goalDetails?: CovGoalDetail[];
+}
+interface CovChapter {
+  chapterNumber?: number | string;
+  chapterTitle?: string;
+  goals?: CovGoal[];
+}
+interface CovPlanData {
+  chapters: CovChapter[];
+}
+
+let cachedPlan: CovPlanData | null = null;
+let testOverrideActive = false;
+
+function planJsonCandidates(): string[] {
+  // __dirname for ESM via import.meta.url.
+  const here = dirname(fileURLToPath(import.meta.url));
+  // server/reports/reportsRepo.ts → ../../public/data and ../../dist/data
+  return [
+    join(here, "..", "..", "public", "data", "comprehensive-plan-hierarchy.json"),
+    join(here, "..", "..", "dist", "data", "comprehensive-plan-hierarchy.json"),
+    join(process.cwd(), "public", "data", "comprehensive-plan-hierarchy.json"),
+    join(process.cwd(), "dist", "data", "comprehensive-plan-hierarchy.json"),
+  ];
+}
+
+function loadPlanFromDisk(): CovPlanData | null {
+  for (const p of planJsonCandidates()) {
+    if (existsSync(p)) {
+      try {
+        const raw = readFileSync(p, "utf8");
+        const parsed = JSON.parse(raw) as CovPlanData;
+        if (parsed && Array.isArray(parsed.chapters)) return parsed;
+      } catch {
+        /* try next */
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Test seam so unit tests can inject a fake hierarchy (or `null` to disable
+ * the disk fallback). Call `resetPlanCacheForTests()` to return to normal.
+ */
+export function setPlanDataForTests(plan: CovPlanData | null): void {
+  cachedPlan = plan;
+  testOverrideActive = true;
+}
+
+export function resetPlanCacheForTests(): void {
+  cachedPlan = null;
+  testOverrideActive = false;
+}
+
+function getPlan(): CovPlanData | null {
+  if (testOverrideActive) return cachedPlan;
+  if (cachedPlan) return cachedPlan;
+  cachedPlan = loadPlanFromDisk();
+  return cachedPlan;
+}
+
+export interface CoverageUncoveredGoal {
+  chapterIdx: number;
+  goalIdx: number;
+  chapterName: string;
+  goalName: string;
+}
+
+export interface CoverageChapterRow {
+  chapterIdx: number;
+  chapterName: string;
+  goalsTotal: number;
+  goalsCovered: number;
+  submissions: number;
+}
+
+export interface CoverageReport {
+  generatedAt: string;
+  planLoaded: boolean;
+  totals: {
+    chapters: number;
+    goals: number;
+    policies: number;
+    goalsCovered: number;
+    policiesCovered: number;
+    goalsUncovered: number;
+    policiesUncovered: number;
+    submissionsMapped: number;
+    submissionsUnmapped: number;
+  };
+  byChapter: CoverageChapterRow[];
+  uncoveredGoals: CoverageUncoveredGoal[];
+  topGoals: (CoverageUncoveredGoal & { count: number })[];
+}
+
+export function getCoverageGaps(db: Database.Database): CoverageReport {
+  const plan = getPlan();
+  if (!plan) {
+    return {
+      generatedAt: iso(new Date()),
+      planLoaded: false,
+      totals: {
+        chapters: 0,
+        goals: 0,
+        policies: 0,
+        goalsCovered: 0,
+        policiesCovered: 0,
+        goalsUncovered: 0,
+        policiesUncovered: 0,
+        submissionsMapped: 0,
+        submissionsUnmapped: 0,
+      },
+      byChapter: [],
+      uncoveredGoals: [],
+      topGoals: [],
+    };
+  }
+
+  // Build the plan universe: every (chapterIdx, goalIdx) and (ch,g,gd,p).
+  const goalUniverse = new Map<
+    string,
+    { chapterIdx: number; goalIdx: number; chapterName: string; goalName: string }
+  >();
+  const policyUniverse = new Set<string>();
+  const chapterInfo = new Map<
+    number,
+    { chapterName: string; goalsTotal: number }
+  >();
+
+  plan.chapters.forEach((ch, ci) => {
+    const chapterName = `Ch ${ch.chapterNumber ?? ci} · ${ch.chapterTitle ?? ""}`.trim();
+    const goals = ch.goals ?? [];
+    chapterInfo.set(ci, { chapterName, goalsTotal: goals.length });
+    goals.forEach((g, gi) => {
+      const goalName = `${g.goalNumber ?? gi}${
+        g.goalDescription ? " · " + g.goalDescription : ""
+      }`;
+      goalUniverse.set(`${ci}:${gi}`, {
+        chapterIdx: ci,
+        goalIdx: gi,
+        chapterName,
+        goalName,
+      });
+      (g.goalDetails ?? []).forEach((gd, gdi) => {
+        (gd.policies ?? []).forEach((_, pi) => {
+          policyUniverse.add(`${ci}:${gi}:${gdi}:${pi}`);
+        });
+      });
+    });
+  });
+
+  type SubRow = { snapshot_json: string };
+  const subs = db
+    .prepare(`SELECT snapshot_json FROM submissions`)
+    .all() as SubRow[];
+
+  const goalCounts = new Map<string, number>();
+  const policyCounts = new Map<string, number>();
+  const chapterSubmissionCounts = new Map<number, number>();
+  let mapped = 0;
+  let unmapped = 0;
+
+  for (const s of subs) {
+    let planItems: {
+      chapterIdx?: number;
+      goalIdx?: number;
+      goalDetailIdx?: number;
+      policyIdx?: number;
+    }[] = [];
+    try {
+      const parsed = JSON.parse(s.snapshot_json) as { planItems?: unknown };
+      if (parsed && Array.isArray(parsed.planItems)) {
+        planItems = parsed.planItems as typeof planItems;
+      }
+    } catch {
+      unmapped++;
+      continue;
+    }
+    if (planItems.length === 0) {
+      unmapped++;
+      continue;
+    }
+    mapped++;
+    const chaptersHitByThisSub = new Set<number>();
+    for (const pi of planItems) {
+      const ci = typeof pi.chapterIdx === "number" ? pi.chapterIdx : -1;
+      const gi = typeof pi.goalIdx === "number" ? pi.goalIdx : -1;
+      if (ci < 0 || gi < 0) continue;
+      const goalKey = `${ci}:${gi}`;
+      goalCounts.set(goalKey, (goalCounts.get(goalKey) ?? 0) + 1);
+      chaptersHitByThisSub.add(ci);
+      const gdi = typeof pi.goalDetailIdx === "number" ? pi.goalDetailIdx : -1;
+      const pIdx = typeof pi.policyIdx === "number" ? pi.policyIdx : -1;
+      if (gdi >= 0 && pIdx >= 0) {
+        const polKey = `${ci}:${gi}:${gdi}:${pIdx}`;
+        policyCounts.set(polKey, (policyCounts.get(polKey) ?? 0) + 1);
+      }
+    }
+    for (const ci of chaptersHitByThisSub) {
+      chapterSubmissionCounts.set(ci, (chapterSubmissionCounts.get(ci) ?? 0) + 1);
+    }
+  }
+
+  const goalsCovered = [...goalCounts.keys()].filter((k) =>
+    goalUniverse.has(k),
+  ).length;
+  const policiesCovered = [...policyCounts.keys()].filter((k) =>
+    policyUniverse.has(k),
+  ).length;
+
+  const uncoveredGoals: CoverageUncoveredGoal[] = [];
+  for (const [key, info] of goalUniverse.entries()) {
+    if (!goalCounts.has(key)) {
+      uncoveredGoals.push(info);
+    }
+  }
+  uncoveredGoals.sort(
+    (a, b) =>
+      a.chapterIdx - b.chapterIdx || a.goalIdx - b.goalIdx,
+  );
+
+  const byChapter: CoverageChapterRow[] = [];
+  for (const [chapterIdx, info] of chapterInfo.entries()) {
+    let covered = 0;
+    for (let gi = 0; gi < info.goalsTotal; gi++) {
+      if (goalCounts.has(`${chapterIdx}:${gi}`)) covered++;
+    }
+    byChapter.push({
+      chapterIdx,
+      chapterName: info.chapterName,
+      goalsTotal: info.goalsTotal,
+      goalsCovered: covered,
+      submissions: chapterSubmissionCounts.get(chapterIdx) ?? 0,
+    });
+  }
+  byChapter.sort((a, b) => a.chapterIdx - b.chapterIdx);
+
+  const topGoals = [...goalCounts.entries()]
+    .filter(([k]) => goalUniverse.has(k))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([k, count]) => {
+      const info = goalUniverse.get(k)!;
+      return { ...info, count };
+    });
+
+  const totals = {
+    chapters: chapterInfo.size,
+    goals: goalUniverse.size,
+    policies: policyUniverse.size,
+    goalsCovered,
+    policiesCovered,
+    goalsUncovered: goalUniverse.size - goalsCovered,
+    policiesUncovered: policyUniverse.size - policiesCovered,
+    submissionsMapped: mapped,
+    submissionsUnmapped: unmapped,
+  };
+
+  return {
+    generatedAt: iso(new Date()),
+    planLoaded: true,
+    totals,
+    byChapter,
+    uncoveredGoals,
+    topGoals,
   };
 }

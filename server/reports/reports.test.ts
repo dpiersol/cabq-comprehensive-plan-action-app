@@ -1,9 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { buildServer } from "../app.js";
 import { createMemoryDatabase } from "../db/database.js";
 import { insertSubmission } from "../submissionsRepo.js";
 import { insertUser } from "../localUsersRepo.js";
 import { hashPassword } from "../passwords.js";
+import { recordAudit } from "../auditRepo.js";
+import {
+  resetPlanCacheForTests,
+  setPlanDataForTests,
+} from "./reportsRepo.js";
 
 const ADMIN_HEADERS = {
   "x-user-email": "admin@cabq.gov",
@@ -43,6 +48,12 @@ function snapshotWithGoals(pairs: { chapterIdx: number; goalIdx: number }[]) {
 describe("reports routes", () => {
   // Header fallback is automatically enabled in tests because AZURE_* env
   // vars are unset (see allowHeaderFallback()). No extra setup needed.
+
+  // Reset the coverage plan cache after these tests to avoid leakage
+  // between test files (the disk fallback is desirable in production).
+  afterAll(() => {
+    resetPlanCacheForTests();
+  });
 
   it("rejects unauthenticated callers with 401", async () => {
     const { app } = buildWithMemoryDb();
@@ -207,6 +218,257 @@ describe("reports routes", () => {
     );
     expect(visitor).toBeDefined();
     expect(visitor!.submissionsTotal).toBe(2);
+    await app.close();
+  });
+
+  // -----------------------------------------------------------------------
+  // Report 3 — Authentication & Security
+  // -----------------------------------------------------------------------
+
+  it("auth-security rolls up audit events into categories + failure watchlist", async () => {
+    const { db, app } = buildWithMemoryDb();
+
+    recordAudit(db, {
+      action: "local_login_success",
+      actor: "good@cabq.gov",
+      target: "u-1",
+    });
+    recordAudit(db, {
+      action: "local_login_failed",
+      actor: "bad@cabq.gov",
+      target: null,
+      detail: { reason: "bad_password", ip: "10.0.0.1" },
+    });
+    recordAudit(db, {
+      action: "local_login_failed",
+      actor: "bad@cabq.gov",
+      target: null,
+      detail: { reason: "bad_password", ip: "10.0.0.2" },
+    });
+    recordAudit(db, {
+      action: "local_login_failed",
+      actor: "bad@cabq.gov",
+      target: null,
+      detail: { reason: "locked", ip: "10.0.0.1" },
+    });
+    recordAudit(db, { action: "admin_user_create", actor: "admin@cabq.gov" });
+    recordAudit(db, { action: "admin_role_create", actor: "admin@cabq.gov" });
+    recordAudit(db, {
+      action: "admin_auth_config_update",
+      actor: "admin@cabq.gov",
+    });
+    recordAudit(db, {
+      action: "admin_user_reset_password",
+      actor: "admin@cabq.gov",
+    });
+
+    const r = await app.inject({
+      method: "GET",
+      url: "/api/admin/reports/auth-security?days=7",
+      headers: ADMIN_HEADERS,
+    });
+    expect(r.statusCode).toBe(200);
+    const body = r.json() as {
+      windowDays: number;
+      totals: {
+        loginSuccess: number;
+        loginFailed: number;
+        lockouts: number;
+        userChange: number;
+        roleChange: number;
+        ssoConfig: number;
+        passwordChange: number;
+      };
+      daily: { date: string; counts: Record<string, number> }[];
+      failureWatchlist: { actor: string; failures: number; distinctIps: number }[];
+      recent: { action: string; category: string | null }[];
+    };
+    expect(body.windowDays).toBe(7);
+    expect(body.totals.loginSuccess).toBe(1);
+    expect(body.totals.loginFailed).toBe(3);
+    expect(body.totals.lockouts).toBe(1);
+    expect(body.totals.userChange).toBe(1);
+    expect(body.totals.roleChange).toBe(1);
+    expect(body.totals.ssoConfig).toBe(1);
+    expect(body.totals.passwordChange).toBe(1);
+    expect(body.daily.length).toBe(7);
+    // Watchlist should surface the repeated-failure actor with 2 distinct IPs.
+    const entry = body.failureWatchlist.find((f) => f.actor === "bad@cabq.gov");
+    expect(entry).toBeDefined();
+    expect(entry!.failures).toBe(3);
+    expect(entry!.distinctIps).toBe(2);
+    expect(body.recent.length).toBeGreaterThan(0);
+    await app.close();
+  });
+
+  it("auth-security clamps days parameter to [7, 180]", async () => {
+    const { app } = buildWithMemoryDb();
+    const low = await app.inject({
+      method: "GET",
+      url: "/api/admin/reports/auth-security?days=1",
+      headers: ADMIN_HEADERS,
+    });
+    expect(low.statusCode).toBe(200);
+    expect((low.json() as { windowDays: number }).windowDays).toBe(7);
+    const high = await app.inject({
+      method: "GET",
+      url: "/api/admin/reports/auth-security?days=9999",
+      headers: ADMIN_HEADERS,
+    });
+    expect(high.statusCode).toBe(200);
+    expect((high.json() as { windowDays: number }).windowDays).toBe(180);
+    await app.close();
+  });
+
+  it("auth-audit.csv streams well-formed CSV with headers + quoting", async () => {
+    const { db, app } = buildWithMemoryDb();
+    recordAudit(db, {
+      action: "local_login_failed",
+      actor: 'someone, with "quotes"',
+      target: null,
+      detail: { reason: "bad_password" },
+    });
+    const r = await app.inject({
+      method: "GET",
+      url: "/api/admin/reports/auth-audit.csv?days=1",
+      headers: ADMIN_HEADERS,
+    });
+    expect(r.statusCode).toBe(200);
+    expect(r.headers["content-type"]).toMatch(/text\/csv/);
+    expect(r.headers["content-disposition"]).toMatch(/attachment;.*\.csv/);
+    const lines = r.body.split(/\r\n/).filter(Boolean);
+    expect(lines[0]).toBe("id,at,action,category,actor,target,detail");
+    // Row with a comma/quote-containing actor must be properly quoted.
+    expect(lines[1]).toContain('"someone, with ""quotes"""');
+    expect(lines[1]).toContain("local_login_failed");
+    expect(lines[1]).toContain("login_failed");
+    await app.close();
+  });
+
+  // -----------------------------------------------------------------------
+  // Report 5 — Coverage / Gap Analysis
+  // -----------------------------------------------------------------------
+
+  it("coverage returns planLoaded=false and empty totals when no hierarchy", async () => {
+    setPlanDataForTests(null);
+    const { app } = buildWithMemoryDb();
+    const r = await app.inject({
+      method: "GET",
+      url: "/api/admin/reports/coverage",
+      headers: ADMIN_HEADERS,
+    });
+    expect(r.statusCode).toBe(200);
+    const body = r.json() as {
+      planLoaded: boolean;
+      totals: { chapters: number };
+    };
+    expect(body.planLoaded).toBe(false);
+    expect(body.totals.chapters).toBe(0);
+    await app.close();
+  });
+
+  it("coverage counts covered/uncovered goals against a test plan", async () => {
+    // Tiny synthetic plan: Chapter 0 with 3 goals, Chapter 1 with 2 goals.
+    setPlanDataForTests({
+      chapters: [
+        {
+          chapterNumber: 1,
+          chapterTitle: "Alpha",
+          goals: [
+            { goalNumber: "1.1", goalDescription: "G1", goalDetails: [] },
+            { goalNumber: "1.2", goalDescription: "G2", goalDetails: [] },
+            { goalNumber: "1.3", goalDescription: "G3", goalDetails: [] },
+          ],
+        },
+        {
+          chapterNumber: 2,
+          chapterTitle: "Beta",
+          goals: [
+            { goalNumber: "2.1", goalDescription: "G1", goalDetails: [] },
+            { goalNumber: "2.2", goalDescription: "G2", goalDetails: [] },
+          ],
+        },
+      ],
+    });
+
+    const { db, app } = buildWithMemoryDb();
+
+    // 3 submissions covering (0,0), (0,1), and (1,0). Goals (0,2) and (1,1)
+    // should be flagged uncovered.
+    insertSubmission(
+      db,
+      "email:a@cabq.gov",
+      snapshotWithGoals([{ chapterIdx: 0, goalIdx: 0 }]),
+      "submitted",
+      "a@cabq.gov",
+    );
+    insertSubmission(
+      db,
+      "email:b@cabq.gov",
+      snapshotWithGoals([
+        { chapterIdx: 0, goalIdx: 0 },
+        { chapterIdx: 0, goalIdx: 1 },
+      ]),
+      "submitted",
+      "b@cabq.gov",
+    );
+    insertSubmission(
+      db,
+      "email:c@cabq.gov",
+      snapshotWithGoals([{ chapterIdx: 1, goalIdx: 0 }]),
+      "draft",
+      "c@cabq.gov",
+    );
+
+    const r = await app.inject({
+      method: "GET",
+      url: "/api/admin/reports/coverage",
+      headers: ADMIN_HEADERS,
+    });
+    expect(r.statusCode).toBe(200);
+    const body = r.json() as {
+      planLoaded: boolean;
+      totals: {
+        chapters: number;
+        goals: number;
+        goalsCovered: number;
+        goalsUncovered: number;
+        submissionsMapped: number;
+      };
+      byChapter: {
+        chapterIdx: number;
+        goalsTotal: number;
+        goalsCovered: number;
+        submissions: number;
+      }[];
+      uncoveredGoals: { chapterIdx: number; goalIdx: number }[];
+      topGoals: { chapterIdx: number; goalIdx: number; count: number }[];
+    };
+    expect(body.planLoaded).toBe(true);
+    expect(body.totals.chapters).toBe(2);
+    expect(body.totals.goals).toBe(5);
+    expect(body.totals.goalsCovered).toBe(3);
+    expect(body.totals.goalsUncovered).toBe(2);
+    expect(body.totals.submissionsMapped).toBe(3);
+    // Chapter 0: 3 goals, 2 covered, 2 submissions touched it.
+    const ch0 = body.byChapter.find((c) => c.chapterIdx === 0);
+    expect(ch0).toEqual(
+      expect.objectContaining({
+        goalsTotal: 3,
+        goalsCovered: 2,
+        submissions: 2,
+      }),
+    );
+    expect(body.uncoveredGoals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ chapterIdx: 0, goalIdx: 2 }),
+        expect.objectContaining({ chapterIdx: 1, goalIdx: 1 }),
+      ]),
+    );
+    // Top goal should be (0,0) with 2 citations.
+    expect(body.topGoals[0]).toEqual(
+      expect.objectContaining({ chapterIdx: 0, goalIdx: 0, count: 2 }),
+    );
     await app.close();
   });
 

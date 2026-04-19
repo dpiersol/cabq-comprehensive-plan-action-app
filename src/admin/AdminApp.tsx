@@ -14,6 +14,8 @@ import { AuditPage } from "./AuditPage";
 import { ReportsLanding } from "./reports/ReportsLanding";
 import { SubmissionsOverviewPage } from "./reports/SubmissionsOverviewPage";
 import { UserActivityPage } from "./reports/UserActivityPage";
+import { AuthSecurityPage } from "./reports/AuthSecurityPage";
+import { CoveragePage } from "./reports/CoveragePage";
 import {
   AdminApiUnavailable,
   getAdminSubmission,
@@ -34,7 +36,9 @@ type Page =
   | "audit"
   | "reports"
   | "reports-submissions"
-  | "reports-users";
+  | "reports-users"
+  | "reports-auth"
+  | "reports-coverage";
 
 function parseHash(): { page: Page; id: string | null } {
   const h = window.location.hash.replace(/^#\/?/, "");
@@ -48,6 +52,8 @@ function parseHash(): { page: Page; id: string | null } {
   if (h === "reports") return { page: "reports", id: null };
   if (h === "reports/submissions") return { page: "reports-submissions", id: null };
   if (h === "reports/users") return { page: "reports-users", id: null };
+  if (h === "reports/auth-security") return { page: "reports-auth", id: null };
+  if (h === "reports/coverage") return { page: "reports-coverage", id: null };
   return { page: "list", id: null };
 }
 
@@ -216,7 +222,9 @@ export function AdminApp() {
               (n.id === "list" && route.page === "detail") ||
               (n.id === "reports" &&
                 (route.page === "reports-submissions" ||
-                  route.page === "reports-users"));
+                  route.page === "reports-users" ||
+                  route.page === "reports-auth" ||
+                  route.page === "reports-coverage"));
             return (
               <span key={n.id} className="admin-nav-item">
                 {showSecurityLabel && (
@@ -276,6 +284,8 @@ export function AdminApp() {
           <SubmissionsOverviewPage plan={plan} />
         )}
         {route.page === "reports-users" && <UserActivityPage />}
+        {route.page === "reports-auth" && <AuthSecurityPage />}
+        {route.page === "reports-coverage" && <CoveragePage />}
       </main>
 
       <footer className="admin-footer">

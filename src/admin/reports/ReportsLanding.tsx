@@ -29,15 +29,15 @@ const reports: ReportCard[] = [
     description:
       "Auth audit summary: successful/failed logins, lockouts, password changes, role changes, SSO-config edits. Daily stacked chart, repeated-failure watchlist, and CSV export.",
     availability: "v4.1.0",
-    currentlyAvailable: false,
+    currentlyAvailable: true,
   },
   {
     hash: "#reports/coverage",
     title: "Coverage / Gap Analysis",
     description:
-      "Cross-references the comp plan hierarchy against submissions. Flags goals/policies/actions with zero submissions (gaps) and the heaviest-hit (saturation). Exportable gap list.",
+      "Cross-references the comp plan hierarchy against submissions. Flags goals with zero submissions (gaps) and the heaviest-hit (saturation). Exportable gap list.",
     availability: "v4.1.0",
-    currentlyAvailable: false,
+    currentlyAvailable: true,
   },
   {
     hash: "#reports/lifecycle",
