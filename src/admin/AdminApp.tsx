@@ -11,6 +11,9 @@ import { UsersPage } from "./UsersPage";
 import { RolesPage } from "./RolesPage";
 import { AuthSettingsPage } from "./AuthSettingsPage";
 import { AuditPage } from "./AuditPage";
+import { ReportsLanding } from "./reports/ReportsLanding";
+import { SubmissionsOverviewPage } from "./reports/SubmissionsOverviewPage";
+import { UserActivityPage } from "./reports/UserActivityPage";
 import {
   AdminApiUnavailable,
   getAdminSubmission,
@@ -28,7 +31,10 @@ type Page =
   | "users"
   | "roles"
   | "settings"
-  | "audit";
+  | "audit"
+  | "reports"
+  | "reports-submissions"
+  | "reports-users";
 
 function parseHash(): { page: Page; id: string | null } {
   const h = window.location.hash.replace(/^#\/?/, "");
@@ -39,8 +45,12 @@ function parseHash(): { page: Page; id: string | null } {
   if (h === "roles") return { page: "roles", id: null };
   if (h === "settings") return { page: "settings", id: null };
   if (h === "audit") return { page: "audit", id: null };
+  if (h === "reports") return { page: "reports", id: null };
+  if (h === "reports/submissions") return { page: "reports-submissions", id: null };
+  if (h === "reports/users") return { page: "reports-users", id: null };
   return { page: "list", id: null };
 }
+
 
 type DataSource = "api" | "local" | "loading";
 
@@ -158,12 +168,23 @@ export function AdminApp() {
     );
   }
 
-  const navItems: { id: Page; hash: string; label: string }[] = [
+  const navItems: {
+    id: Page;
+    hash: string;
+    label: string;
+    group?: "security";
+  }[] = [
     { id: "list", hash: "#", label: "Submissions" },
-    { id: "users", hash: "#users", label: "Users" },
-    { id: "roles", hash: "#roles", label: "Roles" },
-    { id: "settings", hash: "#settings", label: "Sign-in settings" },
-    { id: "audit", hash: "#audit", label: "Audit log" },
+    { id: "users", hash: "#users", label: "Users", group: "security" },
+    { id: "roles", hash: "#roles", label: "Roles", group: "security" },
+    {
+      id: "settings",
+      hash: "#settings",
+      label: "Sign-in settings",
+      group: "security",
+    },
+    { id: "audit", hash: "#audit", label: "Audit log", group: "security" },
+    { id: "reports", hash: "#reports", label: "Reports", group: "security" },
   ];
 
   return (
@@ -186,19 +207,35 @@ export function AdminApp() {
           </div>
         </div>
         <nav className="admin-nav">
-          {navItems.map((n) => (
-            <a
-              key={n.id}
-              href={n.hash}
-              className={`admin-nav-link ${
-                route.page === n.id || (n.id === "list" && route.page === "detail")
-                  ? "is-active"
-                  : ""
-              }`}
-            >
-              {n.label}
-            </a>
-          ))}
+          {navItems.map((n, idx) => {
+            const prev = navItems[idx - 1];
+            const showSecurityLabel =
+              n.group === "security" && prev?.group !== "security";
+            const isActive =
+              route.page === n.id ||
+              (n.id === "list" && route.page === "detail") ||
+              (n.id === "reports" &&
+                (route.page === "reports-submissions" ||
+                  route.page === "reports-users"));
+            return (
+              <span key={n.id} className="admin-nav-item">
+                {showSecurityLabel && (
+                  <span
+                    className="admin-nav-group-label"
+                    aria-hidden="true"
+                  >
+                    Security:
+                  </span>
+                )}
+                <a
+                  href={n.hash}
+                  className={`admin-nav-link ${isActive ? "is-active" : ""}`}
+                >
+                  {n.label}
+                </a>
+              </span>
+            );
+          })}
         </nav>
         {route.page === "list" || route.page === "detail" ? (
           <p className="admin-header-sub">
@@ -234,6 +271,11 @@ export function AdminApp() {
         {route.page === "roles" && <RolesPage />}
         {route.page === "settings" && <AuthSettingsPage />}
         {route.page === "audit" && <AuditPage />}
+        {route.page === "reports" && <ReportsLanding />}
+        {route.page === "reports-submissions" && (
+          <SubmissionsOverviewPage plan={plan} />
+        )}
+        {route.page === "reports-users" && <UserActivityPage />}
       </main>
 
       <footer className="admin-footer">

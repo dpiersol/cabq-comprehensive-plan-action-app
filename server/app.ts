@@ -13,6 +13,7 @@ import { registerAuthConfigRoutes } from "./authConfigRoutes.js";
 import { openDatabase } from "./db/database.js";
 import { registerLocalAuthRoutes } from "./localAuthRoutes.js";
 import { localSessionConfigured } from "./localSessionJwt.js";
+import { registerReportsRoutes } from "./reports/reportsRoutes.js";
 import { parseCreateBody, parsePatchBody } from "./submissionPatchBody.js";
 import {
   deleteSubmission,
@@ -176,6 +177,7 @@ export function buildServer(opts?: BuildServerOptions) {
 
   registerLocalAuthRoutes(app, db);
   registerAuthConfigRoutes(app, db);
+  registerReportsRoutes(app, db);
 
   // Bootstrap initial admin (no-op in tests or when env vars not set).
   if (!process.env.VITEST) {

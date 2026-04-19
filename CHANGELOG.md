@@ -1,5 +1,60 @@
 # Changelog
 
+## [4.0.0] — 2026-04-18
+
+### Reports — phase 1 of 3 (Admin → Security → Reports)
+
+First slice of the new Reports area under the Admin Console's Security nav
+group. Phase 1 ships the foundation and the two fastest-to-deliver reports.
+Phase 2 (v4.1.0) will add Authentication & Security plus Coverage / Gap
+Analysis; phase 3 (v4.2.0) will add Submission Lifecycle (requires DB
+migration 5 for status history).
+
+**New admin area**
+
+- Security group in the top admin nav (visual "Security:" separator) now
+  contains Users, Roles, Sign-in settings, Audit log, and **Reports**.
+- `#reports` landing page with cards for all five planned reports, clearly
+  badged as ready-now (4.0.0) or coming in 4.1.0 / 4.2.0.
+
+**Report #1 — Submissions Overview (`#reports/submissions`)**
+
+- KPIs: total, submitted, draft, created last 7/30d, submitted last 7/30d.
+- 4/13/26/52-week submitted-per-week bar chart (server buckets by Monday).
+- Top 10 most-cited comp-plan goals with chapter + goal names resolved from
+  the admin's loaded plan hierarchy JSON.
+- "Unmapped" count flags submissions with no parseable plan items.
+
+**Report #2 — User Activity (`#reports/users`)**
+
+- Local users table: username, email, roles, Active/Locked/Dormant status,
+  last-login + days-since, submitted/draft counts. Filters for All, Active,
+  Admins, Locked, Dormant > 90d.
+- Non-local submitters table: emails with submissions but no local account
+  (SSO / header-based identities), sorted by total submissions.
+- Totals: local users, active, admins, dormant > 90d.
+
+**Backend**
+
+- New `server/reports/reportsRepo.ts` (pure SQL aggregation helpers) and
+  `server/reports/reportsRoutes.ts` (admin-gated JSON endpoints).
+- `GET /api/admin/reports/submissions-overview?weeks=4..52` (clamped).
+- `GET /api/admin/reports/user-activity`.
+- 5 vitest cases in `server/reports/reports.test.ts` covering auth gates,
+  KPI math, goal-counting, non-local submitter detection, and weeks
+  clamping. Full backend suite: 30/30 passing.
+
+**Frontend**
+
+- New `src/admin/reports/` folder: `reportsApi.ts`, `ReportsLanding.tsx`,
+  `SubmissionsOverviewPage.tsx`, `UserActivityPage.tsx`.
+- New admin CSS: nav Security group label, report cards, KPI tiles, weekly
+  bar chart, status badges.
+
+Breaking: none (additive only — new routes + UI). Version bumped to 4.0.0
+because this begins a new major feature area (Reports) and the UI surface
+gains a persistent nav concept ("Security group").
+
 ## [3.8.3] — 2026-04-18
 
 ### Deployment scripts
