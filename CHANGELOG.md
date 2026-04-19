@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.8.2] — 2026-04-18
+
+### Runtime / PM2 — server actually starts on the sandbox
+
+- **`tsx` is now a production dependency.** The Fastify API is launched
+  directly from TypeScript via `tsx` (there is no compiled `dist/index.js`
+  — `tsconfig.server.json` is `noEmit: true`), so `tsx` must survive
+  `npm install --omit=dev`. Moving it from `devDependencies` to
+  `dependencies` prevents `ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'`
+  on reload after a production install.
+- **`ecosystem.config.cjs` now launches the correct entry.** The previous
+  config pointed at a non-existent `dist/index.js`; PM2 now runs
+  `./node_modules/tsx/dist/cli.mjs` with `server/index.ts` as its arg.
+  This is the same thing `npm run dev:server` does, just under PM2.
+
 ## [3.8.1] — 2026-04-18
 
 ### Server env loading — `dotenv`
