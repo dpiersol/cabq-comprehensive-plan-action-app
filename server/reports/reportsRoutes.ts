@@ -13,6 +13,7 @@ import {
   getAuthAuditCsv,
   getAuthSecurity,
   getCoverageGaps,
+  getSubmissionLifecycle,
   getSubmissionsOverview,
   getUserActivity,
 } from "./reportsRepo.js";
@@ -86,5 +87,14 @@ export function registerReportsRoutes(app: FastifyInstance, db: Database.Databas
     if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "forbidden" });
 
     return getCoverageGaps(db);
+  });
+
+  // GET /api/admin/reports/lifecycle
+  app.get("/api/admin/reports/lifecycle", async (req, reply) => {
+    const owner = await resolveOwner(req, db);
+    if (!owner) return reply.code(401).send({ error: "unauthorized" });
+    if (!isAdminFor(db, owner)) return reply.code(403).send({ error: "forbidden" });
+
+    return getSubmissionLifecycle(db);
   });
 }

@@ -183,3 +183,36 @@ export interface CoverageReport {
 export function fetchCoverage(): Promise<CoverageReport> {
   return fetchJson(`/api/admin/reports/coverage`);
 }
+
+export interface LifecycleStats {
+  n: number;
+  medianHours: number | null;
+  p90Hours: number | null;
+  minHours: number | null;
+  maxHours: number | null;
+  avgHours: number | null;
+}
+
+export interface LifecycleReport {
+  generatedAt: string;
+  draftToSubmitted: LifecycleStats;
+  openDraftAge: LifecycleStats;
+  stalestDrafts: {
+    submissionId: string;
+    cpRecordId: string;
+    ownerEmail: string | null;
+    enteredStatusAt: string;
+    hoursInStatus: number;
+    currentStatus: "draft" | "submitted";
+  }[];
+  byMonth: {
+    month: string;
+    submissions: number;
+    medianDraftHours: number | null;
+  }[];
+  currentStatus: { draft: number; submitted: number };
+}
+
+export function fetchLifecycle(): Promise<LifecycleReport> {
+  return fetchJson(`/api/admin/reports/lifecycle`);
+}

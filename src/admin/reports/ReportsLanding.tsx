@@ -43,9 +43,9 @@ const reports: ReportCard[] = [
     hash: "#reports/lifecycle",
     title: "Submission Lifecycle / Turnaround",
     description:
-      "Median and p90 time in each status, oldest pending submissions, and bottleneck detection. Requires migration 5 for status-transition history.",
+      "Median and p90 draft → submitted turnaround, oldest open drafts, monthly submission volume + median turnaround trend. Backfills history for pre-4.2 data.",
     availability: "v4.2.0",
-    currentlyAvailable: false,
+    currentlyAvailable: true,
   },
 ];
 

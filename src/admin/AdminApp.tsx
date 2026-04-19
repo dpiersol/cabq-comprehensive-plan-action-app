@@ -16,6 +16,7 @@ import { SubmissionsOverviewPage } from "./reports/SubmissionsOverviewPage";
 import { UserActivityPage } from "./reports/UserActivityPage";
 import { AuthSecurityPage } from "./reports/AuthSecurityPage";
 import { CoveragePage } from "./reports/CoveragePage";
+import { LifecyclePage } from "./reports/LifecyclePage";
 import {
   AdminApiUnavailable,
   getAdminSubmission,
@@ -38,7 +39,8 @@ type Page =
   | "reports-submissions"
   | "reports-users"
   | "reports-auth"
-  | "reports-coverage";
+  | "reports-coverage"
+  | "reports-lifecycle";
 
 function parseHash(): { page: Page; id: string | null } {
   const h = window.location.hash.replace(/^#\/?/, "");
@@ -54,6 +56,7 @@ function parseHash(): { page: Page; id: string | null } {
   if (h === "reports/users") return { page: "reports-users", id: null };
   if (h === "reports/auth-security") return { page: "reports-auth", id: null };
   if (h === "reports/coverage") return { page: "reports-coverage", id: null };
+  if (h === "reports/lifecycle") return { page: "reports-lifecycle", id: null };
   return { page: "list", id: null };
 }
 
@@ -224,7 +227,8 @@ export function AdminApp() {
                 (route.page === "reports-submissions" ||
                   route.page === "reports-users" ||
                   route.page === "reports-auth" ||
-                  route.page === "reports-coverage"));
+                  route.page === "reports-coverage" ||
+                  route.page === "reports-lifecycle"));
             return (
               <span key={n.id} className="admin-nav-item">
                 {showSecurityLabel && (
@@ -286,6 +290,7 @@ export function AdminApp() {
         {route.page === "reports-users" && <UserActivityPage />}
         {route.page === "reports-auth" && <AuthSecurityPage />}
         {route.page === "reports-coverage" && <CoveragePage />}
+        {route.page === "reports-lifecycle" && <LifecyclePage />}
       </main>
 
       <footer className="admin-footer">

@@ -13,7 +13,9 @@
  *   - getAuthAuditCsv()        → CSV export for Report 3
  *   - getCoverageGaps()        → Report 5 (Coverage / Gap Analysis)
  *
- * Phase 3 (v4.2.0) will add getSubmissionLifecycle() (needs migration 5).
+ * Phase 3 (v4.2.0):
+ *   - getSubmissionLifecycle() → Report 4 (Lifecycle / Turnaround)
+ *     Uses the `submission_status_history` table added in migration 5.
  */
 
 import type Database from "better-sqlite3";
@@ -909,5 +911,204 @@ export function getCoverageGaps(db: Database.Database): CoverageReport {
     byChapter,
     uncoveredGoals,
     topGoals,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Report 4 — Submission Lifecycle / Turnaround
+// ---------------------------------------------------------------------------
+
+export interface LifecycleStats {
+  n: number;
+  medianHours: number | null;
+  p90Hours: number | null;
+  minHours: number | null;
+  maxHours: number | null;
+  avgHours: number | null;
+}
+
+export interface StalePendingRow {
+  submissionId: string;
+  cpRecordId: string;
+  ownerEmail: string | null;
+  enteredStatusAt: string;
+  hoursInStatus: number;
+  currentStatus: "draft" | "submitted";
+}
+
+export interface LifecycleByMonth {
+  month: string; // YYYY-MM
+  submissions: number;
+  medianDraftHours: number | null;
+}
+
+export interface SubmissionLifecycleReport {
+  generatedAt: string;
+  /** Time from first "created as draft" to first "submitted" transition. */
+  draftToSubmitted: LifecycleStats;
+  /** Time from transition into current status → now, for rows still in the
+   *  initial state (i.e., never submitted). */
+  openDraftAge: LifecycleStats;
+  /** Oldest currently-draft submissions, to help clear the queue. */
+  stalestDrafts: StalePendingRow[];
+  /** Monthly rollup of draft→submitted turnaround for a trendline. */
+  byMonth: LifecycleByMonth[];
+  /** Total rows currently in each status. */
+  currentStatus: {
+    draft: number;
+    submitted: number;
+  };
+}
+
+function hoursBetween(fromIso: string, toIso: string): number | null {
+  const a = new Date(fromIso).getTime();
+  const b = new Date(toIso).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  if (b < a) return 0;
+  return (b - a) / 3_600_000;
+}
+
+function statsFromHours(values: number[]): LifecycleStats {
+  if (values.length === 0) {
+    return {
+      n: 0,
+      medianHours: null,
+      p90Hours: null,
+      minHours: null,
+      maxHours: null,
+      avgHours: null,
+    };
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const n = sorted.length;
+  const pick = (p: number) => {
+    const idx = Math.min(n - 1, Math.max(0, Math.floor(p * (n - 1))));
+    return sorted[idx];
+  };
+  const sum = sorted.reduce((a, b) => a + b, 0);
+  return {
+    n,
+    medianHours: pick(0.5),
+    p90Hours: pick(0.9),
+    minHours: sorted[0],
+    maxHours: sorted[n - 1],
+    avgHours: sum / n,
+  };
+}
+
+export function getSubmissionLifecycle(
+  db: Database.Database,
+): SubmissionLifecycleReport {
+  // Pull all transitions ordered per-submission by time.
+  type HRow = {
+    submission_id: string;
+    from_status: string | null;
+    to_status: string;
+    at: string;
+  };
+  const hist = db
+    .prepare(
+      `SELECT submission_id, from_status, to_status, at
+         FROM submission_status_history
+        ORDER BY submission_id, at, id`,
+    )
+    .all() as HRow[];
+
+  type SRow = {
+    id: string;
+    cp_record_id: string;
+    status: string;
+    owner_email: string | null;
+    created_at: string;
+    submitted_at: string | null;
+    updated_at: string;
+  };
+  const subs = db
+    .prepare(
+      `SELECT id, cp_record_id, status, owner_email, created_at, submitted_at, updated_at
+         FROM submissions`,
+    )
+    .all() as SRow[];
+
+  // Build per-submission transition index.
+  const draftEnteredAt = new Map<string, string>(); // first draft timestamp
+  const submittedAt = new Map<string, string>(); // first submitted timestamp
+  for (const h of hist) {
+    if (h.to_status === "draft" && !draftEnteredAt.has(h.submission_id)) {
+      draftEnteredAt.set(h.submission_id, h.at);
+    }
+    if (h.to_status === "submitted" && !submittedAt.has(h.submission_id)) {
+      submittedAt.set(h.submission_id, h.at);
+    }
+  }
+
+  const now = new Date();
+  const draftToSubmittedHours: number[] = [];
+  const openDraftAgeHours: number[] = [];
+  const stalest: StalePendingRow[] = [];
+  const currentStatus = { draft: 0, submitted: 0 };
+
+  // Per-month turnaround samples keyed by submission month (YYYY-MM).
+  const byMonthMap = new Map<
+    string,
+    { submissions: number; turnarounds: number[] }
+  >();
+
+  for (const s of subs) {
+    if (s.status === "submitted") currentStatus.submitted++;
+    else currentStatus.draft++;
+
+    const createdIso = draftEnteredAt.get(s.id) ?? s.created_at;
+    const subIso = submittedAt.get(s.id) ?? s.submitted_at;
+
+    if (subIso) {
+      const hrs = hoursBetween(createdIso, subIso);
+      if (hrs !== null) {
+        draftToSubmittedHours.push(hrs);
+        const month = subIso.slice(0, 7); // YYYY-MM
+        const bucket = byMonthMap.get(month) ?? {
+          submissions: 0,
+          turnarounds: [],
+        };
+        bucket.submissions += 1;
+        bucket.turnarounds.push(hrs);
+        byMonthMap.set(month, bucket);
+      }
+    } else if (s.status === "draft") {
+      const hrs = hoursBetween(createdIso, iso(now));
+      if (hrs !== null) {
+        openDraftAgeHours.push(hrs);
+        stalest.push({
+          submissionId: s.id,
+          cpRecordId: s.cp_record_id,
+          ownerEmail: s.owner_email,
+          enteredStatusAt: createdIso,
+          hoursInStatus: hrs,
+          currentStatus: "draft",
+        });
+      }
+    }
+  }
+
+  stalest.sort((a, b) => b.hoursInStatus - a.hoursInStatus);
+
+  const byMonth: LifecycleByMonth[] = [...byMonthMap.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([month, v]) => {
+      const stats = statsFromHours(v.turnarounds);
+      return {
+        month,
+        submissions: v.submissions,
+        medianDraftHours: stats.medianHours,
+      };
+    });
+
+  return {
+    generatedAt: iso(now),
+    draftToSubmitted: statsFromHours(draftToSubmittedHours),
+    openDraftAge: statsFromHours(openDraftAgeHours),
+    stalestDrafts: stalest.slice(0, 15),
+    byMonth,
+    currentStatus,
   };
 }

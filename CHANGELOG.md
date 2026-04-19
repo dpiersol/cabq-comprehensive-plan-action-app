@@ -1,5 +1,61 @@
 # Changelog
 
+## [4.2.0] — 2026-04-18
+
+### Reports — phase 3 of 3 (final)
+
+Closes the Reports initiative. Adds the Submission Lifecycle / Turnaround
+report plus the infrastructure it needs to produce meaningful numbers.
+
+**DB migration 5 — `submission_status_history`**
+
+New table tracking every status transition, with both a `from_status` and
+`to_status`, an `actor`, and a timestamp. Indexed on
+`(submission_id, at)` and `at` for fast per-submission and global queries.
+Foreign-key-cascades on `submissions.id`.
+
+**Backfill**: migration 5 synthesizes history for every pre-existing
+submission so the report is immediately useful after deploy. Each
+submission gets a "created as draft" row at its `created_at`; submitted
+submissions additionally get a `draft → submitted` row at their
+`submitted_at` (falling back to `updated_at` when null).
+
+**Retrofit**: `insertSubmission`, `patchSubmission` (user), and `patchAny`
+(admin) in `server/submissionsRepo.ts` now append a transition row each
+time the status effectively changes. Zero-change patches don't emit spurious
+rows.
+
+**Report #4 — Submission Lifecycle / Turnaround (`#reports/lifecycle`)**
+
+- Headline KPIs:
+  - In draft now, submitted total.
+  - Median / p90 draft → submitted turnaround.
+  - Median / max age of open (never-submitted) drafts, with warning tone
+    when median > 7 days or oldest > 30 days.
+- Two stats tables: draft→submitted turnaround and open-draft age — each
+  showing `n, min, median, p90, max, avg` in human units (`Xm/Xh/Xd/Xmo`
+  auto-picked per value size).
+- **Oldest drafts** table (top 15) with a direct link into each
+  submission's admin detail page.
+- **By month** bar chart + table showing monthly submission volume and
+  median turnaround — a simple trendline.
+
+**Backend**
+
+- `getSubmissionLifecycle()` in `server/reports/reportsRepo.ts`.
+- `GET /api/admin/reports/lifecycle` (admin-gated JSON).
+- 2 new vitest cases (migration 5 hook verification; deterministic
+  turnaround stats with hand-seeded history). Full suite: **89/89**
+  passing across 18 files.
+
+**Frontend**
+
+- `src/admin/reports/LifecyclePage.tsx`. Landing card now shows "Ready
+  (v4.2.0)" — all five planned reports are live.
+
+Breaking: none on the API surface. Schema change: migration 5 runs
+automatically on first boot of v4.2 against existing DBs.
+
 ## [4.1.0] — 2026-04-18
 
 ### Reports — phase 2 of 3

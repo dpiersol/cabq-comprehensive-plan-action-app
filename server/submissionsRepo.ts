@@ -2,6 +2,21 @@ import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import type { PatchSubmissionBody, SubmissionStatus } from "./submissionPatchBody.js";
 
+function recordStatusTransition(
+  db: Database.Database,
+  submissionId: string,
+  fromStatus: SubmissionStatus | null,
+  toStatus: SubmissionStatus,
+  actor: string | null,
+  at: string,
+): void {
+  db.prepare(
+    `INSERT INTO submission_status_history
+       (submission_id, from_status, to_status, actor, at)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(submissionId, fromStatus, toStatus, actor, at);
+}
+
 /** Mirrors client `SavedAction`; snapshot is validated at the HTTP boundary. */
 export interface SavedActionDto {
   id: string;
@@ -127,6 +142,19 @@ export function insertSubmission(
     now,
     ownerEmail || null,
   );
+  // First lifecycle event: created as draft (or as submitted if the caller
+  // went straight to submitted — rare but supported).
+  recordStatusTransition(db, id, null, "draft", ownerEmail || null, now);
+  if (initialStatus === "submitted") {
+    recordStatusTransition(
+      db,
+      id,
+      "draft",
+      "submitted",
+      ownerEmail || null,
+      submittedAt ?? now,
+    );
+  }
   return getById(db, ownerKey, id)!;
 }
 
@@ -168,6 +196,16 @@ export function patchSubmission(
     )
     .run(snapshotJson, status, submittedAt, now, ownerKey, id);
   if (res.changes === 0) return null;
+  if (status !== existing.status) {
+    recordStatusTransition(
+      db,
+      id,
+      existing.status,
+      status,
+      ownerKey.startsWith("email:") ? ownerKey.slice(6) : ownerKey,
+      status === "submitted" ? (submittedAt ?? now) : now,
+    );
+  }
   return getById(db, ownerKey, id);
 }
 
@@ -270,5 +308,15 @@ export function patchAny(
     )
     .run(snapshotJson, status, submittedAt, now, id);
   if (res.changes === 0) return null;
+  if (status !== existing.status) {
+    recordStatusTransition(
+      db,
+      id,
+      existing.status,
+      status,
+      existing.ownerEmail || null,
+      status === "submitted" ? (submittedAt ?? now) : now,
+    );
+  }
   return getAny(db, id);
 }
