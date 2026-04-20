@@ -1,5 +1,43 @@
 # Changelog
 
+## [4.2.1] — 2026-04-20
+
+### Chore — dependency hygiene
+
+Sync the dev repo's `package-lock.json` with the sandbox server's lockfile
+after an in-place `npm audit fix` was run there on 2026-04-20. The server
+was patched during the v4.2.0 deploy; this release makes sure the dev box,
+any future sandbox push, and production all install the same patched
+versions instead of regressing.
+
+**Notable bumps** (all within existing semver ranges — no code changes):
+
+- `axios` 1.14.0 → 1.15.1
+- `fastify` 5.8.4 → 5.8.5
+- `follow-redirects` 1.15.11 → 1.16.0
+- `postcss` 8.5.8 → 8.5.10
+- `vite` 8.0.3 → 8.0.9
+- `rolldown` 1.0.0-rc.12 → 1.0.0-rc.16 (all platform bindings)
+- `@emnapi/core`, `@emnapi/runtime`, `@emnapi/wasi-threads` patch bumps
+- `@napi-rs/wasm-runtime` 1.1.2 → 1.1.4
+- `@oxc-project/types` 0.122.0 → 0.126.0
+- `tinyglobby` 0.2.15 → 0.2.16
+- `nanoid` hoisted from `postcss/node_modules/` to top-level (now 3.3.11)
+
+**Verification**
+
+- `npm audit` → 0 vulnerabilities
+- `npm run lint` → clean
+- `npm test` → 89/89 passing (18 files)
+- `npm run build` → SPA built with vite 8.0.9, bundle sizes unchanged
+  (main 460.91 kB gzip 143.71 kB, EntraAuthSync 430.20 kB gzip 122.19 kB,
+  admin 112.55 kB gzip 27.94 kB)
+
+**Why bump the patch version?** So anyone later looking at
+`Z:\cabq-plan\package.json` on the sandbox can see at a glance
+"this is the audit-patched build", and the git tag matches what's
+actually installed.
+
 ## [4.2.0] — 2026-04-18
 
 ### Reports — phase 3 of 3 (final)
