@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.4.2] — 2026-04-18
+
+### Fix — Dev Admin Login lands on the admin SPA, not the MS sign-in page
+
+`DevLoginPage` redirected admins to `/admin/` but the Vite build ships
+the admin console as a second entry bundle at **`/admin.html`** (see
+`vite.config.ts` `rollupOptions.input.admin`). Without the `.html`
+suffix the request fell through to the main SPA's wildcard route,
+which redirected to `/`, which surfaced the Microsoft sign-in button.
+The rest of the codebase (`SiteHeaderUserBar`, `AdminSubmissionDetail`)
+already uses `/admin.html`; this brings `DevLoginPage` into line.
+
+Changed: `src/pages/DevLoginPage.tsx` — admin redirect target is now
+`/admin.html` instead of `/admin/`.
+
 ## [4.4.1] — 2026-04-18
 
 ### Fix — local session survives the hard nav into the main SPA

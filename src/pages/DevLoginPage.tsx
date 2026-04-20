@@ -33,8 +33,9 @@ export function DevLoginPage() {
     try {
       await loginDev(role);
       // Full page reload so both the main SPA and the admin SPA reinitialize
-      // `localSession.ts` from storage and pick up the new JWT.
-      window.location.assign(role === "admin" ? "/admin/" : "/app");
+      // `localSession.ts` from storage and pick up the new JWT. Admin is a
+      // separate Vite entry bundle served at `/admin.html` (not `/admin/`).
+      window.location.assign(role === "admin" ? "/admin.html" : "/app");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Dev login failed.");
       setBusy(null);
