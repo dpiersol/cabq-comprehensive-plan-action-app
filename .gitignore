@@ -11,3 +11,13 @@ test-results/
 blob-report/
 /data/
 *.db
+
+# Local environment overrides — secrets (LOCAL_JWT_SECRET, bootstrap admin
+# password, SSO client id, etc.) MUST NOT be committed. Templates
+# (.env.example) and branch-specific build-time configs (.env.production,
+# .env.e2e) are intentionally tracked and whitelisted below.
+.env
+.env.*
+!.env.example
+!.env.production
+!.env.e2e

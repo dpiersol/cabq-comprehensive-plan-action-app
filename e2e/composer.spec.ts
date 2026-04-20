@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { loginAsMockCityUser } from "./helpers/auth";
 
 test.describe.configure({ timeout: 90_000 });
 
 test.describe("Comprehensive Plan form", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await loginAsMockCityUser(page);
     await expect(page.locator(".site-header h1")).toContainText(/CABQ Comprehensive Plan/i, {
       timeout: 60_000,
     });
@@ -41,9 +42,12 @@ test.describe("Comprehensive Plan form", () => {
     await page.locator("#primary-contact-email").fill("jane.planner@cabq.gov");
     await page.locator("#primary-contact-phone").fill("(505) 555-0100");
 
-    await page.getByRole("button", { name: "Submit" }).last().click();
+    await page.getByRole("button", { name: /Submit record/ }).click();
+    await page.getByRole("button", { name: "Confirm submit" }).click();
     await page.getByRole("button", { name: /^Library/ }).click();
-    await expect(page.getByRole("table").getByText(/^CP-\d{6}$/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("table").getByText(/^CP-\d{6}$/).first()).toBeVisible({
+      timeout: 20_000,
+    });
   });
 
   test("department combobox opens and filters", async ({ page }) => {

@@ -2,10 +2,10 @@
 
 Internal application for documenting departmental actions against the Albuquerque / Bernalillo County (ABC) Comprehensive Plan hierarchy (chapter → goal → goal detail → policy → sub-policy → optional sub-level), with **cascading dropdowns** and structured exports.
 
-- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health` and `POST /api/submissions/pdf`. Vite **dev** and **preview** proxy `/api` when the server runs.
+- **Stack:** React 19, TypeScript, Vite 8, Vitest, ESLint 9; **API** — Fastify 5 with `GET /api/health`, persisted submissions (`GET/PATCH/DELETE /api/submissions`, etc.), and `POST /api/submissions/pdf`. Vite **dev** and **preview** proxy `/api` when the server runs.
 - **Multi-page build:** `index.html` (user app) + `admin.html` (admin console). Both share `src/` utilities and localStorage.
 - **Data:** `public/data/comprehensive-plan-hierarchy.json` (generated from `comprehensive plan table.xlsx` via `scripts/excel_to_hierarchy.py`)
-- **Storage:** Browser `localStorage` for drafts and **Library**. Draft restores contact fields, action title, attachments, and action description on reload, not the plan hierarchy (each visit starts at **Select chapter...** until you pick or search).
+- **Storage:** Signed-in **Library** rows persist in **SQLite** via the API (`./data/submissions.sqlite` by default; see `SQLITE_PATH` in [`.env.example`](.env.example)). Browser `localStorage` still holds **in-progress composer drafts** for crash recovery. **`admin.html`** continues to use localStorage for its seeded list until wired to the API.
 
 **Workflow shelved:** The previous Fastify + SQLite workflow (submit, staff inboxes, FI links, Word export) is **preserved under `archive/workflow-shelved/`** and restorable from Git tag **`v0.9.0`**. See `archive/workflow-shelved/README.md`.
 
@@ -20,16 +20,21 @@ npm run dev:all
 # Or: two terminals — npm run dev:server  (port 8787)  and  npm run dev  (port 5173)
 ```
 
-Open the URL Vite prints (typically `http://localhost:5173`). **Submit** saves to the library and does **not** require the API. **Print document** uses the browser print dialog (no server). The PDF API on **8787** remains available for other callers (`POST /api/submissions/pdf`); in development, `src/apiConfig.ts` can target **`http://127.0.0.1:8787`** when the server runs. Production builds use same-origin `/api/...`. Optional: set **`VITE_API_ORIGIN`** if the API is not on 8787.
+Open the URL Vite prints (typically `http://localhost:5173`). You will see a **Sign in** landing page. **Sign in with Microsoft** uses **Azure Entra ID** (configure `VITE_AZURE_CLIENT_ID` and `VITE_AZURE_TENANT_ID` in `.env` — see [`.env.example`](.env.example)). If those are not set, the app offers **Mock city user** / **Mock admin** for local development. After sign-in, the form and library are at **`/app`**. **Submit** saves to the library and does **not** require the API. **Print document** uses the browser print dialog (no server). The PDF API on **8787** remains available for other callers (`POST /api/submissions/pdf`); in development, `src/apiConfig.ts` can target **`http://127.0.0.1:8787`** when the server runs. Production builds use same-origin `/api/...`. Optional: set **`VITE_API_ORIGIN`** if the API is not on 8787.
 
 ## Scripts
 
 | Command | Description |
 |--------|-------------|
-| `npm run dev` | Vite dev server only |
-| `npm run dev:server` | Minimal API — health only (port 8787) |
-| `npm run dev:all` | API + Vite (concurrently) |
+| `npm run dev` | Vite dev server only (default port **5173**) |
+| `npm run dev:uiux` | Vite on port **5175** — use while on branch `ui-ux-improvements` so it never clashes with default dev |
+| `npm run dev:develop` | Vite on port **5176** — use while on branch `develop` |
+| `npm run dev:server` | API — health, SQLite submissions, PDF (port 8787) |
+| `npm run dev:all` | API + Vite (concurrently) on 5173 |
+| `npm run dev:all:uiux` | API + Vite on **5175** |
+| `npm run dev:all:develop` | API + Vite on **5176** |
 | `npm run build` | Production build to `dist/` |
+| `npm run build:e2e` | Production build with `.env.e2e` (mock Entra for Playwright) |
 | `npm run preview` | Preview production build |
 | `npm run test` | Unit tests (Vitest) |
 | `npm run lint` | ESLint |
@@ -70,6 +75,6 @@ python scripts/excel_to_hierarchy.py
 
 ## Version
 
-Current release: **v2.0.0** — see `CHANGELOG.md`.
+Current release: **v3.0.0** — see `CHANGELOG.md`.
 
 **Quality checks:** `npm test` (Vitest), `npm run lint`, `npm run build`, `npm run test:e2e` (Playwright against production preview; installs Chromium via Playwright on first run).

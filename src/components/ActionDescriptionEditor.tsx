@@ -132,6 +132,8 @@ export interface ActionDescriptionEditorProps {
   onChange: (html: string) => void;
   /** `id` of the visible label element (rich editor has no native label association). */
   labelledBy?: string;
+  /** When true, hides the toolbar and makes the surface non-editable (submitted records). */
+  readOnly?: boolean;
 }
 
 export function ActionDescriptionEditor({
@@ -139,21 +141,29 @@ export function ActionDescriptionEditor({
   value,
   onChange,
   labelledBy,
+  readOnly = false,
 }: ActionDescriptionEditorProps) {
   const editor = useEditor({
     extensions,
     content: value || "",
     immediatelyRender: false,
+    editable: !readOnly,
     editorProps: {
       attributes: {
         "aria-multiline": "true",
         "aria-label": "Legislation description",
+        "aria-readonly": readOnly ? "true" : "false",
       },
     },
     onUpdate: ({ editor: ed }) => {
       onChange(ed.getHTML());
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(!readOnly);
+  }, [editor, readOnly]);
 
   useEffect(() => {
     if (!editor) return;
@@ -164,12 +174,12 @@ export function ActionDescriptionEditor({
 
   return (
     <div
-      className="action-description-editor"
+      className={`action-description-editor${readOnly ? " is-readonly" : ""}`}
       role="group"
       aria-labelledby={labelledBy}
     >
       <div id={id} className="tiptap-editor-wrap">
-        <Toolbar editor={editor} />
+        {readOnly ? null : <Toolbar editor={editor} />}
         <EditorContent editor={editor} className="tiptap-editor-surface" />
       </div>
     </div>

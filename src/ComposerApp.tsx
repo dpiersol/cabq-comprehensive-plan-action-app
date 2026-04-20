@@ -1,0 +1,677 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { APP_VERSION } from "./appVersion";
+import {
+  emptyDraft,
+  emptyPlanItem,
+  loadDraftFromStorage,
+  normalizeDraft,
+  saveDraftToStorage,
+  type DraftSnapshot,
+  type PlanItemSelection,
+} from "./draftStorage";
+import type { PlanData } from "./types";
+import { validateDraftForSave } from "./validation";
+import { emptyContact, type ContactBlock } from "./contacts";
+import { duplicateSnapshot, type SavedAction } from "./savedActionsStore";
+import * as submissionsApi from "./submissionsApi";
+import { isSubmitted } from "./submissionStatus";
+import { downloadSubmissionPdf } from "./downloadSubmissionPdf";
+import { openLegislationMailto } from "./legislationMailto";
+import { SubmitPreviewModal } from "./components/SubmitPreviewModal";
+import { ComprehensivePlanForm } from "./components/ComprehensivePlanForm";
+import { SavedActionsPanel } from "./components/SavedActionsPanel";
+import { PrintPreview } from "./components/PrintPreview";
+import { buildPrintFields, type PrintFields } from "./printFields";
+import type { HierarchyJumpTarget } from "./planSearch/types";
+import { SiteHeaderUserBar } from "./components/SiteHeaderUserBar";
+
+const DATA_URL = "/data/comprehensive-plan-hierarchy.json";
+
+type Tab = "compose" | "library";
+
+function buildSnapshot(state: {
+  planItems: PlanItemSelection[];
+  actionDetails: string;
+  actionTitle: string;
+  howFurthersPolicies: string;
+  department: string;
+  primaryContact: ContactBlock;
+  alternateContact: ContactBlock;
+}): DraftSnapshot {
+  return {
+    planItems: state.planItems.map((p) => ({ ...p })),
+    actionDetails: state.actionDetails,
+    actionTitle: state.actionTitle,
+    howFurthersPolicies: state.howFurthersPolicies,
+    department: state.department,
+    primaryContact: state.primaryContact,
+    alternateContact: state.alternateContact,
+  };
+}
+
+/** Composer + in-flow library (authenticated). Submissions persist via ` /api/submissions`. */
+export function ComposerApp() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [data, setData] = useState<PlanData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [planItems, setPlanItems] = useState<PlanItemSelection[]>([emptyPlanItem()]);
+  const [activePlanItemIndex, setActivePlanItemIndex] = useState(0);
+  const [actionDetails, setActionDetails] = useState("");
+  const [actionTitle, setActionTitle] = useState("");
+  const [howFurthersPolicies, setHowFurthersPolicies] = useState("");
+  const [department, setDepartment] = useState("");
+  const [primaryContact, setPrimaryContact] = useState(emptyContact());
+  const [alternateContact, setAlternateContact] = useState(emptyContact());
+
+  const [hydrationDone, setHydrationDone] = useState(false);
+  const [tab, setTab] = useState<Tab>("compose");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [libraryVersion, setLibraryVersion] = useState(0);
+  const [savedList, setSavedList] = useState<SavedAction[]>([]);
+  const [libraryLoadError, setLibraryLoadError] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [printFields, setPrintFields] = useState<PrintFields | null>(null);
+  const [submitPreviewOpen, setSubmitPreviewOpen] = useState(false);
+  const [modalPreviewFields, setModalPreviewFields] = useState<PrintFields | null>(null);
+  const pendingActiveAfterAdd = useRef(false);
+
+  const editingRecord = useMemo(
+    () => (editingId ? savedList.find((r) => r.id === editingId) : undefined),
+    [savedList, editingId],
+  );
+
+  const refreshSavedList = useCallback(async () => {
+    try {
+      const list = await submissionsApi.listSubmissions();
+      setSavedList(list);
+      setLibraryLoadError(null);
+    } catch (e) {
+      setLibraryLoadError(e instanceof Error ? e.message : "Could not load your library.");
+      setSavedList([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrationDone) return;
+    void refreshSavedList();
+  }, [hydrationDone, libraryVersion, refreshSavedList]);
+
+  const savedCount = savedList.length;
+
+  const draftSnapshot = useMemo(
+    () =>
+      buildSnapshot({
+        planItems,
+        actionDetails,
+        actionTitle,
+        howFurthersPolicies,
+        department,
+        primaryContact,
+        alternateContact,
+      }),
+    [
+      planItems,
+      actionDetails,
+      actionTitle,
+      howFurthersPolicies,
+      department,
+      primaryContact,
+      alternateContact,
+    ],
+  );
+
+  const editingLabel = useMemo(() => {
+    if (!editingId) return null;
+    const rec = savedList.find((a) => a.id === editingId);
+    const t = actionTitle.trim() || "Untitled record";
+    return rec ? `${rec.cpRecordId} — ${t}` : t;
+  }, [editingId, actionTitle, savedList]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(DATA_URL);
+        if (!res.ok) throw new Error(`Failed to load plan data (${res.status})`);
+        const json = (await res.json()) as PlanData;
+        if (!cancelled) setData(json);
+      } catch (e) {
+        if (!cancelled)
+          setLoadError(e instanceof Error ? e.message : "Failed to load plan data.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!data) {
+      setHydrationDone(false);
+      return;
+    }
+    const stored = loadDraftFromStorage();
+    const snap = stored ? normalizeDraft(data, stored) : emptyDraft();
+    setPlanItems(snap.planItems.map((p) => ({ ...p })));
+    setActivePlanItemIndex(0);
+    setActionDetails(snap.actionDetails);
+    setActionTitle(snap.actionTitle);
+    setHowFurthersPolicies(snap.howFurthersPolicies);
+    setDepartment(snap.department);
+    setPrimaryContact(snap.primaryContact);
+    setAlternateContact(snap.alternateContact);
+    setHydrationDone(true);
+  }, [data]);
+
+  function applySnapshot(snap: DraftSnapshot) {
+    setPlanItems(snap.planItems.map((p) => ({ ...p })));
+    setActivePlanItemIndex(0);
+    setActionDetails(snap.actionDetails);
+    setActionTitle(snap.actionTitle);
+    setHowFurthersPolicies(snap.howFurthersPolicies);
+    setDepartment(snap.department);
+    setPrimaryContact(snap.primaryContact);
+    setAlternateContact(snap.alternateContact);
+  }
+
+  useEffect(() => {
+    const st = location.state as { clearComposer?: boolean } | undefined;
+    if (!st?.clearComposer || !data || !hydrationDone) return;
+    applySnapshot(normalizeDraft(data, emptyDraft()));
+    setEditingId(null);
+    navigate("/app/compose", { replace: true, state: {} });
+  }, [location.state, data, hydrationDone, navigate]);
+
+  useEffect(() => {
+    if (!data || !hydrationDone) return;
+    const edit = searchParams.get("edit");
+    const dup = searchParams.get("duplicate");
+    if (!edit && !dup) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const list = await submissionsApi.listSubmissions();
+        if (cancelled) return;
+        setSavedList(list);
+
+        if (edit) {
+          const rec =
+            list.find((a) => a.id === edit) ?? (await submissionsApi.getSubmission(edit));
+          if (!cancelled && rec) {
+            applySnapshot(rec.snapshot);
+            setEditingId(rec.id);
+          }
+        } else if (dup) {
+          const rec =
+            list.find((a) => a.id === dup) ?? (await submissionsApi.getSubmission(dup));
+          if (!cancelled && rec) {
+            applySnapshot(duplicateSnapshot(rec.snapshot));
+            setEditingId(null);
+          }
+        }
+
+        setSearchParams(
+          (p) => {
+            const n = new URLSearchParams(p);
+            n.delete("edit");
+            n.delete("duplicate");
+            return n;
+          },
+          { replace: true },
+        );
+      } catch (e) {
+        if (!cancelled) {
+          setLibraryLoadError(e instanceof Error ? e.message : "Could not open record.");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, hydrationDone, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!data || !hydrationDone) return;
+    const id = window.setTimeout(() => {
+      saveDraftToStorage(draftSnapshot);
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [data, hydrationDone, draftSnapshot]);
+
+  useEffect(() => {
+    if (!pendingActiveAfterAdd.current) return;
+    pendingActiveAfterAdd.current = false;
+    setActivePlanItemIndex(planItems.length - 1);
+  }, [planItems]);
+
+  const onChapterChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) =>
+        j !== itemIndex
+          ? p
+          : {
+              ...p,
+              chapterIdx: i,
+              goalIdx: -1,
+              goalDetailIdx: -1,
+              policyIdx: -1,
+              subPolicyIdx: -1,
+              subLevelIdx: -1,
+            },
+      ),
+    );
+  };
+
+  const onGoalChange = (itemIndex: number, i: number) => {
+    if (!data) return;
+    setPlanItems((prev) =>
+      prev.map((p, j) => {
+        if (j !== itemIndex) return p;
+        if (i < 0) {
+          return {
+            ...p,
+            goalIdx: -1,
+            goalDetailIdx: -1,
+            policyIdx: -1,
+            subPolicyIdx: -1,
+            subLevelIdx: -1,
+          };
+        }
+        const chapter = data.chapters[p.chapterIdx];
+        const goals = chapter?.goals ?? [];
+        const goal = goals[i];
+        const goalDetails = goal?.goalDetails ?? [];
+        const goalDetailIdx = goalDetails.length > 0 ? 0 : -1;
+        return {
+          ...p,
+          goalIdx: i,
+          goalDetailIdx,
+          policyIdx: -1,
+          subPolicyIdx: -1,
+          subLevelIdx: -1,
+        };
+      }),
+    );
+  };
+
+  const onGoalDetailChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) =>
+        j !== itemIndex
+          ? p
+          : {
+              ...p,
+              goalDetailIdx: i,
+              policyIdx: -1,
+              subPolicyIdx: -1,
+              subLevelIdx: -1,
+            },
+      ),
+    );
+  };
+
+  const onPolicyChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) =>
+        j !== itemIndex ? p : { ...p, policyIdx: i, subPolicyIdx: -1, subLevelIdx: -1 },
+      ),
+    );
+  };
+
+  const onSubPolicyChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) => (j !== itemIndex ? p : { ...p, subPolicyIdx: i, subLevelIdx: -1 })),
+    );
+  };
+
+  const onSubLevelChange = (itemIndex: number, i: number) => {
+    setPlanItems((prev) =>
+      prev.map((p, j) => (j !== itemIndex ? p : { ...p, subLevelIdx: i })),
+    );
+  };
+
+  const addPlanItem = () => {
+    pendingActiveAfterAdd.current = true;
+    setPlanItems((prev) => [...prev, emptyPlanItem()]);
+  };
+
+  const removePlanItemAt = (idx: number) => {
+    const items = planItems;
+    const active = activePlanItemIndex;
+    if (items.length <= 1) return;
+    const nextItems = items.filter((_, i) => i !== idx);
+    let nextActive = active;
+    if (active === idx) nextActive = Math.min(idx, nextItems.length - 1);
+    else if (active > idx) nextActive = active - 1;
+    setPlanItems(nextItems);
+    setActivePlanItemIndex(nextActive);
+  };
+
+  const saveForLater = async () => {
+    saveDraftToStorage(draftSnapshot);
+    setValidationErrors([]);
+    if (editingRecord && isSubmitted(editingRecord.status)) {
+      setExportStatus("This record is submitted — choose Edit before saving changes.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+      return;
+    }
+    try {
+      if (editingId) {
+        await submissionsApi.patchSubmission(editingId, { snapshot: draftSnapshot });
+        setLibraryVersion((n) => n + 1);
+        setExportStatus("Draft saved to your library record.");
+      } else {
+        const saved = await submissionsApi.createSubmission(draftSnapshot);
+        setEditingId(saved.id);
+        setLibraryVersion((n) => n + 1);
+        setExportStatus(`Draft saved as ${saved.cpRecordId}.`);
+      }
+      setTab("library");
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not save.");
+    }
+    window.setTimeout(() => setExportStatus(null), 5000);
+  };
+
+  const beginSubmitPreview = () => {
+    if (!data) return;
+    setValidationErrors([]);
+    const v = validateDraftForSave(data, draftSnapshot);
+    if (!v.ok) {
+      setValidationErrors(v.errors);
+      setExportStatus(null);
+      return;
+    }
+    setModalPreviewFields(buildPrintFields(data, draftSnapshot));
+    setSubmitPreviewOpen(true);
+  };
+
+  const confirmFinalSubmit = async () => {
+    if (!data) return;
+    setSubmitPreviewOpen(false);
+    setValidationErrors([]);
+    setExportStatus(null);
+    try {
+      let saved: SavedAction;
+      if (editingId) {
+        const u = await submissionsApi.patchSubmission(editingId, {
+          snapshot: draftSnapshot,
+          status: "submitted",
+        });
+        if (!u) {
+          setExportStatus("Could not update the library record.");
+          window.setTimeout(() => setExportStatus(null), 6000);
+          return;
+        }
+        saved = u;
+      } else {
+        saved = await submissionsApi.createSubmission(draftSnapshot, { status: "submitted" });
+        setEditingId(saved.id);
+      }
+      setLibraryVersion((n) => n + 1);
+      setTab("library");
+      setExportStatus(
+        `Submitted. Record ${saved.cpRecordId} is locked as submitted. Use Edit if you need changes.`,
+      );
+      window.setTimeout(() => setExportStatus(null), 9000);
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not submit.");
+      window.setTimeout(() => setExportStatus(null), 8000);
+    }
+  };
+
+  const reopenForEditing = async () => {
+    if (!editingId) return;
+    try {
+      await submissionsApi.patchSubmission(editingId, { status: "draft" });
+      setLibraryVersion((n) => n + 1);
+      setExportStatus("Record reopened — you can edit and save again.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not reopen.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!data) return;
+    const name = `${editingRecord?.cpRecordId ?? "CP-draft"}.pdf`;
+    void downloadSubmissionPdf(data, draftSnapshot, name).catch((e: unknown) => {
+      setExportStatus(e instanceof Error ? e.message : "PDF download failed.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+    });
+  };
+
+  const handleEmailShare = () => {
+    openLegislationMailto({
+      cpRecordId: editingRecord?.cpRecordId ?? "—",
+      title: actionTitle,
+    });
+  };
+
+  const printDocument = () => {
+    if (!data) return;
+    setPrintFields(buildPrintFields(data, draftSnapshot));
+    requestAnimationFrame(() => window.print());
+  };
+
+  const openEdit = (action: SavedAction) => {
+    applySnapshot(action.snapshot);
+    setEditingId(action.id);
+    setTab("compose");
+    setValidationErrors([]);
+    setExportStatus(null);
+  };
+
+  const duplicateFromLibrary = (action: SavedAction) => {
+    applySnapshot(duplicateSnapshot(action.snapshot));
+    setEditingId(null);
+    setTab("compose");
+    setValidationErrors([]);
+    setExportStatus("Duplicate loaded — adjust the legislation title and submit when ready.");
+    window.setTimeout(() => setExportStatus(null), 5000);
+  };
+
+  const removeFromLibrary = async (id: string) => {
+    try {
+      await submissionsApi.deleteSubmission(id);
+      if (editingId === id) {
+        setEditingId(null);
+      }
+      setLibraryVersion((n) => n + 1);
+    } catch (e) {
+      setExportStatus(e instanceof Error ? e.message : "Could not delete.");
+      window.setTimeout(() => setExportStatus(null), 6000);
+    }
+  };
+
+  const applyHierarchyJump = (t: HierarchyJumpTarget) => {
+    const i = activePlanItemIndex;
+    setPlanItems((prev) => {
+      const next = [...prev];
+      const row = next[i] ?? emptyPlanItem();
+      next[i] = {
+        ...row,
+        chapterIdx: t.chapterIdx,
+        goalIdx: t.goalIdx,
+        goalDetailIdx: t.goalDetailIdx,
+        policyIdx: t.policyIdx,
+        subPolicyIdx: t.subPolicyIdx,
+        subLevelIdx: t.subLevelIdx,
+      };
+      return next;
+    });
+    setValidationErrors([]);
+  };
+
+  if (loadError) {
+    return (
+      <div className="app-shell">
+        <header className="site-header">
+          <h1>CABQ Comprehensive Plan — Action documentation</h1>
+        </header>
+        <main className="site-main">
+          <div className="error-banner" role="alert">
+            {loadError}
+          </div>
+        </main>
+        <footer className="site-footer no-print">
+          CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Plan data: comprehensive plan
+          hierarchy JSON
+        </footer>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="app-shell">
+        <header className="site-header">
+          <h1>CABQ Comprehensive Plan — Action documentation</h1>
+        </header>
+        <main className="site-main">
+          <div className="loading">Loading plan hierarchy…</div>
+        </main>
+        <footer className="site-footer no-print">
+          CABQ Comprehensive Plan Action Application · v{APP_VERSION} · Plan data: comprehensive plan
+          hierarchy JSON
+        </footer>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="app-shell">
+        <header className="site-header no-print">
+          <SiteHeaderUserBar />
+          <h1>CABQ Comprehensive Plan — Action documentation</h1>
+          <p className="site-header-lede">
+            <Link to="/app">Your submissions</Link>
+            {" · "}
+            Document departmental actions against the ABC Comprehensive Plan hierarchy (
+            <a href="https://www.cabq.gov/planning/plans-publications/abc-comprehensive-plan">
+              City planning
+            </a>
+            {" · "}
+            <a href="https://compplan.abq-zone.com/">Interactive plan</a>
+            ). Use <strong>Comprehensive Plan</strong> for cascading selections; <strong>Submit</strong> saves
+            to your Submissions. Use <strong>Print document</strong> for your browser&apos;s print dialog.
+          </p>
+        </header>
+
+        {libraryLoadError ? (
+          <div className="site-main no-print">
+            <div className="error-banner" role="alert">
+              {libraryLoadError}
+            </div>
+          </div>
+        ) : null}
+
+        <nav className="tab-nav no-print" aria-label="Main">
+          <button
+            type="button"
+            className={`tab-btn ${tab === "compose" ? "active" : ""}`}
+            onClick={() => setTab("compose")}
+          >
+            Comprehensive Plan
+          </button>
+          <button
+            type="button"
+            className={`tab-btn ${tab === "library" ? "active" : ""}`}
+            onClick={() => setTab("library")}
+          >
+            Submissions ({savedCount})
+          </button>
+        </nav>
+
+        <main className="site-main">
+          {tab === "compose" && (
+            <ComprehensivePlanForm
+              data={data}
+              planItems={planItems}
+              activePlanItemIndex={activePlanItemIndex}
+              actionTitle={actionTitle}
+              howFurthersPolicies={howFurthersPolicies}
+              department={department}
+              primaryContact={primaryContact}
+              alternateContact={alternateContact}
+              actionDetails={actionDetails}
+              validationErrors={validationErrors}
+              exportStatus={exportStatus}
+              editingLabel={editingLabel}
+              onActivePlanItemChange={setActivePlanItemIndex}
+              onAddPlanItem={addPlanItem}
+              onRemovePlanItem={removePlanItemAt}
+              onChapterChange={onChapterChange}
+              onGoalChange={onGoalChange}
+              onGoalDetailChange={onGoalDetailChange}
+              onPolicyChange={onPolicyChange}
+              onSubPolicyChange={onSubPolicyChange}
+              onSubLevelChange={onSubLevelChange}
+              onActionTitleChange={setActionTitle}
+              onHowFurthersPoliciesChange={setHowFurthersPolicies}
+              onDepartmentChange={setDepartment}
+              onPrimaryContactChange={setPrimaryContact}
+              onAlternateContactChange={setAlternateContact}
+              onActionDetailsChange={setActionDetails}
+              onSaveForLater={() => void saveForLater()}
+              onSubmit={() => void beginSubmitPreview()}
+              onPrintDocument={printDocument}
+              onHierarchyJump={applyHierarchyJump}
+              readOnly={editingRecord ? isSubmitted(editingRecord.status) : false}
+              recordStatus={editingRecord?.status}
+              onReopenForEditing={() => void reopenForEditing()}
+              onDownloadPdf={handleDownloadPdf}
+              onEmailShare={handleEmailShare}
+            />
+          )}
+          {tab === "library" && (
+            <SavedActionsPanel
+              plan={data}
+              actions={savedList}
+              version={libraryVersion}
+              onEdit={openEdit}
+              onDuplicate={duplicateFromLibrary}
+              onDelete={removeFromLibrary}
+              onDownloadPdf={(a) => {
+                void downloadSubmissionPdf(data, a.snapshot, `${a.cpRecordId}.pdf`).catch((e: unknown) => {
+                  setExportStatus(e instanceof Error ? e.message : "PDF download failed.");
+                  window.setTimeout(() => setExportStatus(null), 6000);
+                });
+              }}
+              onEmailShare={(a) =>
+                openLegislationMailto({
+                  cpRecordId: a.cpRecordId,
+                  title: a.snapshot.actionTitle,
+                })
+              }
+            />
+          )}
+        </main>
+
+        <footer className="site-footer no-print">
+          CABQ Comprehensive Plan Action Application · v{APP_VERSION}
+        </footer>
+      </div>
+
+      <SubmitPreviewModal
+        open={submitPreviewOpen}
+        fields={modalPreviewFields}
+        cpRecordLabel={editingRecord?.cpRecordId ?? "(new record)"}
+        onCancel={() => setSubmitPreviewOpen(false)}
+        onConfirm={() => void confirmFinalSubmit()}
+      />
+
+      <PrintPreview fields={printFields} />
+    </>
+  );
+}

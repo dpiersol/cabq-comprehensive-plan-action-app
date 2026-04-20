@@ -110,6 +110,24 @@ export async function convertDocxBufferToPdf(docx: Buffer): Promise<Buffer> {
 
 /**
  * PDFKit fallback when no template is available, LibreOffice is missing, or tests run (VITEST).
+ *
+ * Layout mirrors the on-screen Print document (`.print-doc` in `src/index.css`) so
+ * **Download PDF** and **Print document** produce the same looking document:
+ *   ┌──────────────────────────────────────────────┐
+ *   │ Comprehensive Plan Action            {date}  │
+ *   │ ────────────────────────────────────────────  │
+ *   │ Legislation Title: ...                       │
+ *   │ Chapter: ...                                 │
+ *   │ Goal: ...                                    │
+ *   │ Policy: ...                                  │
+ *   │                                              │
+ *   │ Legislation Description:                     │
+ *   │ ...                                          │
+ *   │                                              │
+ *   │ How does this legislation further the        │
+ *   │ policies selected?                           │
+ *   │ ...                                          │
+ *   └──────────────────────────────────────────────┘
  */
 export function renderPdfKitFallback(fields: SubmissionPdfFields): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -119,30 +137,62 @@ export function renderPdfKitFallback(fields: SubmissionPdfFields): Promise<Buffe
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(16).font("Helvetica-Bold").text("Comprehensive Plan — Legislation documentation", {
-      align: "center",
-    });
-    doc.moveDown(1.2);
-    doc.font("Helvetica").fontSize(11);
+    const title = "Comprehensive Plan Action";
+    const titleFontSize = 16;
+    const bodyFontSize = 11;
+    const leftMargin = doc.page.margins.left;
+    const rightMargin = doc.page.margins.right;
+    const contentWidth = doc.page.width - leftMargin - rightMargin;
 
-    const sections: { placeholder: string; value: string }[] = [
-      { placeholder: "{current date}", value: fields.currentDate },
-      { placeholder: "{legislation title}", value: fields.legislationTitle },
-      { placeholder: "{chapter}", value: fields.chapter },
-      { placeholder: "{goal}", value: fields.goal },
-      { placeholder: "{policy}", value: fields.policy },
-      { placeholder: "{legislation description}", value: fields.legislationDescription },
-      {
-        placeholder: "{How does this legislation further the policies selected?}",
-        value: fields.howDoesLegislationFurtherPolicies,
-      },
-    ];
+    doc.font("Helvetica-Bold").fontSize(titleFontSize);
+    const titleHeight = doc.heightOfString(title, { width: contentWidth });
+    const titleY = doc.y;
+    doc.text(title, leftMargin, titleY, { width: contentWidth });
+    doc
+      .font("Helvetica")
+      .fontSize(bodyFontSize)
+      .text(fields.currentDate, leftMargin, titleY + (titleHeight - bodyFontSize) / 2, {
+        width: contentWidth,
+        align: "right",
+      });
+    doc.moveDown(0.5);
 
-    for (const { placeholder, value } of sections) {
-      doc.font("Helvetica-Bold").fontSize(11).text(placeholder);
-      doc.font("Helvetica").fontSize(11).text(value, { align: "left" });
-      doc.moveDown(1);
-    }
+    const ruleY = doc.y;
+    doc
+      .moveTo(leftMargin, ruleY)
+      .lineTo(leftMargin + contentWidth, ruleY)
+      .lineWidth(0.75)
+      .strokeColor("#94a3b8")
+      .stroke();
+    doc.moveDown(0.8);
+
+    const inlineRow = (label: string, value: string) => {
+      doc.font("Helvetica-Bold").fontSize(bodyFontSize).text(`${label} `, { continued: true });
+      doc.font("Helvetica").fontSize(bodyFontSize).text(value || "—");
+      doc.moveDown(0.45);
+    };
+
+    const blockRow = (heading: string, value: string) => {
+      doc.font("Helvetica-Bold").fontSize(bodyFontSize).text(heading);
+      doc.moveDown(0.2);
+      doc.font("Helvetica").fontSize(bodyFontSize).text(value || "—", {
+        align: "left",
+        lineGap: 2,
+      });
+      doc.moveDown(0.8);
+    };
+
+    inlineRow("Legislation Title:", fields.legislationTitle);
+    inlineRow("Chapter:", fields.chapter);
+    inlineRow("Goal:", fields.goal);
+    inlineRow("Policy:", fields.policy);
+    doc.moveDown(0.3);
+
+    blockRow("Legislation Description:", fields.legislationDescription);
+    blockRow(
+      "How does this legislation further the policies selected?",
+      fields.howDoesLegislationFurtherPolicies,
+    );
 
     doc.end();
   });

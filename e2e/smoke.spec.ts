@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { loginAsMockCityUser } from "./helpers/auth";
 
 test.describe("App shell", () => {
   test("loads without runtime errors", async ({ page }) => {
@@ -19,7 +20,7 @@ test.describe("App shell", () => {
   });
 
   test("main tabs switch views", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await loginAsMockCityUser(page);
     await expect(page.locator(".site-header h1")).toBeVisible({ timeout: 60_000 });
     await expect(page.locator('nav[aria-label="Main"]')).toBeVisible({ timeout: 60_000 });
     await page.locator('nav[aria-label="Main"]').getByRole("button", { name: /^Library/ }).click();

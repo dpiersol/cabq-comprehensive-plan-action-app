@@ -1,5 +1,334 @@
 # Changelog
 
+## [4.2.0] — 2026-04-18
+
+### Reports — phase 3 of 3 (final)
+
+Closes the Reports initiative. Adds the Submission Lifecycle / Turnaround
+report plus the infrastructure it needs to produce meaningful numbers.
+
+**DB migration 5 — `submission_status_history`**
+
+New table tracking every status transition, with both a `from_status` and
+`to_status`, an `actor`, and a timestamp. Indexed on
+`(submission_id, at)` and `at` for fast per-submission and global queries.
+Foreign-key-cascades on `submissions.id`.
+
+**Backfill**: migration 5 synthesizes history for every pre-existing
+submission so the report is immediately useful after deploy. Each
+submission gets a "created as draft" row at its `created_at`; submitted
+submissions additionally get a `draft → submitted` row at their
+`submitted_at` (falling back to `updated_at` when null).
+
+**Retrofit**: `insertSubmission`, `patchSubmission` (user), and `patchAny`
+(admin) in `server/submissionsRepo.ts` now append a transition row each
+time the status effectively changes. Zero-change patches don't emit spurious
+rows.
+
+**Report #4 — Submission Lifecycle / Turnaround (`#reports/lifecycle`)**
+
+- Headline KPIs:
+  - In draft now, submitted total.
+  - Median / p90 draft → submitted turnaround.
+  - Median / max age of open (never-submitted) drafts, with warning tone
+    when median > 7 days or oldest > 30 days.
+- Two stats tables: draft→submitted turnaround and open-draft age — each
+  showing `n, min, median, p90, max, avg` in human units (`Xm/Xh/Xd/Xmo`
+  auto-picked per value size).
+- **Oldest drafts** table (top 15) with a direct link into each
+  submission's admin detail page.
+- **By month** bar chart + table showing monthly submission volume and
+  median turnaround — a simple trendline.
+
+**Backend**
+
+- `getSubmissionLifecycle()` in `server/reports/reportsRepo.ts`.
+- `GET /api/admin/reports/lifecycle` (admin-gated JSON).
+- 2 new vitest cases (migration 5 hook verification; deterministic
+  turnaround stats with hand-seeded history). Full suite: **89/89**
+  passing across 18 files.
+
+**Frontend**
+
+- `src/admin/reports/LifecyclePage.tsx`. Landing card now shows "Ready
+  (v4.2.0)" — all five planned reports are live.
+
+Breaking: none on the API surface. Schema change: migration 5 runs
+automatically on first boot of v4.2 against existing DBs.
+
+## [4.1.0] — 2026-04-18
+
+### Reports — phase 2 of 3
+
+Adds two more reports under Admin → Security → Reports. Phase 3 (Submission
+Lifecycle / Turnaround, v4.2.0) remains the final piece and needs a new DB
+migration to capture status transitions.
+
+**Report #3 — Authentication & Security (`#reports/auth-security`)**
+
+- KPIs: successful logins, failed logins, lockouts, password changes, user
+  changes, role changes, SSO-config edits.
+- Daily stacked bar chart (7 / 30 / 60 / 90 / 180 days) grouping raw
+  `auth_audit.action` values into high-level categories: `login_success`,
+  `login_failed`, `password_change`, `user_change`, `role_change`,
+  `sso_config`.
+- Failed-login watchlist: top 15 identifiers by failure count over the
+  window, with a **distinct-IP** column to help spot brute-force or
+  credential-stuffing patterns.
+- Latest-activity tail (last 25 events) with category swatches.
+- **CSV export**: `GET /api/admin/reports/auth-audit.csv?days=1..365`
+  streams an RFC-4180-style CSV with `id,at,action,category,actor,target,
+  detail`. Client uses an authenticated `fetch` + `Blob` flow so identity
+  headers are attached (a plain `<a download>` can't do that).
+
+**Report #5 — Coverage / Gap Analysis (`#reports/coverage`)**
+
+- Loads `public/data/comprehensive-plan-hierarchy.json` (or the deployed
+  `dist/data/` equivalent) server-side and cross-references it against
+  every submission's `planItems[]`.
+- KPIs: chapters, goals, goals covered/uncovered, policies (in plan /
+  covered), submissions mapped.
+- **Coverage by chapter** table: goals total vs. covered, percent bar,
+  submissions touching the chapter. Filters: All · With uncovered goals ·
+  Zero submissions.
+- **Uncovered goals** table — the gaps list. Every chapter/goal pair the
+  plan contains that no submission has cited.
+- **Most-cited goals** table — saturation view, top 10.
+- Client-side CSV export of the gap list.
+- Graceful fallback: when the hierarchy JSON isn't found on the server the
+  endpoint returns `planLoaded: false` and the UI shows a clear error.
+
+**Backend additions**
+
+- New helpers in `server/reports/reportsRepo.ts`:
+  `getAuthSecurity()`, `getAuthAuditCsv()`, `getCoverageGaps()`, plus
+  `setPlanDataForTests()` / `resetPlanCacheForTests()` seams.
+- New routes in `server/reports/reportsRoutes.ts`:
+  `GET /api/admin/reports/auth-security?days=7..180`,
+  `GET /api/admin/reports/auth-audit.csv?days=1..365`,
+  `GET /api/admin/reports/coverage`.
+- 5 new vitest cases (auth category roll-up, `days` clamping, CSV
+  quoting/headers, coverage without a plan, coverage math with a synthetic
+  plan). Total backend suite: **35/35** passing.
+
+**Frontend additions**
+
+- `src/admin/reports/AuthSecurityPage.tsx`,
+  `src/admin/reports/CoveragePage.tsx`. Landing cards flip from "Coming in
+  v4.1.0" to ready.
+- CSS: stacked bar chart variant, legend swatches, coverage bar, warning
+  KPI tone.
+
+Breaking: none (additive only).
+
+## [4.0.0] — 2026-04-18
+
+### Reports — phase 1 of 3 (Admin → Security → Reports)
+
+First slice of the new Reports area under the Admin Console's Security nav
+group. Phase 1 ships the foundation and the two fastest-to-deliver reports.
+Phase 2 (v4.1.0) will add Authentication & Security plus Coverage / Gap
+Analysis; phase 3 (v4.2.0) will add Submission Lifecycle (requires DB
+migration 5 for status history).
+
+**New admin area**
+
+- Security group in the top admin nav (visual "Security:" separator) now
+  contains Users, Roles, Sign-in settings, Audit log, and **Reports**.
+- `#reports` landing page with cards for all five planned reports, clearly
+  badged as ready-now (4.0.0) or coming in 4.1.0 / 4.2.0.
+
+**Report #1 — Submissions Overview (`#reports/submissions`)**
+
+- KPIs: total, submitted, draft, created last 7/30d, submitted last 7/30d.
+- 4/13/26/52-week submitted-per-week bar chart (server buckets by Monday).
+- Top 10 most-cited comp-plan goals with chapter + goal names resolved from
+  the admin's loaded plan hierarchy JSON.
+- "Unmapped" count flags submissions with no parseable plan items.
+
+**Report #2 — User Activity (`#reports/users`)**
+
+- Local users table: username, email, roles, Active/Locked/Dormant status,
+  last-login + days-since, submitted/draft counts. Filters for All, Active,
+  Admins, Locked, Dormant > 90d.
+- Non-local submitters table: emails with submissions but no local account
+  (SSO / header-based identities), sorted by total submissions.
+- Totals: local users, active, admins, dormant > 90d.
+
+**Backend**
+
+- New `server/reports/reportsRepo.ts` (pure SQL aggregation helpers) and
+  `server/reports/reportsRoutes.ts` (admin-gated JSON endpoints).
+- `GET /api/admin/reports/submissions-overview?weeks=4..52` (clamped).
+- `GET /api/admin/reports/user-activity`.
+- 5 vitest cases in `server/reports/reports.test.ts` covering auth gates,
+  KPI math, goal-counting, non-local submitter detection, and weeks
+  clamping. Full backend suite: 30/30 passing.
+
+**Frontend**
+
+- New `src/admin/reports/` folder: `reportsApi.ts`, `ReportsLanding.tsx`,
+  `SubmissionsOverviewPage.tsx`, `UserActivityPage.tsx`.
+- New admin CSS: nav Security group label, report cards, KPI tiles, weekly
+  bar chart, status badges.
+
+Breaking: none (additive only — new routes + UI). Version bumped to 4.0.0
+because this begins a new major feature area (Reports) and the UI surface
+gains a persistent nav concept ("Security group").
+
+## [3.8.3] — 2026-04-18
+
+### Deployment scripts
+
+- **`scripts/deploy.ps1`** — one-command post-deploy runner for the sandbox /
+  prod server. Runs `npm install --omit=dev` (which also rebuilds native
+  modules like `better-sqlite3` against the server's Node), verifies `tsx`
+  is present, issues `pm2 reload ecosystem.config.cjs --update-env
+  --env production`, then HTTP-probes `/api/health` and `/api/auth/config`
+  to confirm the new build is actually live. Supports `-SkipInstall`,
+  `-RebuildNativeOnly`, and `-NoHealthCheck`.
+- **`scripts/push-to-sandbox.ps1`** — dev-box companion. Builds the SPA,
+  robocopies `dist\`, `server\`, `package.json`, `package-lock.json`,
+  `ecosystem.config.cjs`, and `scripts/deploy.ps1` onto the mapped drive
+  (default `Z:\cabq-plan`). Deliberately does **not** run `npm install`
+  on the target — native modules must be compiled on the server itself.
+- **`npm run deploy:sandbox`** — convenience shortcut for the push script.
+
+Together the two scripts remove the manual robocopy / `npm rebuild` dance
+and prevent the `NODE_MODULE_VERSION` mismatch that happened when the dev
+box's Node version differed from the server's.
+
+## [3.8.2] — 2026-04-18
+
+### Runtime / PM2 — server actually starts on the sandbox
+
+- **`tsx` is now a production dependency.** The Fastify API is launched
+  directly from TypeScript via `tsx` (there is no compiled `dist/index.js`
+  — `tsconfig.server.json` is `noEmit: true`), so `tsx` must survive
+  `npm install --omit=dev`. Moving it from `devDependencies` to
+  `dependencies` prevents `ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'`
+  on reload after a production install.
+- **`ecosystem.config.cjs` now launches the correct entry.** The previous
+  config pointed at a non-existent `dist/index.js`; PM2 now runs
+  `./node_modules/tsx/dist/cli.mjs` with `server/index.ts` as its arg.
+  This is the same thing `npm run dev:server` does, just under PM2.
+
+## [3.8.1] — 2026-04-18
+
+### Server env loading — `dotenv`
+
+- **`.env` auto-loads on server start** — `server/index.ts` now calls `dotenv/config` before any other import, so runtime variables (`LOCAL_JWT_SECRET`, `BOOTSTRAP_ADMIN_*`, `AZURE_*`, `ADMIN_*`, etc.) can live in a single **`.env`** file next to the running process. Real environment variables (e.g. those set by PM2 in `ecosystem.config.cjs`) still win — `dotenv` only fills in what's not already defined.
+- **`.gitignore`** — Now ignores `.env` and `.env.*` by default, with explicit allow-list entries for the tracked templates (`.env.example`, `.env.production`, `.env.e2e`) so secrets cannot be committed by accident.
+
+## [3.8.0] — 2026-04-18
+
+### Sprint 8 — Admin UI: tabbed sign-in + user / role / SSO management
+
+- **Tabbed admin login** — `admin.html` now shows **Local account** and **Microsoft (SSO)** tabs, driven by the public **`/api/auth/config`** endpoint so the visible options match server capability (and the local tab hides if `LOCAL_JWT_SECRET` isn't configured). Local sign-in posts to `/api/auth/local/login` and stores the bearer in `localStorage` for refreshes.
+- **Forced password change** — Accounts flagged `mustChangePassword` (bootstrap admin, admin reset) see a dedicated *Choose a new password* page before the rest of the admin UI unlocks.
+- **Admin navigation** — New header tab bar: **Submissions · Users · Roles · Sign-in settings · Audit log** (hash-routed). Sign-out clears the local session or Entra session as appropriate.
+- **Users page** (`#users`) — Create, edit, deactivate, and delete local users; assign roles; admin-initiated password reset (forces change on next login). Last-admin safeguard surfaces as an inline error.
+- **Roles page** (`#roles`) — Add / delete custom roles (built-ins protected), with live member counts and active-admin badge.
+- **Sign-in settings page** (`#settings`) — Toggle SSO / local on or off; edit tenant id / client id / audience / issuer / allowed domains / admin role names / admin emails; paste a real Entra token into *Test SSO* for a server-side dry-run verification.
+- **Audit log page** (`#audit`) — Tail the last 200 auth events from `auth_audit`, with optional action-name filter (`local_login_success`, `admin_user_update`, `admin_auth_config_update`, etc.). Refresh on demand.
+- **Unified bearer plumbing** — `adminApi.ts` and the new `authAdminApi.ts` prefer the local-session token over MSAL's silent token when present, so admins don't need an Entra tenant to use the console.
+
+## [3.7.0] — 2026-04-18
+
+### Sprint 7 — SSO configuration managed in the database
+
+- **Dynamic auth config** — New **`auth_config`** key/value table holds SSO & local-auth settings. The new **`getEffectiveAuthConfig(db)`** helper merges DB values over env defaults (`AZURE_TENANT_ID`, `AZURE_AUDIENCE`, `AZURE_CLIENT_ID`, `AZURE_ISSUER`, `ADMIN_ROLE_NAMES`, `ADMIN_EMAILS`, `ALLOWED_EMAIL_DOMAINS`) so the sandbox can tweak SSO without a restart and existing deployments keep working unchanged.
+- **Public config endpoint** — **`GET /api/auth/config`** (unauthenticated) returns `{ sso: { enabled, tenantId, clientId, authority, allowedEmailDomains }, local: { enabled } }`. The upcoming admin login UI uses this to decide which tabs to show.
+- **Admin config endpoints** —
+  - **`GET /api/admin/auth/config`** — view the full effective SSO + local config (admin-only).
+  - **`PATCH /api/admin/auth/config`** — update any subset of `{ ssoEnabled, localEnabled, tenantId, clientId, audience, issuer, allowedEmailDomains[], adminRoleNames[], adminEmails[] }`. Passing `null` / `""` for a string clears the DB override so env takes over again.
+  - **`POST /api/admin/auth/test-sso`** — admin-only dry-run: verifies a sample access token against the current (or supplied) tenant/audience/issuer and reports the resolved claims. Writes a success/failure audit entry.
+- **DB-aware token verification** — **`resolveOwner()`** now accepts a DB handle and validates Entra tokens with `verifyAzureBearerWithConfig(db, token)` — meaning tenant/audience/issuer changes made in the admin UI take effect on the next request, no restart required.
+- **DB-aware admin check** — **`isAdminFor(db, owner)`** replaces the env-only `isAdmin(owner)` on every protected route, so DB-managed admin role names and allowlisted emails are honoured immediately.
+- **Audit coverage** — Every config change (`admin_auth_config_update`) and test-sso attempt (`admin_auth_config_test_sso_success` / `…_failed`) is recorded in `auth_audit`.
+
+## [3.6.0] — 2026-04-18
+
+### Sprint 6 — Local admin accounts (back-end)
+
+- **New auth source — local accounts** — Admins, operators, and vendors can now sign in with credentials managed inside the app (no Entra required). Passwords are hashed with **bcrypt** (cost 12) and stored in a new **`local_users`** table; tokens are short-lived HS256 JWTs signed with **`LOCAL_JWT_SECRET`** (default TTL **8 h**, tunable via **`LOCAL_JWT_TTL_SECONDS`**).
+- **Unified request identity** — `resolveOwner()` now tries a local-session token first, then falls back to the existing Azure / header paths. Downstream code (submissions, admin endpoints, `isAdmin()`) treats both sources identically.
+- **Account lockout & auditing** — Five bad password attempts (tunable via **`LOCAL_LOGIN_MAX_FAILS`** / **`LOCAL_LOGIN_LOCK_MINUTES`**) lock the account for **15 min**. Every login, admin-user change, role change, and password reset writes an **`auth_audit`** row.
+- **Admin CRUD APIs** —
+  - **`GET /api/auth/local/login`** → issues local-session JWT.
+  - **`POST /api/auth/local/change-password`** → caller rotates own password.
+  - **`GET/POST/PATCH/DELETE /api/admin/users[/:id]`** → list / create / edit / deactivate local users.
+  - **`POST /api/admin/users/:id/reset-password`** → admin-initiated reset that forces change-on-next-login (the approved safeguard so a departed admin's password can always be rotated).
+  - **`GET/POST/DELETE /api/admin/roles`** and **`POST/DELETE /api/admin/users/:id/roles`** → manage roles and assignments.
+  - **`GET /api/admin/auth/audit`** → recent auth events, paginated.
+- **Last-admin safeguard** — The last active user holding **`comp-plan-admin`** cannot be deleted, deactivated, or demoted; another admin must be promoted first.
+- **Bootstrap admin** — On first start with an empty `local_users` table, a single admin is created from **`BOOTSTRAP_ADMIN_USERNAME`** / **`BOOTSTRAP_ADMIN_EMAIL`** / **`BOOTSTRAP_ADMIN_PASSWORD`** (/ **`…_DISPLAY`**) — flagged **must change password on first login**. In sandbox, env-based bootstrap; in production, an admin-created account is preferred.
+- **Password policy** — Minimum 12 chars, at least 3 of {lower, upper, digit, symbol}, must not contain the username / email / display name.
+- **Rate limit** — `/api/auth/local/login` is rate-limited (10 req / min / IP) via **`@fastify/rate-limit`**.
+- **Schema — migration 4** — adds `local_users`, `roles`, `user_roles`, `auth_config`, `auth_audit` with indexes; seeds built-in `comp-plan-admin` / `comp-plan-user` roles.
+
+## [3.5.0] — 2026-04-18
+
+### UX polish — user & admin pages
+
+- **Header identity** — Signed-in pages show **"Logged in as: {displayName}"** (from Entra ID via MSAL / mock session), with the **Sign out** control and (for admins) the **Admin Console** link moved from the footer into the header for quick access.
+- **Save → Submissions** — After **Save draft** or **Submit record**, the composer now auto-switches to the **Submissions** list so users see the saved row in context.
+- **Library → Submissions** — Tab renamed from *Library* to **Submissions** to match the record vocabulary used elsewhere.
+- **True read-only for submitted records** — The rich-text legislation description (Tiptap) and department combobox now honour the read-only flag so submitted records cannot be silently edited; the helper copy now reads "Choose **Edit** below to make changes."
+- **Edit button** — *Reopen for editing* renamed to **Edit** (matches admin detail page).
+- **Top + bottom action bar** — Save / Submit / Print / Download PDF / Email buttons are duplicated at the **top** of the composer for long forms.
+- **Unified PDF layout** — The server PDFKit fallback now mirrors the **Print document** layout (title, date, Legislation / Chapter / Goal / Policy labels, Description heading, How-furthers heading) so **Download PDF** and **Print document** produce the same document.
+- **Admin — Print document fixed** — The Admin detail *Print document* button now actually prints (the hidden `.print-doc` is portalled to `document.body` so the print media query can show it).
+- **Admin link placement** — Moved from the footer to the header (below the username) on the main app pages, matching the new identity bar.
+
+## [3.4.0] — 2026-04-18
+
+### Sprint 5 — Admin Console on the server
+
+- **API** — `GET/PATCH /api/admin/submissions[/:id]` expose every submission across all owners. Guarded by **`isAdmin()`**: requires an Entra app role (default **`comp-plan-admin`**, override with **`ADMIN_ROLE_NAMES`**) **or** an email in **`ADMIN_EMAILS`** (comma-separated). List response includes **`ownerEmail`** for the admin UI.
+- **Auth context** — `resolveOwner()` also returns **`roles`**. JWT mode reads from the `roles` claim; header mode accepts a new **`X-User-Roles`** header (CORS allowlisted) for mock/E2E callers.
+- **Admin UI** — `admin.html` now boots MSAL (same config as the main SPA) and renders an **AdminAuthGate**: unauthenticated visitors see a sign-in screen, non-admins see a "not authorized" screen. Signed-in admins see live server data (per-submission `ownerEmail`, status pill); if the admin API is unavailable, the console falls back to seeded localStorage with a visible notice.
+- **Env** — New server env: **`ADMIN_ROLE_NAMES`**, **`ADMIN_EMAILS`** (see [`.env.example`](.env.example)).
+
+## [3.3.0] — 2026-04-17
+
+### Sprint 4 — API authentication (Entra JWT)
+
+- **Bearer tokens** — When **`AZURE_TENANT_ID`** and **`AZURE_AUDIENCE`** are set on the API, `/api/submissions*` resolves identity from a validated **`Authorization: Bearer`** JWT (JWKS from Entra). **`jose`** verifies issuer and audience.
+- **Headers fallback** — If Azure env is **unset**, behavior matches earlier sprints (identity headers only). If Azure env **is** set, **`ALLOW_HEADER_IDENTITY=true`** restores header trust for migration, Playwright/e2e, or sandbox until scopes are wired.
+- **SPA** — `acquireTokenSilent` adds the API scope (default **`api://{VITE_AZURE_CLIENT_ID}/access_as_user`**, override with **`VITE_API_SCOPE`**). Requests still send **`X-User-*`** when present.
+- **CORS** — Allows **`Authorization`** on API requests.
+
+## [3.2.0] — 2026-04-17
+
+### Sprint 3 — Submission lifecycle
+
+- **Status** — Each submission is **`draft`** or **`submitted`** with optional **`submittedAt`** (ISO timestamp). SQLite migration adds **`submitted_at`**.
+- **API** — Create accepts optional **`status`**; **`PATCH`** can update **`snapshot`** and/or **`status`**. **`DELETE`** removes **draft** rows only (**409** if submitted).
+- **Composer** — Save draft vs submit with preview modal; reopen submitted records; library shows status; PDF download and legislation mailto summary from saved rows.
+
+## [3.1.0] — 2026-04-18
+
+### Sprint 2 — Server-backed submissions (SQLite)
+
+- **SQLite** — API stores submissions under `owner_key` (from `X-User-Oid` + `X-User-Email` headers). Default path `./data/submissions.sqlite`; override with **`SQLITE_PATH`** (see [`.env.example`](.env.example)).
+- **REST** — `GET/POST /api/submissions`, `GET/PATCH/DELETE /api/submissions/:id` (body `{ snapshot }` for mutating calls). Register **`POST /api/submissions/pdf`** before dynamic `/api/submissions/:id` routes so `pdf` is not captured as an id.
+- **SPA routes** — **`/app`** = signed-in home (list + **New action**); **`/app/compose`** = composer. Client [`submissionsApi.ts`](src/submissionsApi.ts) sends identity headers from [`auth.ts`](src/auth.ts) (JWT validation on the server is a later sprint).
+- **Admin** — `admin.html` still reads **localStorage** via [`savedActionsStore.ts`](src/savedActionsStore.ts); it does not see server rows until a follow-up wires an admin API.
+- **Tests** — CRUD coverage in [`server/app.test.ts`](server/app.test.ts) (in-memory DB per test). **Do not** send `Content-Type: application/json` on **DELETE** with an empty body (Fastify JSON parser returns 400).
+
+## [3.0.0] — 2026-04-18
+
+### Sprint 1 — Azure Entra ID sign-in and routing
+
+- **React Router** — Public `/` landing, `/auth/callback` OAuth redirect, `/access-denied` for non–City accounts, protected `/app` for the composer + library ([`ComposerApp`](src/ComposerApp.tsx)).
+- **MSAL** — `@azure/msal-browser` + `@azure/msal-react`: PKCE redirect flow; configure with `VITE_AZURE_CLIENT_ID`, `VITE_AZURE_TENANT_ID`, optional `VITE_AZURE_REDIRECT_URI` (see [`.env.example`](.env.example)).
+- **Eligibility** — After sign-in, only emails whose domain is in `VITE_ALLOWED_EMAIL_DOMAINS` (default **`cabq.gov`**) may use `/app`; others are redirected to `/access-denied`.
+- **Roles** — ID token `roles` claim mapped into [`auth.ts`](src/auth.ts); admin role names configurable via `VITE_ENTRA_ROLE_ADMIN`. **Admin Console** link in the composer footer only when [`isAdmin()`](src/auth.ts) is true (mock admin or matching Entra app role).
+- **Development / E2E** — Without `VITE_AZURE_CLIENT_ID`, dev server shows **Mock city user** / **Mock admin** on the landing page. Production E2E uses [`vite build --mode e2e`](package.json) with [`.env.e2e`](.env.e2e) (`VITE_E2E_MOCK_AUTH=true`) so Playwright can click mock sign-in.
+- **Docs** — [`docs/VERSIONING.md`](docs/VERSIONING.md), [`future_work.md`](future_work.md).
+- **Tests** — [`src/auth/entraEligibility.test.ts`](src/auth/entraEligibility.test.ts).
+
 ## [2.0.0] — 2026-04-02
 
 ### Admin Console
