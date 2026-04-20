@@ -1,5 +1,33 @@
 # Changelog
 
+## [4.4.1] — 2026-04-18
+
+### Fix — local session survives the hard nav into the main SPA
+
+v4.4.0 shipped `/devlogin` but the main user SPA couldn't see the
+resulting local-session token, so clicking "Dev User Login" issued
+the JWT, hard-navigated to `/app`, and then bounced straight back to
+the landing page (where MSAL's "Sign in with Microsoft" button was
+waiting). Three small fixes in `src/`:
+
+1. **`src/App.tsx`** — added a side-effect import of
+   `./auth/localSession` so its module-top `loadFromStorage()` +
+   `restoreIfValid()` restore the token into the shared auth store
+   as soon as the main bundle boots. Previously `localSession.ts`
+   was only imported from admin-side code, so the main SPA never
+   ran the restore path.
+2. **`src/components/EntraAuthSync.tsx`** — early-returns when a
+   local session is present, so MSAL's empty-accounts case doesn't
+   clobber the dev identity with `setAuthUser(null)`.
+3. **`src/components/ProtectedRoute.tsx`** — accepts any non-expired
+   local session as valid and bypasses the `@cabq.gov` domain check
+   for them. The dev identities use `@dev.local` emails on purpose
+   (to make them obvious in audit logs), so they would otherwise
+   fail the domain whitelist even if authenticated.
+
+No server or schema changes; SignOutButton already handled local
+sessions (sprint 3.8.0). Full test suite still 101/101.
+
 ## [4.4.0] — 2026-04-18
 
 ### Sandbox-only dev login (`/devlogin`)
