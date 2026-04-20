@@ -1,5 +1,82 @@
 # Changelog
 
+## [4.4.0] — 2026-04-18
+
+### Sandbox-only dev login (`/devlogin`)
+
+Adds a dedicated `/devlogin` page that lets reviewers click into the user
+and admin sides of the app without a real password. This is **strictly
+sandbox-only** and is blocked from production by four independent gates.
+
+**New: `POST /api/auth/dev-login`** (body `{ role: "user" | "admin" }`)
+
+Issues a short-lived local-session JWT for a synthetic identity:
+
+- `user` → `local:devlogin-user`, no app roles, display name "Dev User".
+- `admin` → `local:devlogin-admin`, `roles: ["comp-plan-admin"]`,
+  display name "Dev Admin".
+
+The synthetic identities are **not inserted into the `local_users`
+table**, so they cannot interfere with the "last admin" safeguard or
+normal username / password sign-in. Every successful dev-login writes
+an `auth_audit` row with `action = "dev_login_used"` so any use is
+immediately visible in the admin Audit log.
+
+**New: `GET /api/auth/dev-login/status`** — always on, returns
+`{ enabled: boolean }` so the SPA can render the page conditionally.
+
+**New: `src/pages/DevLoginPage.tsx`** at route `/devlogin` — one page
+with two buttons (Dev User Login / Dev Admin Login). When the build
+flag or server flag is off, renders a safety stub explaining why the
+page is inactive. On success, does a hard navigation to `/app` (user)
+or `/admin/` (admin) so both SPAs pick up the new session from storage.
+
+**Production safety (four independent gates)**
+
+1. **Build gate** — `VITE_DEV_LOGIN_ENABLED=true` is only set by
+   `.env.sandbox`, consumed by the new `npm run build:sandbox`. The
+   regular `npm run build` (used for production bundles) leaves the
+   flag undefined, so `isDevLoginBuild()` returns `false` and the
+   login buttons never render.
+2. **Server gate** — `registerDevLoginRoutes()` is a no-op unless
+   `ENABLE_DEV_LOGIN=true`. Without the flag the POST route simply
+   does not exist and requests return 404.
+3. **Startup refuse-to-run** — `assertDevLoginSafeForStartup()` runs
+   before Fastify is created. If it sees `ENABLE_DEV_LOGIN=true` AND
+   `NODE_ENV=production` without an explicit
+   `CONFIRM_DEV_LOGIN_IN_PRODUCTION=yes-i-really-want-this` override,
+   it throws and the API refuses to start.
+4. **Audit trail** — even under an authorised override, every
+   dev-login writes an audit row so misuse is observable.
+
+**Deploy**
+
+`scripts\push-to-sandbox.ps1` gains a `-WithDevLogin` switch that runs
+`npm run build:sandbox` instead of the prod build. The server still
+needs `ENABLE_DEV_LOGIN=true` in its `.env`; the script prints a
+reminder.
+
+**Tests**
+
+12 new vitest cases in `server/devLogin.test.ts` cover:
+
+- startup gate (unset / non-prod / prod refuses / override permits),
+- status endpoint (off / on),
+- POST route absent when disabled (404),
+- POST issues valid user / admin tokens when enabled,
+- unknown role rejected with 400,
+- missing `LOCAL_JWT_SECRET` rejected with 503,
+- dev-admin token successfully passes `/api/admin/submissions`.
+
+Full backend suite: 101 / 101 passing.
+
+**Files**
+
+- added: `server/devLoginRoutes.ts`, `server/devLogin.test.ts`,
+  `src/auth/devLogin.ts`, `src/pages/DevLoginPage.tsx`, `.env.sandbox`.
+- changed: `server/app.ts`, `src/App.tsx`, `package.json`,
+  `.env.example`, `scripts/push-to-sandbox.ps1`.
+
 ## [4.3.0] — 2026-04-20
 
 ### Documentation — publish-to-dev-DNS, Ops request, email/notifications roadmap
