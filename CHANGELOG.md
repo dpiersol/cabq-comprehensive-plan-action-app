@@ -1,5 +1,87 @@
 # Changelog
 
+## [4.3.0] — 2026-04-20
+
+### Documentation — publish-to-dev-DNS, Ops request, email/notifications roadmap
+
+Adds three operational guides that take the dev build from its current
+internal-only URL (`http://DTIAPPSINTDEV:8080`) to a proper internal
+HTTPS hostname (`https://cpactions-dev.cabq.gov`), and locks in the
+foundation for future email notifications without any code change today.
+
+**New: `deployment/PUBLISH-TO-DEV-DNS.md`**
+
+Step-by-step cutover for a non-admin app owner. Covers:
+
+- Phase 0 prerequisites and how to verify Ops finished (DNS resolves,
+  port 443 reachable, `.pfx` received).
+- Phase 1 TLS certificate install via `certlm.msc` with private-key
+  verification.
+- Phase 2 adding the HTTPS binding to the `cabq-plan` IIS site via
+  IIS Manager with Server Name Indication on.
+- Phase 3 optional URL Rewrite rule forcing HTTPS + canonical host.
+- Phase 4 updating the Azure Entra app registration with the new
+  SPA redirect URI and front-channel logout URL.
+- Phase 5 editing `D:\cabq-plan\.env` for `VITE_AZURE_REDIRECT_URI`
+  and the other auth keys already documented in `.env.example`.
+- Phase 6 rebuild + redeploy using the existing
+  `scripts/push-to-sandbox.ps1` + `scripts/deploy.ps1` flow.
+- Phase 7 smoke tests (SPA load, `/api/health`, `/api/auth/config`,
+  Microsoft sign-in, admin reports, audit log).
+- Rollback path and troubleshooting for the common failure modes
+  (AADSTS50011 reply URL mismatch, AADSTS700038 zeros client id,
+  502 on `/api/*`, cert-authority-invalid, SPA 404 on `/admin`).
+- Template reuse for future production cutover to `cpactions.cabq.gov`.
+
+**New: `deployment/OPS-REQUEST-DNS-CERT.md`**
+
+Ready-to-paste ticket for CABQ IT Operations. Explicitly asks for four
+things in one place, with every field Ops usually asks back for
+pre-populated:
+
+- Internal DNS `cpactions-dev.cabq.gov` -> `DTIAPPSINTDEV`, internal
+  zone only.
+- TLS cert for that hostname (SANs, delivery format, renewal contact,
+  internal-CA trust, production-cert policy).
+- Firewall inbound TCP 443 from CABQ LAN + VPN; keep existing 8080
+  open during cutover.
+- SMTP relay info + dedicated sender `comp-plan-noreply@cabq.gov` +
+  optional `comp-plan-support@cabq.gov` mailbox.
+
+**New: `docs/EMAIL-NOTIFICATIONS-ROADMAP.md`**
+
+Foundation document for the v5.x email/notifications feature. No code
+today - reserves env var names and locks the architecture in so future
+PRs don't re-litigate the design:
+
+- Reserved env keys (`NOTIFICATIONS_ENABLED`, `SMTP_*`,
+  `NOTIFICATIONS_ALLOWED_DOMAINS`, etc.) with safe defaults.
+- Outbox-pattern architecture (queue -> drain worker -> channel
+  adapter) so transient relay outages never lose a message.
+- Planned `server/notifications/` module layout and channel interface
+  that accommodates SMTP today, MS Graph `sendMail` and Teams later.
+- Migration 6 schema for `notifications` + `notification_preferences`
+  with status lifecycle (`queued` -> `sending` -> `sent` /
+  `failed` / `suppressed`).
+- Hook points in the existing code
+  (`server/submissionsRepo.ts`, `server/localAuthRoutes.ts`,
+  `server/auditRepo.ts`) showing exactly where we'll wire in sends.
+- Template format (Handlebars: subject + plaintext + HTML bodies).
+- Planned `Admin console -> Notifications` page (templates, delivery
+  log, test-send) under the Security nav group alongside Reports.
+- Security rules baked in from day one: domain allow-list, dev-redirect
+  safety net, per-user preferences, rate limits, audit log coverage.
+- Phased rollout plan v5.0.0 -> v5.3.0 mirroring the Reports initiative.
+
+**Versioning rationale**
+
+Minor bump (4.2.x -> 4.3.0) because we're adding reserved public-facing
+env var names and new docs under `deployment/` and `docs/`, but no
+runtime behavior change.
+
+**No application / dependency changes.** `npm install`, build, lint, and
+tests are unaffected - this release is documentation only.
+
 ## [4.2.1] — 2026-04-20
 
 ### Chore — dependency hygiene
