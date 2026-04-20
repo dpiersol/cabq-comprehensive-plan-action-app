@@ -1,9 +1,15 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+// Side-effect import: restores any stored local-session token (from normal
+// local sign-in OR from /devlogin) into the shared auth store on app load.
+// Without this, users who arrive at /app via a hard navigation see an empty
+// auth state and are bounced back to the landing page.
+import "./auth/localSession";
 import { ComposerApp } from "./ComposerApp";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AccessDeniedPage } from "./pages/AccessDeniedPage";
 import { AppHomePage } from "./pages/AppHomePage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { DevLoginPage } from "./pages/DevLoginPage";
 import { LandingPage } from "./pages/LandingPage";
 
 /** Top-level routes: public landing, OAuth callback, access denied, protected home + composer. */
@@ -11,6 +17,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/devlogin" element={<DevLoginPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/access-denied" element={<AccessDeniedPage />} />
       <Route

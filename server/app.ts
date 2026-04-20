@@ -11,6 +11,10 @@ import { bootstrapAdminIfNeeded } from "./bootstrapAdmin.js";
 import { renderSubmissionPdfBuffer } from "./buildSubmissionPdf.js";
 import { registerAuthConfigRoutes } from "./authConfigRoutes.js";
 import { openDatabase } from "./db/database.js";
+import {
+  assertDevLoginSafeForStartup,
+  registerDevLoginRoutes,
+} from "./devLoginRoutes.js";
 import { registerLocalAuthRoutes } from "./localAuthRoutes.js";
 import { localSessionConfigured } from "./localSessionJwt.js";
 import { registerReportsRoutes } from "./reports/reportsRoutes.js";
@@ -35,6 +39,10 @@ export interface BuildServerOptions {
 
 /** API for the CABQ Comprehensive Plan Action app (user form + PDF + persisted submissions). */
 export function buildServer(opts?: BuildServerOptions) {
+  // Fail loud at startup if dev-login is enabled under production. Must run
+  // before anything else touches the server.
+  assertDevLoginSafeForStartup();
+
   const db = opts?.db ?? openDatabase();
   const app = Fastify({ logger: process.env.VITEST ? false : true });
   app.register(cors, {
@@ -178,6 +186,7 @@ export function buildServer(opts?: BuildServerOptions) {
   registerLocalAuthRoutes(app, db);
   registerAuthConfigRoutes(app, db);
   registerReportsRoutes(app, db);
+  registerDevLoginRoutes(app, db);
 
   // Bootstrap initial admin (no-op in tests or when env vars not set).
   if (!process.env.VITEST) {

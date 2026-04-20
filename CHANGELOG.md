@@ -1,5 +1,234 @@
 # Changelog
 
+## [4.4.3] — 2026-04-20
+
+### Fix — MSAL now uses admin-saved Tenant/Client ID (AADSTS700038)
+
+Previously, `getMsalConfiguration()` read only from build-time env vars
+(`VITE_AZURE_CLIENT_ID`, `VITE_AZURE_TENANT_ID`) and fell back to the
+all-zeros GUID when they were absent. The admin console writes SSO
+settings to the database, served at `GET /api/auth/config` — but MSAL
+never consulted that endpoint. The net effect: signing in with SSO
+always sent the zero GUID to Entra, which responded with `AADSTS700038:
+00000000-0000-0000-0000-000000000000 is not a valid application
+identifier.`
+
+- `src/msal/msalConfig.ts`: New `resolveRuntimeSsoConfig()` + async
+  `getMsalConfigurationAsync()` that fetch `/api/auth/config`, merge
+  over env defaults, and cache the result. `apiAccessScopes()` also
+  prefers the resolved cache. Legacy sync `getMsalConfiguration()` is
+  retained for compatibility and now reads from the same cache once
+  populated.
+- `src/main.tsx` + `src/admin/main.tsx`: Bootstraps now
+  `await getMsalConfigurationAsync()` before instantiating
+  `PublicClientApplication`.
+- `src/admin/AuthSettingsPage.tsx`: Clarified helper copy on the API
+  audience field (it is **not** a redirect URI — that's configured in
+  Entra, not here). Save notice now reminds the admin to hard-refresh
+  so the SPA re-reads the SSO config.
+
+## [4.4.2] — 2026-04-18
+
+### Fix — Dev Admin Login lands on the admin SPA, not the MS sign-in page
+
+`DevLoginPage` redirected admins to `/admin/` but the Vite build ships
+the admin console as a second entry bundle at **`/admin.html`** (see
+`vite.config.ts` `rollupOptions.input.admin`). Without the `.html`
+suffix the request fell through to the main SPA's wildcard route,
+which redirected to `/`, which surfaced the Microsoft sign-in button.
+The rest of the codebase (`SiteHeaderUserBar`, `AdminSubmissionDetail`)
+already uses `/admin.html`; this brings `DevLoginPage` into line.
+
+Changed: `src/pages/DevLoginPage.tsx` — admin redirect target is now
+`/admin.html` instead of `/admin/`.
+
+## [4.4.1] — 2026-04-18
+
+### Fix — local session survives the hard nav into the main SPA
+
+v4.4.0 shipped `/devlogin` but the main user SPA couldn't see the
+resulting local-session token, so clicking "Dev User Login" issued
+the JWT, hard-navigated to `/app`, and then bounced straight back to
+the landing page (where MSAL's "Sign in with Microsoft" button was
+waiting). Three small fixes in `src/`:
+
+1. **`src/App.tsx`** — added a side-effect import of
+   `./auth/localSession` so its module-top `loadFromStorage()` +
+   `restoreIfValid()` restore the token into the shared auth store
+   as soon as the main bundle boots. Previously `localSession.ts`
+   was only imported from admin-side code, so the main SPA never
+   ran the restore path.
+2. **`src/components/EntraAuthSync.tsx`** — early-returns when a
+   local session is present, so MSAL's empty-accounts case doesn't
+   clobber the dev identity with `setAuthUser(null)`.
+3. **`src/components/ProtectedRoute.tsx`** — accepts any non-expired
+   local session as valid and bypasses the `@cabq.gov` domain check
+   for them. The dev identities use `@dev.local` emails on purpose
+   (to make them obvious in audit logs), so they would otherwise
+   fail the domain whitelist even if authenticated.
+
+No server or schema changes; SignOutButton already handled local
+sessions (sprint 3.8.0). Full test suite still 101/101.
+
+## [4.4.0] — 2026-04-18
+
+### Sandbox-only dev login (`/devlogin`)
+
+Adds a dedicated `/devlogin` page that lets reviewers click into the user
+and admin sides of the app without a real password. This is **strictly
+sandbox-only** and is blocked from production by four independent gates.
+
+**New: `POST /api/auth/dev-login`** (body `{ role: "user" | "admin" }`)
+
+Issues a short-lived local-session JWT for a synthetic identity:
+
+- `user` → `local:devlogin-user`, no app roles, display name "Dev User".
+- `admin` → `local:devlogin-admin`, `roles: ["comp-plan-admin"]`,
+  display name "Dev Admin".
+
+The synthetic identities are **not inserted into the `local_users`
+table**, so they cannot interfere with the "last admin" safeguard or
+normal username / password sign-in. Every successful dev-login writes
+an `auth_audit` row with `action = "dev_login_used"` so any use is
+immediately visible in the admin Audit log.
+
+**New: `GET /api/auth/dev-login/status`** — always on, returns
+`{ enabled: boolean }` so the SPA can render the page conditionally.
+
+**New: `src/pages/DevLoginPage.tsx`** at route `/devlogin` — one page
+with two buttons (Dev User Login / Dev Admin Login). When the build
+flag or server flag is off, renders a safety stub explaining why the
+page is inactive. On success, does a hard navigation to `/app` (user)
+or `/admin/` (admin) so both SPAs pick up the new session from storage.
+
+**Production safety (four independent gates)**
+
+1. **Build gate** — `VITE_DEV_LOGIN_ENABLED=true` is only set by
+   `.env.sandbox`, consumed by the new `npm run build:sandbox`. The
+   regular `npm run build` (used for production bundles) leaves the
+   flag undefined, so `isDevLoginBuild()` returns `false` and the
+   login buttons never render.
+2. **Server gate** — `registerDevLoginRoutes()` is a no-op unless
+   `ENABLE_DEV_LOGIN=true`. Without the flag the POST route simply
+   does not exist and requests return 404.
+3. **Startup refuse-to-run** — `assertDevLoginSafeForStartup()` runs
+   before Fastify is created. If it sees `ENABLE_DEV_LOGIN=true` AND
+   `NODE_ENV=production` without an explicit
+   `CONFIRM_DEV_LOGIN_IN_PRODUCTION=yes-i-really-want-this` override,
+   it throws and the API refuses to start.
+4. **Audit trail** — even under an authorised override, every
+   dev-login writes an audit row so misuse is observable.
+
+**Deploy**
+
+`scripts\push-to-sandbox.ps1` gains a `-WithDevLogin` switch that runs
+`npm run build:sandbox` instead of the prod build. The server still
+needs `ENABLE_DEV_LOGIN=true` in its `.env`; the script prints a
+reminder.
+
+**Tests**
+
+12 new vitest cases in `server/devLogin.test.ts` cover:
+
+- startup gate (unset / non-prod / prod refuses / override permits),
+- status endpoint (off / on),
+- POST route absent when disabled (404),
+- POST issues valid user / admin tokens when enabled,
+- unknown role rejected with 400,
+- missing `LOCAL_JWT_SECRET` rejected with 503,
+- dev-admin token successfully passes `/api/admin/submissions`.
+
+Full backend suite: 101 / 101 passing.
+
+**Files**
+
+- added: `server/devLoginRoutes.ts`, `server/devLogin.test.ts`,
+  `src/auth/devLogin.ts`, `src/pages/DevLoginPage.tsx`, `.env.sandbox`.
+- changed: `server/app.ts`, `src/App.tsx`, `package.json`,
+  `.env.example`, `scripts/push-to-sandbox.ps1`.
+
+## [4.3.0] — 2026-04-20
+
+### Documentation — publish-to-dev-DNS, Ops request, email/notifications roadmap
+
+Adds three operational guides that take the dev build from its current
+internal-only URL (`http://DTIAPPSINTDEV:8080`) to a proper internal
+HTTPS hostname (`https://cpactions-dev.cabq.gov`), and locks in the
+foundation for future email notifications without any code change today.
+
+**New: `deployment/PUBLISH-TO-DEV-DNS.md`**
+
+Step-by-step cutover for a non-admin app owner. Covers:
+
+- Phase 0 prerequisites and how to verify Ops finished (DNS resolves,
+  port 443 reachable, `.pfx` received).
+- Phase 1 TLS certificate install via `certlm.msc` with private-key
+  verification.
+- Phase 2 adding the HTTPS binding to the `cabq-plan` IIS site via
+  IIS Manager with Server Name Indication on.
+- Phase 3 optional URL Rewrite rule forcing HTTPS + canonical host.
+- Phase 4 updating the Azure Entra app registration with the new
+  SPA redirect URI and front-channel logout URL.
+- Phase 5 editing `D:\cabq-plan\.env` for `VITE_AZURE_REDIRECT_URI`
+  and the other auth keys already documented in `.env.example`.
+- Phase 6 rebuild + redeploy using the existing
+  `scripts/push-to-sandbox.ps1` + `scripts/deploy.ps1` flow.
+- Phase 7 smoke tests (SPA load, `/api/health`, `/api/auth/config`,
+  Microsoft sign-in, admin reports, audit log).
+- Rollback path and troubleshooting for the common failure modes
+  (AADSTS50011 reply URL mismatch, AADSTS700038 zeros client id,
+  502 on `/api/*`, cert-authority-invalid, SPA 404 on `/admin`).
+- Template reuse for future production cutover to `cpactions.cabq.gov`.
+
+**New: `deployment/OPS-REQUEST-DNS-CERT.md`**
+
+Ready-to-paste ticket for CABQ IT Operations. Explicitly asks for four
+things in one place, with every field Ops usually asks back for
+pre-populated:
+
+- Internal DNS `cpactions-dev.cabq.gov` -> `DTIAPPSINTDEV`, internal
+  zone only.
+- TLS cert for that hostname (SANs, delivery format, renewal contact,
+  internal-CA trust, production-cert policy).
+- Firewall inbound TCP 443 from CABQ LAN + VPN; keep existing 8080
+  open during cutover.
+- SMTP relay info + dedicated sender `comp-plan-noreply@cabq.gov` +
+  optional `comp-plan-support@cabq.gov` mailbox.
+
+**New: `docs/EMAIL-NOTIFICATIONS-ROADMAP.md`**
+
+Foundation document for the v5.x email/notifications feature. No code
+today - reserves env var names and locks the architecture in so future
+PRs don't re-litigate the design:
+
+- Reserved env keys (`NOTIFICATIONS_ENABLED`, `SMTP_*`,
+  `NOTIFICATIONS_ALLOWED_DOMAINS`, etc.) with safe defaults.
+- Outbox-pattern architecture (queue -> drain worker -> channel
+  adapter) so transient relay outages never lose a message.
+- Planned `server/notifications/` module layout and channel interface
+  that accommodates SMTP today, MS Graph `sendMail` and Teams later.
+- Migration 6 schema for `notifications` + `notification_preferences`
+  with status lifecycle (`queued` -> `sending` -> `sent` /
+  `failed` / `suppressed`).
+- Hook points in the existing code
+  (`server/submissionsRepo.ts`, `server/localAuthRoutes.ts`,
+  `server/auditRepo.ts`) showing exactly where we'll wire in sends.
+- Template format (Handlebars: subject + plaintext + HTML bodies).
+- Planned `Admin console -> Notifications` page (templates, delivery
+  log, test-send) under the Security nav group alongside Reports.
+- Security rules baked in from day one: domain allow-list, dev-redirect
+  safety net, per-user preferences, rate limits, audit log coverage.
+- Phased rollout plan v5.0.0 -> v5.3.0 mirroring the Reports initiative.
+
+**Versioning rationale**
+
+Minor bump (4.2.x -> 4.3.0) because we're adding reserved public-facing
+env var names and new docs under `deployment/` and `docs/`, but no
+runtime behavior change.
+
+**No application / dependency changes.** `npm install`, build, lint, and
+tests are unaffected - this release is documentation only.
+
 ## [4.2.1] — 2026-04-20
 
 ### Chore — dependency hygiene

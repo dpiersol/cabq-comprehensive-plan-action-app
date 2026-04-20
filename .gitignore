@@ -21,3 +21,4 @@ blob-report/
 !.env.example
 !.env.production
 !.env.e2e
+!.env.sandbox

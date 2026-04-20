@@ -7,6 +7,7 @@ import {
   isAllowedEmailDomain,
   isMockAuthMode,
 } from "../auth/entraEligibility";
+import { getLocalSession } from "../auth/localSession";
 
 interface Props {
   children: React.ReactNode;
@@ -15,15 +16,23 @@ interface Props {
 /**
  * Allows access when:
  * - Mock mode: {@link AuthUser} is set via dev buttons; or
- * - Entra mode: MSAL has an active account whose ID token resolves to an allowed `@cabq.gov` email domain.
+ * - Local session (normal local sign-in OR /devlogin): token present; server
+ *   already vetted the identity, so we skip the client-side domain check
+ *   (the dev identities intentionally use a `@dev.local` email); or
+ * - Entra mode: MSAL has an active account whose ID token resolves to an
+ *   allowed `@cabq.gov` email domain.
  */
 export function ProtectedRoute({ children }: Props) {
   const { accounts } = useMsal();
-  const mockUser = useSyncExternalStore(subscribeAuth, getAuthUser, () => null);
+  const authUser = useSyncExternalStore(subscribeAuth, getAuthUser, () => null);
 
   if (isMockAuthMode()) {
-    if (!mockUser) return <Navigate to="/" replace />;
-    if (!isAllowedEmailDomain(mockUser.email)) return <Navigate to="/access-denied" replace />;
+    if (!authUser) return <Navigate to="/" replace />;
+    if (!isAllowedEmailDomain(authUser.email)) return <Navigate to="/access-denied" replace />;
+    return <>{children}</>;
+  }
+
+  if (getLocalSession()) {
     return <>{children}</>;
   }
 

@@ -80,8 +80,10 @@ export function AuthSettingsPage() {
         adminEmails: fromCsv(form.adminEmails),
       });
       setCfg(updated);
-      setSaveNotice("Saved.");
-      window.setTimeout(() => setSaveNotice(null), 3000);
+      setSaveNotice(
+        "Saved. Refresh your browser (Ctrl+F5) so the SPA re-reads the SSO config before signing in.",
+      );
+      window.setTimeout(() => setSaveNotice(null), 8000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     }
@@ -172,8 +174,16 @@ export function AuthSettingsPage() {
               <input
                 value={form.audience}
                 onChange={(e) => setForm((f) => ({ ...f, audience: e.target.value }))}
-                placeholder="api://<app-id>"
+                placeholder="api://<app-id>  (NOT a redirect URI)"
               />
+              <small className="muted">
+                Used to validate access tokens on the API. Typically{" "}
+                <code>api://&lt;Client ID&gt;</code> or the Client ID itself. Leave blank to
+                accept tokens whose audience equals the Client ID. This is <strong>not</strong>{" "}
+                the redirect URI — that is configured in Entra under the app registration's
+                Authentication blade (usually{" "}
+                <code>{window.location.origin}/auth/callback</code>).
+              </small>
             </label>
             <label className="field">
               <span>Issuer override (optional)</span>

@@ -33,7 +33,11 @@
 [CmdletBinding()]
 param(
   [string]$Target = "Z:\cabq-plan",
-  [switch]$SkipBuild
+  [switch]$SkipBuild,
+  # When set, runs `npm run build:sandbox` instead of the prod build so
+  # VITE_DEV_LOGIN_ENABLED=true is baked into the bundle and the /devlogin
+  # page shows the dev-user / dev-admin buttons. SANDBOX ONLY.
+  [switch]$WithDevLogin
 )
 
 $ErrorActionPreference = "Stop"
@@ -61,6 +65,13 @@ if (-not (Test-Path $Target)) {
 # ----------------------------------------------------------------------------
 if ($SkipBuild) {
   Write-Step "Skipping build (-SkipBuild)"
+} elseif ($WithDevLogin) {
+  Write-Step "npm run build:sandbox (dev-login page ENABLED - sandbox only)"
+  & npm run build:sandbox
+  if ($LASTEXITCODE -ne 0) {
+    Write-Err2 "Build failed (exit $LASTEXITCODE)"
+    exit $LASTEXITCODE
+  }
 } else {
   Write-Step "npm run build"
   & npm run build
@@ -111,3 +122,10 @@ Write-Host "  .\scripts\deploy.ps1"
 Write-Host ""
 Write-Host "That installs prod deps against the server's Node (rebuilds"
 Write-Host "better-sqlite3), pm2-reloads the app, and probes /api/health."
+
+if ($WithDevLogin) {
+  Write-Host ""
+  Write-Host "Reminder: -WithDevLogin baked VITE_DEV_LOGIN_ENABLED=true into the SPA." -ForegroundColor Yellow
+  Write-Host "  Also set ENABLE_DEV_LOGIN=true in the server .env and restart the API"
+  Write-Host "  so /devlogin can issue sessions. NEVER set this combo in production."
+}

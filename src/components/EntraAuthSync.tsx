@@ -5,6 +5,7 @@ import {
   isMockAuthMode,
   rolesFromIdTokenClaims,
 } from "../auth/entraEligibility";
+import { getLocalSession } from "../auth/localSession";
 import { setAuthUser } from "../auth";
 
 /** Syncs active MSAL account + ID token claims into {@link ./auth.ts} for `useAuth` consumers. */
@@ -13,6 +14,10 @@ export function EntraAuthSync({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isMockAuthMode()) return;
+
+    // A local session (normal local sign-in OR /devlogin) owns the auth
+    // state. Don't clobber it just because MSAL has no account.
+    if (getLocalSession()) return;
 
     const account = accounts[0];
     if (!account) {
