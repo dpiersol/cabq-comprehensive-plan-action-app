@@ -7,11 +7,14 @@ import "./index.css";
 import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { EntraAuthSync } from "./components/EntraAuthSync";
-import { getMsalConfiguration } from "./msal/msalConfig";
+import { getMsalConfigurationAsync } from "./msal/msalConfig";
 import { registerMsalInstance } from "./msal/msalInstance";
 
 async function bootstrap() {
-  const pca = new PublicClientApplication(getMsalConfiguration());
+  // Resolve SSO config from the server (admin-saved tenant/client ID) with
+  // env vars as a fallback before MSAL is instantiated. Previously this used
+  // only env vars and fell back to the zero GUID, producing AADSTS700038.
+  const pca = new PublicClientApplication(await getMsalConfigurationAsync());
   await pca.initialize();
   registerMsalInstance(pca);
   await pca.handleRedirectPromise();

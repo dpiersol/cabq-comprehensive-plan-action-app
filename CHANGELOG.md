@@ -1,5 +1,32 @@
 # Changelog
 
+## [4.4.3] — 2026-04-20
+
+### Fix — MSAL now uses admin-saved Tenant/Client ID (AADSTS700038)
+
+Previously, `getMsalConfiguration()` read only from build-time env vars
+(`VITE_AZURE_CLIENT_ID`, `VITE_AZURE_TENANT_ID`) and fell back to the
+all-zeros GUID when they were absent. The admin console writes SSO
+settings to the database, served at `GET /api/auth/config` — but MSAL
+never consulted that endpoint. The net effect: signing in with SSO
+always sent the zero GUID to Entra, which responded with `AADSTS700038:
+00000000-0000-0000-0000-000000000000 is not a valid application
+identifier.`
+
+- `src/msal/msalConfig.ts`: New `resolveRuntimeSsoConfig()` + async
+  `getMsalConfigurationAsync()` that fetch `/api/auth/config`, merge
+  over env defaults, and cache the result. `apiAccessScopes()` also
+  prefers the resolved cache. Legacy sync `getMsalConfiguration()` is
+  retained for compatibility and now reads from the same cache once
+  populated.
+- `src/main.tsx` + `src/admin/main.tsx`: Bootstraps now
+  `await getMsalConfigurationAsync()` before instantiating
+  `PublicClientApplication`.
+- `src/admin/AuthSettingsPage.tsx`: Clarified helper copy on the API
+  audience field (it is **not** a redirect URI — that's configured in
+  Entra, not here). Save notice now reminds the admin to hard-refresh
+  so the SPA re-reads the SSO config.
+
 ## [4.4.2] — 2026-04-18
 
 ### Fix — Dev Admin Login lands on the admin SPA, not the MS sign-in page

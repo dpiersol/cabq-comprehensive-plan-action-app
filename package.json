@@ -1,7 +1,7 @@
 {
   "name": "cabq-comprehensive-plan-action-app",
   "private": true,
-  "version": "4.4.2",
+  "version": "4.4.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
