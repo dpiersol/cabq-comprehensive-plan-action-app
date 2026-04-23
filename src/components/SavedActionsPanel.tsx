@@ -4,6 +4,7 @@ import type { SavedAction } from "../savedActionsStore";
 import { resolvePlanItem } from "../planSelection";
 import { policyLabel, chapterLabel } from "../labels";
 import { isSubmitted, submissionStatusLabel } from "../submissionStatus";
+import { SortableTh } from "./SortableTh";
 
 type SortKey = "record" | "status" | "title" | "department" | "policy" | "updated";
 
@@ -57,39 +58,6 @@ function policyLabelsForSnapshot(plan: PlanData, snapshot: SavedAction["snapshot
       return sel.policy ? policyLabel(sel.policy) : "";
     })
     .filter((s) => s.length > 0);
-}
-
-function SortTh({
-  label,
-  colKey,
-  sortKey,
-  sortDir,
-  onSort,
-}: {
-  label: string;
-  colKey: SortKey;
-  sortKey: SortKey;
-  sortDir: "asc" | "desc";
-  onSort: (k: SortKey) => void;
-}) {
-  const active = sortKey === colKey;
-  return (
-    <th scope="col" aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
-      <button type="button" className="saved-table-sort" onClick={() => onSort(colKey)}>
-        <span className="saved-table-sort-label">{label}</span>
-        {active ? (
-          <span className="saved-table-sort-indicator" aria-hidden>
-            {sortDir === "asc" ? " ▲" : " ▼"}
-          </span>
-        ) : (
-          <span className="saved-table-sort-hint" aria-hidden>
-            {" "}
-            ↕
-          </span>
-        )}
-      </button>
-    </th>
-  );
 }
 
 export function SavedActionsPanel({
@@ -188,42 +156,42 @@ export function SavedActionsPanel({
           <table className="saved-table">
             <thead>
               <tr>
-                <SortTh
+                <SortableTh
                   label="Record"
                   colKey="record"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={onSortHeaderClick}
                 />
-                <SortTh
+                <SortableTh
                   label="Status"
                   colKey="status"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={onSortHeaderClick}
                 />
-                <SortTh
+                <SortableTh
                   label="Legislation title"
                   colKey="title"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={onSortHeaderClick}
                 />
-                <SortTh
+                <SortableTh
                   label="Department"
                   colKey="department"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={onSortHeaderClick}
                 />
-                <SortTh
+                <SortableTh
                   label="Policy"
                   colKey="policy"
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onSort={onSortHeaderClick}
                 />
-                <SortTh
+                <SortableTh
                   label="Updated"
                   colKey="updated"
                   sortKey={sortKey}

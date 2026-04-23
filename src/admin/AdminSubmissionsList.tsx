@@ -6,6 +6,7 @@ import { chapterLabel, policyLabel } from "../labels";
 import { plainTextFromHtml } from "../htmlUtils";
 import { submissionStatusLabel } from "../submissionStatus";
 import { isAdminSavedAction } from "./AdminApp";
+import { SortableTh } from "../components/SortableTh";
 
 interface Props {
   plan: PlanData;
@@ -13,6 +14,67 @@ interface Props {
   /** When true, show the submission owner column (server-backed view). */
   showOwner?: boolean;
   onOpenSubmission: (id: string) => void;
+}
+
+type AdminSortKey =
+  | "record"
+  | "title"
+  | "department"
+  | "primaryContact"
+  | "owner"
+  | "policy"
+  | "status"
+  | "updated";
+
+function policiesJoin(plan: PlanData, a: SavedAction): string {
+  const items = a.snapshot.planItems?.length ? a.snapshot.planItems : [];
+  const policies = items
+    .map((row) => {
+      const sel = resolvePlanItem(plan, row);
+      return sel.policy ? policyLabel(sel.policy) : "";
+    })
+    .filter(Boolean);
+  return policies.join(" ").toLowerCase();
+}
+
+function compareAdmin(plan: PlanData, a: SavedAction, b: SavedAction, key: AdminSortKey): number {
+  switch (key) {
+    case "record":
+      return (a.cpRecordId || "").localeCompare(b.cpRecordId || "", undefined, { numeric: true });
+    case "title":
+      return (a.snapshot.actionTitle.trim() || "").localeCompare(
+        b.snapshot.actionTitle.trim() || "",
+        undefined,
+        { sensitivity: "base" },
+      );
+    case "department":
+      return (a.snapshot.department.trim() || "").localeCompare(
+        b.snapshot.department.trim() || "",
+        undefined,
+        { sensitivity: "base" },
+      );
+    case "primaryContact":
+      return (a.snapshot.primaryContact.name.trim() || "").localeCompare(
+        b.snapshot.primaryContact.name.trim() || "",
+        undefined,
+        { sensitivity: "base" },
+      );
+    case "owner": {
+      const ea = isAdminSavedAction(a) ? (a.ownerEmail ?? "").toLowerCase() : "";
+      const eb = isAdminSavedAction(b) ? (b.ownerEmail ?? "").toLowerCase() : "";
+      return ea.localeCompare(eb);
+    }
+    case "policy":
+      return policiesJoin(plan, a).localeCompare(policiesJoin(plan, b));
+    case "status":
+      return submissionStatusLabel(a.status ?? "submitted").localeCompare(
+        submissionStatusLabel(b.status ?? "submitted"),
+      );
+    case "updated":
+      return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+    default:
+      return 0;
+  }
 }
 
 function matchesQuery(plan: PlanData, a: SavedAction, q: string): boolean {
@@ -45,12 +107,28 @@ function matchesQuery(plan: PlanData, a: SavedAction, q: string): boolean {
 
 export function AdminSubmissionsList({ plan, actions, showOwner, onOpenSubmission }: Props) {
   const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState<AdminSortKey>("updated");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return actions;
     return actions.filter((a) => matchesQuery(plan, a, q));
   }, [plan, actions, query]);
+
+  const sorted = useMemo(() => {
+    const mult = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => mult * compareAdmin(plan, a, b, sortKey));
+  }, [filtered, plan, sortKey, sortDir]);
+
+  function onSortHeaderClick(key: AdminSortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "updated" ? "desc" : "asc");
+    }
+  }
 
   return (
     <section className="admin-card">
@@ -75,18 +153,68 @@ export function AdminSubmissionsList({ plan, actions, showOwner, onOpenSubmissio
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Record</th>
-                <th>Legislation Title</th>
-                <th>Department</th>
-                <th>Primary Contact</th>
-                {showOwner && <th>Submitted by</th>}
-                <th>Policy</th>
-                <th>Status</th>
-                <th>Updated</th>
+                <SortableTh
+                  label="Record"
+                  colKey="record"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortableTh
+                  label="Legislation Title"
+                  colKey="title"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortableTh
+                  label="Department"
+                  colKey="department"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortableTh
+                  label="Primary Contact"
+                  colKey="primaryContact"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                {showOwner ? (
+                  <SortableTh
+                    label="Submitted by"
+                    colKey="owner"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={onSortHeaderClick}
+                  />
+                ) : null}
+                <SortableTh
+                  label="Policy"
+                  colKey="policy"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortableTh
+                  label="Status"
+                  colKey="status"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortableTh
+                  label="Updated"
+                  colKey="updated"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
               </tr>
             </thead>
             <tbody>
-              {filtered.map((a) => {
+              {sorted.map((a) => {
                 const items = a.snapshot.planItems?.length ? a.snapshot.planItems : [];
                 const policies = items
                   .map((row) => {
@@ -129,9 +257,7 @@ export function AdminSubmissionsList({ plan, actions, showOwner, onOpenSubmissio
                         {submissionStatusLabel(status)}
                       </span>
                     </td>
-                    <td className="muted">
-                      {new Date(a.updatedAt).toLocaleDateString()}
-                    </td>
+                    <td className="muted">{new Date(a.updatedAt).toLocaleDateString()}</td>
                   </tr>
                 );
               })}
