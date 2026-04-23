@@ -515,7 +515,8 @@ export function ComposerApp() {
   if (loadError) {
     return (
       <div className="app-shell">
-        <header className="site-header">
+        <header className="site-header no-print">
+          <SiteHeaderUserBar />
           <h1>CABQ Comprehensive Plan — Action documentation</h1>
         </header>
         <main className="site-main">
@@ -534,7 +535,8 @@ export function ComposerApp() {
   if (!data) {
     return (
       <div className="app-shell">
-        <header className="site-header">
+        <header className="site-header no-print">
+          <SiteHeaderUserBar />
           <h1>CABQ Comprehensive Plan — Action documentation</h1>
         </header>
         <main className="site-main">

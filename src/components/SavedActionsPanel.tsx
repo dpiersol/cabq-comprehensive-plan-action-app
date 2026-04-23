@@ -5,6 +5,38 @@ import { resolvePlanItem } from "../planSelection";
 import { policyLabel, chapterLabel } from "../labels";
 import { isSubmitted, submissionStatusLabel } from "../submissionStatus";
 
+type SortKey = "record" | "status" | "title" | "department" | "policy" | "updated";
+
+function compareForSort(plan: PlanData, a: SavedAction, b: SavedAction, key: SortKey): number {
+  switch (key) {
+    case "record":
+      return (a.cpRecordId || "").localeCompare(b.cpRecordId || "", undefined, { numeric: true });
+    case "status":
+      return submissionStatusLabel(a.status).localeCompare(submissionStatusLabel(b.status));
+    case "title":
+      return (a.snapshot.actionTitle.trim() || "").localeCompare(
+        b.snapshot.actionTitle.trim() || "",
+        undefined,
+        { sensitivity: "base" },
+      );
+    case "department":
+      return (a.snapshot.department.trim() || "").localeCompare(
+        b.snapshot.department.trim() || "",
+        undefined,
+        { sensitivity: "base" },
+      );
+    case "policy": {
+      const la = policyLabelsForSnapshot(plan, a.snapshot).join(" ").toLowerCase();
+      const lb = policyLabelsForSnapshot(plan, b.snapshot).join(" ").toLowerCase();
+      return la.localeCompare(lb);
+    }
+    case "updated":
+      return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+    default:
+      return 0;
+  }
+}
+
 export interface SavedActionsPanelProps {
   plan: PlanData;
   /** Rows to display (from server or local store). */
@@ -27,6 +59,39 @@ function policyLabelsForSnapshot(plan: PlanData, snapshot: SavedAction["snapshot
     .filter((s) => s.length > 0);
 }
 
+function SortTh({
+  label,
+  colKey,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  colKey: SortKey;
+  sortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+}) {
+  const active = sortKey === colKey;
+  return (
+    <th scope="col" aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+      <button type="button" className="saved-table-sort" onClick={() => onSort(colKey)}>
+        <span className="saved-table-sort-label">{label}</span>
+        {active ? (
+          <span className="saved-table-sort-indicator" aria-hidden>
+            {sortDir === "asc" ? " ▲" : " ▼"}
+          </span>
+        ) : (
+          <span className="saved-table-sort-hint" aria-hidden>
+            {" "}
+            ↕
+          </span>
+        )}
+      </button>
+    </th>
+  );
+}
+
 export function SavedActionsPanel({
   plan,
   actions: sourceActions,
@@ -38,7 +103,10 @@ export function SavedActionsPanel({
   onEmailShare,
 }: SavedActionsPanelProps) {
   const [query, setQuery] = useState("");
-  const actions = useMemo(() => {
+  const [sortKey, setSortKey] = useState<SortKey>("updated");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const filtered = useMemo(() => {
     void version;
     const list = sourceActions;
     const q = query.trim().toLowerCase();
@@ -68,7 +136,24 @@ export function SavedActionsPanel({
     });
   }, [plan, version, query, sourceActions]);
 
-  if (actions.length === 0 && !query) {
+  const actions = useMemo(() => {
+    const mult = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort(
+      (a, b) => mult * compareForSort(plan, a, b, sortKey),
+    );
+  }, [filtered, plan, sortKey, sortDir]);
+
+  function onSortHeaderClick(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      // Sensible default: newest-first for dates; A→Z for text columns.
+      setSortDir(key === "updated" ? "desc" : "asc");
+    }
+  }
+
+  if (sourceActions.length === 0 && !query) {
     return (
       <section className="card">
         <h2>Your submissions</h2>
@@ -103,13 +188,51 @@ export function SavedActionsPanel({
           <table className="saved-table">
             <thead>
               <tr>
-                <th>Record</th>
-                <th>Status</th>
-                <th>Legislation title</th>
-                <th>Department</th>
-                <th>Policy</th>
-                <th>Updated</th>
-                <th className="no-print">Actions</th>
+                <SortTh
+                  label="Record"
+                  colKey="record"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortTh
+                  label="Status"
+                  colKey="status"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortTh
+                  label="Legislation title"
+                  colKey="title"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortTh
+                  label="Department"
+                  colKey="department"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortTh
+                  label="Policy"
+                  colKey="policy"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <SortTh
+                  label="Updated"
+                  colKey="updated"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSortHeaderClick}
+                />
+                <th className="no-print" scope="col">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>

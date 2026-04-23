@@ -81,6 +81,19 @@ a:hover {
   margin-top: 0.1rem;
 }
 
+/* Primary entry in header: visible on navy gradient (uses .btn-secondary base). */
+.site-header-newaction {
+  text-decoration: none;
+  align-self: flex-end;
+  margin-bottom: 0.15rem;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.site-header-newaction:hover {
+  text-decoration: none;
+}
+
 .site-header-userbar .link-button.sign-out-link {
   color: #fef3c7;
   background: transparent;
@@ -518,6 +531,32 @@ textarea {
   font-weight: 600;
   color: var(--cabq-navy);
   background: #edf2f7;
+}
+
+.saved-table-sort {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.saved-table-sort:hover {
+  color: var(--cabq-navy-light);
+}
+
+.saved-table-sort-hint {
+  opacity: 0.45;
+  font-weight: 500;
 }
 
 .cell-clip {

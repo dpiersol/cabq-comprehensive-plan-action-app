@@ -1,9 +1,13 @@
+import { Link } from "react-router-dom";
 import { SignOutButton } from "./SignOutButton";
 import { useAuth } from "../useAuth";
 
 /**
  * Compact "Logged in as: {name}" + Sign out (+ Admin Console for admins) strip,
  * rendered in the top-right of the site header on authenticated pages.
+ *
+ * **New action** uses the same navigation as the home page card: `/app/compose`
+ * with `clearComposer` state so the composer resets (see `ComposerApp`).
  *
  * The display name is taken from the Entra ID token (`name` claim, via MSAL)
  * or from the mock session in `loginMock*`. Falls back to `"Test User"` when
@@ -15,6 +19,13 @@ export function SiteHeaderUserBar() {
 
   return (
     <div className="site-header-userbar no-print" aria-label="Account">
+      <Link
+        to="/app/compose"
+        state={{ clearComposer: true }}
+        className="btn btn-secondary site-header-newaction"
+      >
+        New action
+      </Link>
       <span className="site-header-userlabel">
         Logged in as: <strong>{displayName}</strong>
       </span>
