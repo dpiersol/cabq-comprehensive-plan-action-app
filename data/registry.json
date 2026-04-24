@@ -5,10 +5,1460 @@
     "percentComplete": 15,
     "summary": "Progress and file-level notes for the comprehensive plan action application. Update milestones and percent as delivery advances; extend files[] as you register components.",
     "milestones": [
-      { "name": "Foundation and repo setup", "done": true },
-      { "name": "Core user flows implemented", "done": false },
-      { "name": "Pilot-ready release", "done": false }
+      {
+        "name": "Foundation and repo setup",
+        "done": true
+      },
+      {
+        "name": "Core user flows implemented",
+        "done": false
+      },
+      {
+        "name": "Pilot-ready release",
+        "done": false
+      }
     ]
   },
-  "files": []
+  "files": [
+    {
+      "path": ".env.e2e",
+      "purpose": "Used by `vite build --mode e2e` so Playwright runs against mock Entra sign-in buttons.",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": ".env.example",
+      "purpose": "Azure Entra ID (SPA) — register a single-page app redirect to /auth/callback on each environment.",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:52:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": ".github/workflows/deploy.yml",
+      "purpose": "─────────────────────────────────────────────────────────────────────────────",
+      "createdAt": "2026-04-14T09:50:46-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-14T09:50:46-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": ".gitignore",
+      "purpose": "Git ignore rules for build output and local-only files.",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T19:35:42-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "purpose": "Changelog",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-20T07:30:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "README.md",
+      "purpose": "Project readme and setup documentation.",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:54:55-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "admin.html",
+      "purpose": "HTML document: admin.html",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T16:16:49-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "agent.md",
+      "purpose": "Agent / developer — release and build pipeline",
+      "createdAt": "2026-04-02T10:56:46-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T16:30:32-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "agents.md",
+      "purpose": "Agent and collaborator conventions",
+      "createdAt": "2026-04-02T09:31:57-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T16:30:32-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/README.md",
+      "purpose": "Shelved workflow stack (reference copy)",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/drizzle.config.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/drizzle.config.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/e2e/composer.spec.ts",
+      "purpose": "End-to-end test: composer.spec.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/e2e/smoke.spec.ts",
+      "purpose": "End-to-end test: smoke.spec.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/gen-workflow-plan.mjs",
+      "purpose": "Generates workflow_plan.docx at repo root (run: node scripts/gen-workflow-plan.mjs).",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/playwright.config.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/playwright.config.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/app.test.ts",
+      "purpose": "Automated test: app.test.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/app.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/app.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/db/client.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/db/client.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/db/schema.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/db/schema.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/db/seed.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/db/seed.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/db/seedDemoWorkflow.ts",
+      "purpose": "One submission per (queue, status, FI source) combination, × `perStep` copies.",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/htmlUtils.ts",
+      "purpose": "Plain text from HTML (Node) — mirrors the non-DOM branch in `src/htmlUtils.ts` for DOCX export.",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/index.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/index.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/scripts/seed-demo-workflow.ts",
+      "purpose": "Load demo workflow data (30 submissions by default: 6 steps × 5 each).",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/services/docx.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/services/docx.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/services/notifications.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/services/notifications.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/validation/snapshot.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/validation/snapshot.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/workflow/engine.test.ts",
+      "purpose": "Automated test: engine.test.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/workflow/engine.ts",
+      "purpose": "Non-Planning users may only act when their role matches the queue owner",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/server/workflow/types.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/server/workflow/types.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/src/api/workflowApi.ts",
+      "purpose": "TypeScript module: archive/workflow-shelved/src/api/workflowApi.ts",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/src/components/FiDepartmentRespond.tsx",
+      "purpose": "React component or page: archive/workflow-shelved/src/components/FiDepartmentRespond.tsx",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "archive/workflow-shelved/src/components/WorkflowPanel.tsx",
+      "purpose": "React component or page: archive/workflow-shelved/src/components/WorkflowPanel.tsx",
+      "createdAt": "2026-04-01T17:02:22-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:02:22-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "change.md",
+      "purpose": "Current release summary",
+      "createdAt": "2026-04-02T10:56:46-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-20T07:30:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "current_task.md",
+      "purpose": "Current task",
+      "createdAt": "2026-04-02T09:31:57-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:37:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "data/registry.json",
+      "purpose": "Application progress registry (phases, milestones, per-file purposes).",
+      "createdAt": "2026-04-24T13:10:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-24T13:10:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "deployment/MANUAL-DEPLOY.md",
+      "purpose": "Manual Deployment Guide — CABQ Comprehensive Plan Action App",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "deployment/deploy.ps1",
+      "purpose": "DEV (called automatically by GitHub Actions):",
+      "createdAt": "2026-04-14T09:50:46-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-14T10:29:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "deployment/server-setup.ps1",
+      "purpose": "Requires -RunAsAdministrator",
+      "createdAt": "2026-04-14T09:50:46-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-14T10:29:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "purpose": "Architecture (1.1.x)",
+      "createdAt": "2026-04-02T12:40:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T12:40:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "docs/VERSIONING.md",
+      "purpose": "Versioning policy",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "e2e/composer.spec.ts",
+      "purpose": "Automated test: composer.spec.ts",
+      "createdAt": "2026-04-01T16:47:48-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "e2e/helpers/auth.ts",
+      "purpose": "TypeScript module: e2e/helpers/auth.ts",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:54:55-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "e2e/smoke.spec.ts",
+      "purpose": "Automated test: smoke.spec.ts",
+      "createdAt": "2026-04-01T16:47:48-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "ecosystem.config.cjs",
+      "purpose": "PM2 ecosystem config for the CABQ Comprehensive Plan Action App.",
+      "createdAt": "2026-04-14T09:50:46-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T19:52:05-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "eslint.config.js",
+      "purpose": "Source file: eslint.config.js",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:54:55-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "future_work.md",
+      "purpose": "Future work (not yet implemented)",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "index.html",
+      "purpose": "HTML document: index.html",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T15:38:00-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "package-lock.json",
+      "purpose": "Lockfile for reproducible dependency installs.",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-20T07:30:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "package.json",
+      "purpose": "NPM package metadata, scripts, and dependency declarations.",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-20T07:30:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "playwright.config.ts",
+      "purpose": "TypeScript module: playwright.config.ts",
+      "createdAt": "2026-04-01T16:47:48-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T12:40:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "public/city-seal.png",
+      "purpose": "Source file: public/city-seal.png",
+      "createdAt": "2026-04-02T15:55:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T15:55:49-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "public/data/CoA_Department_List.csv",
+      "purpose": "Source file: public/data/CoA_Department_List.csv",
+      "createdAt": "2026-04-01T13:39:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T13:39:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "public/data/comprehensive-plan-hierarchy.json",
+      "purpose": "JSON data or config: public/data/comprehensive-plan-hierarchy.json",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T11:06:38-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "public/web.config",
+      "purpose": "Source file: public/web.config",
+      "createdAt": "2026-04-14T09:50:46-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-14T09:50:46-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "scripts/deploy.ps1",
+      "purpose": "requires -Version 5.1",
+      "createdAt": "2026-04-18T19:58:06-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T19:58:06-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "scripts/excel_to_hierarchy.py",
+      "purpose": "Expected header labels (sheet may use typo \"Sub Policy Decription\")",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T11:06:38-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "scripts/push-to-sandbox.ps1",
+      "purpose": "requires -Version 5.1",
+      "createdAt": "2026-04-18T19:58:06-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T19:58:06-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "scripts/smoke-api.mjs",
+      "purpose": "Node script: scripts/smoke-api.mjs",
+      "createdAt": "2026-04-01T13:04:37-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T13:04:37-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/adminAuth.ts",
+      "purpose": "Kept as a helper for legacy callers; prefer reading from effective config via `isAdminFor()`. */",
+      "createdAt": "2026-04-18T12:47:18-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:58:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/app.test.ts",
+      "purpose": "Automated test: app.test.ts",
+      "createdAt": "2026-04-01T13:04:37-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T12:47:18-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/app.ts",
+      "purpose": "TypeScript module: server/app.ts",
+      "createdAt": "2026-04-01T13:04:37-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T20:45:25-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/auditRepo.ts",
+      "purpose": "TypeScript module: server/auditRepo.ts",
+      "createdAt": "2026-04-18T15:52:53-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:52:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/authConfig.test.ts",
+      "purpose": "Automated test: authConfig.test.ts",
+      "createdAt": "2026-04-18T15:58:54-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:58:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/authConfigRepo.ts",
+      "purpose": "Dynamic auth configuration managed in the DB. DB values override env when",
+      "createdAt": "2026-04-18T15:58:54-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:58:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/authConfigRoutes.ts",
+      "purpose": "Everything here is safe to expose to unauth clients — helps the login UI",
+      "createdAt": "2026-04-18T15:58:54-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:58:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/authContext.ts",
+      "purpose": "TypeScript module: server/authContext.ts",
+      "createdAt": "2026-04-17T21:54:55-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:58:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/azureJwt.ts",
+      "purpose": "TypeScript module: server/azureJwt.ts",
+      "createdAt": "2026-04-17T22:37:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:58:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/bootstrapAdmin.ts",
+      "purpose": "Create a bootstrap admin account on first start if the `local_users` table",
+      "createdAt": "2026-04-18T15:52:53-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:52:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/buildSubmissionPdf.ts",
+      "purpose": "TypeScript module: server/buildSubmissionPdf.ts",
+      "createdAt": "2026-04-02T12:40:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/db/database.ts",
+      "purpose": "TypeScript module: server/db/database.ts",
+      "createdAt": "2026-04-17T21:54:55-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/index.ts",
+      "purpose": "Load a .env file from the working directory (if present) BEFORE any other",
+      "createdAt": "2026-04-01T13:04:37-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T19:35:42-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/localAuth.test.ts",
+      "purpose": "Automated test: localAuth.test.ts",
+      "createdAt": "2026-04-18T15:52:53-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:52:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/localAuthRoutes.ts",
+      "purpose": "TypeScript module: server/localAuthRoutes.ts",
+      "createdAt": "2026-04-18T15:52:53-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/localSessionJwt.ts",
+      "purpose": "TypeScript module: server/localSessionJwt.ts",
+      "createdAt": "2026-04-18T15:52:53-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:52:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/localUsersRepo.ts",
+      "purpose": "TypeScript module: server/localUsersRepo.ts",
+      "createdAt": "2026-04-18T15:52:53-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:52:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/passwords.ts",
+      "purpose": "Work factor for bcrypt. 12 is a common modern default (≈150ms on a 2024",
+      "createdAt": "2026-04-18T15:52:53-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T15:52:53-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/reports/reports.test.ts",
+      "purpose": "Automated test: reports.test.ts",
+      "createdAt": "2026-04-18T20:45:25-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/reports/reportsRepo.ts",
+      "purpose": "Aggregation queries that power the Admin → Security → Reports pages.",
+      "createdAt": "2026-04-18T20:45:25-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/reports/reportsRoutes.ts",
+      "purpose": "HTTP routes for the Admin → Security → Reports area.",
+      "createdAt": "2026-04-18T20:45:25-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/snapshotValidate.ts",
+      "purpose": "TypeScript module: server/snapshotValidate.ts",
+      "createdAt": "2026-04-17T21:54:55-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/splitLabel.test.ts",
+      "purpose": "Automated test: splitLabel.test.ts",
+      "createdAt": "2026-04-02T13:00:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T13:00:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/splitLabel.ts",
+      "purpose": "Split combined labels like `1 — Chapter title` (from the app) into number/title parts",
+      "createdAt": "2026-04-02T13:00:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T13:00:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/submissionPatchBody.ts",
+      "purpose": "TypeScript module: server/submissionPatchBody.ts",
+      "createdAt": "2026-04-17T22:23:40-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/submissionsRepo.ts",
+      "purpose": "TypeScript module: server/submissionsRepo.ts",
+      "createdAt": "2026-04-17T21:54:55-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/templateDocumentXml.test.ts",
+      "purpose": "Automated test: templateDocumentXml.test.ts",
+      "createdAt": "2026-04-02T13:00:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T13:00:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/templateDocumentXml.ts",
+      "purpose": "The city's Word template sometimes splits placeholders across multiple `<w:r>` runs,",
+      "createdAt": "2026-04-02T13:00:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T13:00:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/templates/README.md",
+      "purpose": "Comprehensive Plan print template (Word)",
+      "createdAt": "2026-04-02T13:00:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T13:00:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "server/templates/comp-plan-print-template.docx",
+      "purpose": "Source file: server/templates/comp-plan-print-template.docx",
+      "createdAt": "2026-04-02T13:00:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T13:00:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/App.tsx",
+      "purpose": "React component or page: src/App.tsx",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:54:55-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/ComposerApp.tsx",
+      "purpose": "React component or page: src/ComposerApp.tsx",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/actionRecord.test.ts",
+      "purpose": "Automated test: actionRecord.test.ts",
+      "createdAt": "2026-03-31T12:59:01-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T12:40:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/actionRecord.ts",
+      "purpose": "TypeScript module: src/actionRecord.ts",
+      "createdAt": "2026-03-31T12:59:01-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T11:23:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AdminApp.tsx",
+      "purpose": "React component or page: src/admin/AdminApp.tsx",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AdminAuthGate.tsx",
+      "purpose": "Gates the admin console behind sign-in + admin role. Supports both local",
+      "createdAt": "2026-04-18T12:47:18-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AdminChangePassword.tsx",
+      "purpose": "React component or page: src/admin/AdminChangePassword.tsx",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AdminLogin.tsx",
+      "purpose": "Prefer SSO tab if it's available and local isn't.",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AdminSubmissionDetail.tsx",
+      "purpose": "React component or page: src/admin/AdminSubmissionDetail.tsx",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AdminSubmissionsList.tsx",
+      "purpose": "React component or page: src/admin/AdminSubmissionsList.tsx",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T12:47:18-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AuditPage.tsx",
+      "purpose": "React component or page: src/admin/AuditPage.tsx",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/AuthSettingsPage.tsx",
+      "purpose": "React component or page: src/admin/AuthSettingsPage.tsx",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/README.md",
+      "purpose": "Admin / submissions backend (placeholder)",
+      "createdAt": "2026-04-02T12:40:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T12:40:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/RolesPage.tsx",
+      "purpose": "React component or page: src/admin/RolesPage.tsx",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/UsersPage.tsx",
+      "purpose": "React component or page: src/admin/UsersPage.tsx",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/admin.css",
+      "purpose": "Stylesheet: src/admin/admin.css",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T20:56:47-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/adminApi.ts",
+      "purpose": "Prefer local-session JWT when present, otherwise fall back to Entra silent token.",
+      "createdAt": "2026-04-18T12:47:18-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/authAdminApi.ts",
+      "purpose": "TypeScript module: src/admin/authAdminApi.ts",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/main.tsx",
+      "purpose": "React component or page: src/admin/main.tsx",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T12:47:18-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/reports/AuthSecurityPage.tsx",
+      "purpose": "React component or page: src/admin/reports/AuthSecurityPage.tsx",
+      "createdAt": "2026-04-18T20:56:47-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T20:56:47-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/reports/CoveragePage.tsx",
+      "purpose": "React component or page: src/admin/reports/CoveragePage.tsx",
+      "createdAt": "2026-04-18T20:56:47-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T20:56:47-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/reports/LifecyclePage.tsx",
+      "purpose": "Format a raw hours figure the way people actually say it:",
+      "createdAt": "2026-04-18T21:04:43-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/reports/ReportsLanding.tsx",
+      "purpose": "React component or page: src/admin/reports/ReportsLanding.tsx",
+      "createdAt": "2026-04-18T20:45:25-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/reports/SubmissionsOverviewPage.tsx",
+      "purpose": "React component or page: src/admin/reports/SubmissionsOverviewPage.tsx",
+      "createdAt": "2026-04-18T20:45:25-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T20:45:25-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/reports/UserActivityPage.tsx",
+      "purpose": "React component or page: src/admin/reports/UserActivityPage.tsx",
+      "createdAt": "2026-04-18T20:45:25-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T20:45:25-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/reports/reportsApi.ts",
+      "purpose": "TypeScript module: src/admin/reports/reportsApi.ts",
+      "createdAt": "2026-04-18T20:45:25-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T21:04:43-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/admin/seedTestData.ts",
+      "purpose": "── Animal Welfare ──",
+      "createdAt": "2026-04-02T16:30:32-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T16:30:32-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/apiConfig.ts",
+      "purpose": "In development, call the Fastify API directly so Submit works even when the Vite `/api`",
+      "createdAt": "2026-04-02T13:25:27-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T13:25:27-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/appVersion.ts",
+      "purpose": "TypeScript module: src/appVersion.ts",
+      "createdAt": "2026-03-31T12:59:01-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T12:59:01-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/auth.ts",
+      "purpose": "Client-side session view of the signed-in user (Entra ID or dev mock).",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/auth/entraEligibility.test.ts",
+      "purpose": "Automated test: entraEligibility.test.ts",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/auth/entraEligibility.ts",
+      "purpose": "Entra ID token claims helpers — eligibility for cabq.gov accounts.",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/auth/localSession.ts",
+      "purpose": "TypeScript module: src/auth/localSession.ts",
+      "createdAt": "2026-04-18T16:09:21-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/ActionDescriptionEditor.tsx",
+      "purpose": "React component or page: src/components/ActionDescriptionEditor.tsx",
+      "createdAt": "2026-04-01T16:47:48-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/ComprehensivePlanForm.tsx",
+      "purpose": "React component or page: src/components/ComprehensivePlanForm.tsx",
+      "createdAt": "2026-04-02T12:40:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/DepartmentCombobox.tsx",
+      "purpose": "React component or page: src/components/DepartmentCombobox.tsx",
+      "createdAt": "2026-04-01T13:38:18-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/EntraAuthSync.tsx",
+      "purpose": "React component or page: src/components/EntraAuthSync.tsx",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/ErrorBoundary.tsx",
+      "purpose": "React component or page: src/components/ErrorBoundary.tsx",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T13:09:56-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/HierarchySearch.tsx",
+      "purpose": "React component or page: src/components/HierarchySearch.tsx",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T10:30:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/PrintPreview.tsx",
+      "purpose": "Mirrors the Word print template layout.",
+      "createdAt": "2026-04-02T15:49:07-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T16:01:49-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/ProtectedRoute.tsx",
+      "purpose": "Allows access when:",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/SavedActionsPanel.tsx",
+      "purpose": "React component or page: src/components/SavedActionsPanel.tsx",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/SignOutButton.tsx",
+      "purpose": "If the caller is on a local session, just clear it locally.",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T16:09:21-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/SiteHeaderUserBar.tsx",
+      "purpose": "Compact \"Logged in as: {name}\" + Sign out (+ Admin Console for admins) strip,",
+      "createdAt": "2026-04-18T13:32:04-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/components/SubmitPreviewModal.tsx",
+      "purpose": "React component or page: src/components/SubmitPreviewModal.tsx",
+      "createdAt": "2026-04-17T22:23:40-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/contacts.ts",
+      "purpose": "TypeScript module: src/contacts.ts",
+      "createdAt": "2026-04-01T11:03:13-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T11:03:13-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/data/coaDepartments.test.ts",
+      "purpose": "Automated test: coaDepartments.test.ts",
+      "createdAt": "2026-04-01T13:39:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T13:39:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/data/coaDepartments.ts",
+      "purpose": "City of Albuquerque department list (from `public/data/CoA_Department_List.csv`).",
+      "createdAt": "2026-04-01T13:39:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T13:39:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/downloadSubmissionPdf.ts",
+      "purpose": "TypeScript module: src/downloadSubmissionPdf.ts",
+      "createdAt": "2026-04-17T22:23:40-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/draftStorage.test.ts",
+      "purpose": "Automated test: draftStorage.test.ts",
+      "createdAt": "2026-03-31T12:59:01-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T11:23:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/draftStorage.ts",
+      "purpose": "TypeScript module: src/draftStorage.ts",
+      "createdAt": "2026-03-31T12:59:01-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T11:23:54-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/htmlUtils.test.ts",
+      "purpose": "Automated test: htmlUtils.test.ts",
+      "createdAt": "2026-04-01T16:47:48-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T16:47:48-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/htmlUtils.ts",
+      "purpose": "Plain text from HTML for validation and character counts (rich text editor output).",
+      "createdAt": "2026-04-01T16:47:48-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T16:47:48-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/index.css",
+      "purpose": "root {",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/labels.test.ts",
+      "purpose": "Automated test: labels.test.ts",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T09:58:19-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/labels.ts",
+      "purpose": "TypeScript module: src/labels.ts",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T09:58:19-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/legislationMailto.ts",
+      "purpose": "TypeScript module: src/legislationMailto.ts",
+      "createdAt": "2026-04-17T22:23:40-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/main.tsx",
+      "purpose": "React component or page: src/main.tsx",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:37:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/msal/msalConfig.ts",
+      "purpose": "MSAL configuration for Azure Entra ID (single-tenant SPA).",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:37:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/msal/msalInstance.ts",
+      "purpose": "Access token for `/api/submissions` when Entra exposes an API scope.",
+      "createdAt": "2026-04-17T22:37:11-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T12:47:18-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/pages/AccessDeniedPage.tsx",
+      "purpose": "React component or page: src/pages/AccessDeniedPage.tsx",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/pages/AppHomePage.tsx",
+      "purpose": "React component or page: src/pages/AppHomePage.tsx",
+      "createdAt": "2026-04-17T21:54:55-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-18T13:32:04-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/pages/AuthCallbackPage.tsx",
+      "purpose": "OAuth redirect URI — MSAL completes in {@link ../main.tsx} before render; we route users into the app.",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/pages/LandingPage.tsx",
+      "purpose": "React component or page: src/pages/LandingPage.tsx",
+      "createdAt": "2026-04-17T21:21:45-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T21:21:45-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/buildPlanSearchIndex.test.ts",
+      "purpose": "Automated test: buildPlanSearchIndex.test.ts",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T10:09:02-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/buildPlanSearchIndex.ts",
+      "purpose": "Flatten the plan into searchable rows. Each row includes the full ancestor chain in `searchBlob`",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T10:09:02-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/entryToTarget.test.ts",
+      "purpose": "Automated test: entryToTarget.test.ts",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T13:24:50-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/entryToTarget.ts",
+      "purpose": "TypeScript module: src/planSearch/entryToTarget.ts",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T13:24:50-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/searchPlan.test.ts",
+      "purpose": "Automated test: searchPlan.test.ts",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T10:09:02-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/searchPlan.ts",
+      "purpose": "TypeScript module: src/planSearch/searchPlan.ts",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T10:09:02-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/searchText.test.ts",
+      "purpose": "Automated test: searchText.test.ts",
+      "createdAt": "2026-04-01T10:09:02-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T10:09:02-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/searchText.ts",
+      "purpose": "TypeScript module: src/planSearch/searchText.ts",
+      "createdAt": "2026-04-01T10:09:02-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T10:09:02-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSearch/types.ts",
+      "purpose": "TypeScript module: src/planSearch/types.ts",
+      "createdAt": "2026-03-31T13:24:50-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T13:24:50-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/planSelection.ts",
+      "purpose": "TypeScript module: src/planSelection.ts",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T17:37:42-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/printFields.ts",
+      "purpose": "The 11 fields that map to the Word print template placeholders.",
+      "createdAt": "2026-04-02T15:49:07-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T15:49:07-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/savedActionsStore.ts",
+      "purpose": "Browser localStorage persistence for **admin.html** and legacy/dev use.",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/submissionMerge.test.ts",
+      "purpose": "Automated test: submissionMerge.test.ts",
+      "createdAt": "2026-04-02T12:40:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T12:40:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/submissionMerge.ts",
+      "purpose": "Builds merge fields for PDF (and future Word) from the draft and plan data.",
+      "createdAt": "2026-04-02T12:40:08-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T12:40:08-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/submissionStatus.ts",
+      "purpose": "TypeScript module: src/submissionStatus.ts",
+      "createdAt": "2026-04-17T22:23:40-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:23:40-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/submissionsApi.ts",
+      "purpose": "TypeScript module: src/submissionsApi.ts",
+      "createdAt": "2026-04-17T21:54:55-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:37:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/types.ts",
+      "purpose": "TypeScript module: src/types.ts",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T09:58:19-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/useAuth.ts",
+      "purpose": "TypeScript module: src/useAuth.ts",
+      "createdAt": "2026-04-02T16:16:49-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T16:16:49-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/validation.test.ts",
+      "purpose": "Automated test: validation.test.ts",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T11:41:46-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/validation.ts",
+      "purpose": "TypeScript module: src/validation.ts",
+      "createdAt": "2026-03-31T13:09:56-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T11:41:46-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "purpose": "/ <reference types=\"vite/client\" />",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-17T22:37:11-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "tsconfig.app.json",
+      "purpose": "JSON data or config: tsconfig.app.json",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T11:06:38-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "tsconfig.json",
+      "purpose": "JSON data or config: tsconfig.json",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T11:06:38-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "tsconfig.node.json",
+      "purpose": "JSON data or config: tsconfig.node.json",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-03-31T11:06:38-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "tsconfig.server.json",
+      "purpose": "JSON data or config: tsconfig.server.json",
+      "createdAt": "2026-04-01T13:04:37-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T13:04:37-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "vite.config.ts",
+      "purpose": "Vite 8 can serve `dist/client/client.mjs` with `__BUNDLED_DEV__` / `__SERVER_FORWARD_CONSOLE__`",
+      "createdAt": "2026-03-31T11:06:38-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-02T16:16:49-06:00",
+      "modifiedBy": "dpiersol"
+    },
+    {
+      "path": "workflow_plan.docx",
+      "purpose": "Source file: workflow_plan.docx",
+      "createdAt": "2026-04-01T13:04:37-06:00",
+      "createdBy": "dpiersol",
+      "modifiedAt": "2026-04-01T13:04:37-06:00",
+      "modifiedBy": "dpiersol"
+    }
+  ]
 }
