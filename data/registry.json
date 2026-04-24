@@ -1,0 +1,14 @@
+{
+  "appName": "CABQ comprehensive plan action app",
+  "progress": {
+    "phase": "Active development",
+    "percentComplete": 15,
+    "summary": "Progress and file-level notes for the comprehensive plan action application. Update milestones and percent as delivery advances; extend files[] as you register components.",
+    "milestones": [
+      { "name": "Foundation and repo setup", "done": true },
+      { "name": "Core user flows implemented", "done": false },
+      { "name": "Pilot-ready release", "done": false }
+    ]
+  },
+  "files": []
+}
