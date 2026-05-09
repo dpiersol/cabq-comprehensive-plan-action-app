@@ -1,0 +1,192 @@
+{
+  "schemaVersion": "1.0",
+  "project": {
+    "id": "cabq-comprehensive-plan-action-app",
+    "name": "CABQ Comprehensive Plan Action App",
+    "type": "web-app",
+    "repoPathHint": "/Users/e25347/development/repos/cabq-comprehensive-plan-action-app",
+    "owner": "David Piersol",
+    "stakeholders": [
+      "Planning",
+      "Departments",
+      "City admins"
+    ],
+    "sourceOfTruth": "local-repo"
+  },
+  "visibility": {
+    "dashboard": true,
+    "jira": false,
+    "confluence": false,
+    "hidden": false
+  },
+  "syncPolicy": {
+    "mode": "dashboard_only",
+    "askBeforeEnablingExternalSync": true,
+    "reason": "Active local application work, but not currently a Jira/Confluence sponsored sync project."
+  },
+  "versioning": {
+    "scheme": "MSP",
+    "format": "vM.S.P[-label]",
+    "currentVersion": "v3.3.0",
+    "targetVersion": "v3.4.0",
+    "milestones": [
+      {
+        "id": "m1",
+        "name": "Build",
+        "targetVersion": "v1.0.0",
+        "status": "in_progress",
+        "targetDate": "2026-05-08"
+      }
+    ]
+  },
+  "delivery": {
+    "status": "active",
+    "phase": "Admin API and reporting follow-up",
+    "checkpointDate": "2026-05-15",
+    "pilotTargetDate": "TBD",
+    "confidence": "medium"
+  },
+  "integrations": {
+    "jira": {
+      "enabled": false,
+      "projectKey": "",
+      "projectName": "",
+      "syncMode": "disabled"
+    },
+    "confluence": {
+      "enabled": false,
+      "spaceKey": "",
+      "pageId": "",
+      "generatedSectionMode": "replace-between-markers"
+    },
+    "dashboard": {
+      "enabled": true,
+      "syncMode": "local-scan"
+    }
+  },
+  "environments": [
+    {
+      "key": "local",
+      "label": "Local",
+      "status": "healthy",
+      "url": null,
+      "owner": "developer"
+    },
+    {
+      "key": "dev",
+      "label": "Development",
+      "status": "not_configured",
+      "url": null,
+      "owner": "team"
+    },
+    {
+      "key": "uat",
+      "label": "UAT",
+      "status": "not_configured",
+      "url": null,
+      "owner": "stakeholder"
+    },
+    {
+      "key": "prod",
+      "label": "Production",
+      "status": "not_configured",
+      "url": null,
+      "owner": "team"
+    }
+  ],
+  "promptSprints": [
+    {
+      "id": "P1",
+      "name": "BuildTrack retrofit and baseline",
+      "lane": "foundation",
+      "milestoneId": "m1",
+      "versionScope": "v3.3.0",
+      "status": "done",
+      "jiraKey": null,
+      "summary": "Track the current v3.3.0 application state in BuildTrack without altering product code.",
+      "validation": {
+        "build": "passed",
+        "tests": "passed",
+        "approval": "pending"
+      },
+      "acceptance": [
+        "Project plan exists.",
+        "Cursor rule exists.",
+        "Current version and next sprint are captured."
+      ],
+      "recommendedPrompt": "Review the Comprehensive Plan app project plan and confirm the v3.4.0 admin/reporting focus."
+    },
+    {
+      "id": "P2",
+      "name": "Admin API protection and role model",
+      "lane": "security",
+      "milestoneId": "m1",
+      "versionScope": "v3.4.0-dev",
+      "status": "in_progress",
+      "jiraKey": null,
+      "summary": "Move admin follow-up toward protected API workflows and stronger role separation.",
+      "validation": {
+        "build": "not_run",
+        "tests": "not_run",
+        "approval": "pending"
+      },
+      "acceptance": [
+        "Admin API protection approach is documented.",
+        "Current Entra/API assumptions are visible.",
+        "ALLOW_HEADER_IDENTITY removal path is tracked."
+      ],
+      "recommendedPrompt": "Plan and implement the next protected admin API slice for the Comprehensive Plan app."
+    },
+    {
+      "id": "P3",
+      "name": "Admin data sync and reporting library",
+      "lane": "admin",
+      "milestoneId": "m1",
+      "versionScope": "v3.5.0-dev",
+      "status": "todo",
+      "jiraKey": null,
+      "summary": "Wire admin console away from localStorage toward server-backed submissions and reporting.",
+      "validation": {
+        "build": "not_run",
+        "tests": "not_run",
+        "approval": "pending"
+      },
+      "acceptance": [
+        "Admin views read server-backed rows.",
+        "Reporting library requirements are captured.",
+        "Print/export flows remain functional."
+      ],
+      "recommendedPrompt": "Wire the Comprehensive Plan admin console to protected server-backed submission rows and reporting outputs."
+    },
+    {
+      "id": "P4",
+      "name": "Production deploy and environment hardening",
+      "lane": "release",
+      "milestoneId": "m1",
+      "versionScope": "v3.6.0-dev",
+      "status": "todo",
+      "jiraKey": null,
+      "summary": "Finalize environment, deploy, and test posture for a stable internal release.",
+      "validation": {
+        "build": "not_run",
+        "tests": "not_run",
+        "approval": "pending"
+      },
+      "acceptance": [
+        "Build, lint, test, and e2e gates pass.",
+        "Environment variables are documented.",
+        "Deployment checklist is current."
+      ],
+      "recommendedPrompt": "Run the Comprehensive Plan production hardening pass and update deployment documentation."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B1",
+      "title": "Expose API / access_as_user consent must be configured per environment",
+      "owner": "Entra admin",
+      "eta": "TBD",
+      "status": "open"
+    }
+  ]
+}
